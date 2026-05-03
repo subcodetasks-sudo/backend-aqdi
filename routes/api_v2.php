@@ -9,7 +9,6 @@ use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
 use App\Http\Controllers\Api\V2\RealEstateControllor as V2RealEstateControllor;
 use App\Http\Controllers\Api\V2\SavedRealEstateController as V2SavedRealEstateController;
-use App\Http\Controllers\Api\V2\TenantRoleController as V2TenantRoleController;
 use App\Http\Controllers\Api\V2\UnitEstateController as V2UnitEstateController;
 use App\Http\Middleware\ApiLocalization;
 use App\Http\Middleware\CheckApi;
@@ -41,6 +40,14 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
+});
+
+Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{id}', 'show');
+    Route::match(['put', 'patch'], '/{id}', 'update');
+    Route::delete('/{id}', 'destroy');
 });
 
 Route::prefix('auth') ->controller(AuthController::class)->group(function () {
@@ -131,7 +138,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ],
     ];
 
-    return response()->json([
+        return response()->json([
         'data' => $ads,
         'message' => trans('api.success')
     ]);
@@ -147,13 +154,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
             ->withoutMiddleware('auth:sanctum')
             ->name('payment.show');
-    });
-Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {
-        Route::get('/', 'index');
-        Route::post('/', 'store');
-        Route::get('/{id}', 'show');
-        Route::match(['put', 'patch'], '/{id}', 'update');
-        Route::delete('/{id}', 'destroy');
     });
 });
 
