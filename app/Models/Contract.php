@@ -38,7 +38,11 @@ class Contract extends Model
     */
  
     protected $guarded = ['id'];
-    
+
+    protected $casts = [
+        'tenant_role_ids' => 'array',
+    ];
+
     protected $appends = [
         'created_at_label',
         'strong_argument_photo_path',
@@ -64,6 +68,24 @@ class Contract extends Model
             // Generate UUID
             $model->uuid = self::generateUUID();
      
+        });
+
+        self::saving(function (Contract $model): void {
+            if ($model->isDirty('tenant_role_ids')) {
+                $ids = $model->tenant_role_ids;
+                $normalized = is_array($ids)
+                    ? array_values(array_unique(array_filter(array_map(static fn ($v) => (int) $v, $ids))))
+                    : [];
+                $model->tenant_role_ids = $normalized !== [] ? $normalized : null;
+                $model->tenant_role_id = $normalized[0] ?? null;
+
+                return;
+            }
+
+            if ($model->isDirty('tenant_role_id')) {
+                $tid = $model->tenant_role_id;
+                $model->tenant_role_ids = $tid !== null && $tid !== '' ? [(int) $tid] : null;
+            }
         });
     }
 
