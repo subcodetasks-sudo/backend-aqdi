@@ -102,6 +102,7 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
                         'copy_power_of_attorney_from_heirs_to_agent' => $contract->copy_power_of_attorney_from_heirs_to_agent,
                         'Image_inheritance_certificate' => $contract->Image_inheritance_certificate,
                         'tenant_roles' => $contract->tenant_roles,
+                        'tenant_role_ids' => $contract->tenant_role_ids ?? [],
                         'tenant_role_id' => $contract->tenant_role_id,
                         'additional_terms' => $contract->additional_terms,
                         'text_additional_terms' => $contract->text_additional_terms,

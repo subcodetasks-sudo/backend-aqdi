@@ -1,0 +1,66 @@
+{
+    "info": {
+        "_postman_id": "aqdi-contract-v2-step3-step6",
+        "name": "AQDI API V2 — Contract Step 3 & 6 (examples)",
+        "description": "Requires `auth:sanctum`. Base path: `{{baseUrl}}/api/v2`.\n\n**Step 3** — optional `notes_edits` (ملاحظات التعديلات).\n\n**Step 6** — `tenant_role_ids` as JSON array (preferred); legacy single `tenant_role_id` still accepted.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "token", "value": "" },
+        { "key": "contract_id", "value": "1" }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+    },
+    "item": [
+        {
+            "name": "Contract — Step 3 (with optional notes_edits)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Accept", "value": "application/json", "type": "text" },
+                    { "key": "Content-Type", "value": "application/json", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_dob_property_owner\": \"hijri\",\n  \"name_owner\": \"اسم المالك\",\n  \"property_owner_id_num\": \"1234567890\",\n  \"property_owner_dob_day\": \"15\",\n  \"property_owner_dob_month\": \"06\",\n  \"property_owner_dob_year\": \"1410\",\n  \"property_owner_mobile\": \"0512345678\",\n  \"property_owner_iban\": \"SA0380000000608010167500\",\n  \"add_legal_agent_of_owner\": \"0\",\n  \"notes_edits\": \"ملاحظات التعديلات على مسودة العقد — حقل اختياري\"\n}"
+                },
+                "url": "{{baseUrl}}/api/v2/contract/step3",
+                "description": "أرسل `notes_edits` فقط إذا احتجته؛ يمكن حذف المفتاح بالكامل."
+            }
+        },
+        {
+            "name": "Contract — Step 6 (tenant_role_ids list)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Accept", "value": "application/json", "type": "text" },
+                    { "key": "Content-Type", "value": "application/json", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_hijri_day\": \"01\",\n  \"contract_starting_date_hijri_month\": \"01\",\n  \"contract_starting_date_hijri_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_ids\": [1, 2],\n  \"additional_terms\": false\n}"
+                },
+                "url": "{{baseUrl}}/api/v2/contract/step6",
+                "description": "استبدل أرقام `tenant_role_ids` بمعرفات موجودة من جدول `tenant_roles`. بدلاً من القائمة يمكن إرسال قيمة واحدة قديمة: `\"tenant_role_id\": 1`."
+            }
+        },
+        {
+            "name": "Contract — Step 6 (legacy single tenant_role_id)",
+            "request": {
+                "method": "POST",
+                "header": [
+                    { "key": "Accept", "value": "application/json", "type": "text" },
+                    { "key": "Content-Type", "value": "application/json", "type": "text" }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_hijri_day\": \"01\",\n  \"contract_starting_date_hijri_month\": \"01\",\n  \"contract_starting_date_hijri_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_id\": 1,\n  \"additional_terms\": false\n}"
+                },
+                "url": "{{baseUrl}}/api/v2/contract/step6"
+            }
+        }
+    ]
+}

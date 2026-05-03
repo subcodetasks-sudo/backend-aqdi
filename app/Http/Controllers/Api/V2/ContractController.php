@@ -28,7 +28,6 @@ use App\Models\Setting;
 use App\Support\ContractStartingDateInput;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
-use Illuminate\Contracts\Validation\Rule;
 
 class ContractController extends Controller
 {
@@ -257,10 +256,15 @@ class ContractController extends Controller
             'property_owner_dob' => $dob,
         ];
 
+        $notesPayload = [];
+        if ($request->has('notes_edits')) {
+            $notesPayload['notes_edits'] = $request->input('notes_edits');
+        }
+
         if ($contract->instrument_type === 'lease_renewal') {
             $data = array_merge([
                 'step' => 5,
-            ], $typePayload, $dobPayload);
+            ], $typePayload, $dobPayload, $notesPayload);
             if ($request->filled('name_owner')) {
                 $data['name_owner'] = $request->name_owner;
             }
@@ -287,7 +291,7 @@ class ContractController extends Controller
             'property_owner_iban' => $request->property_owner_iban,
             'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
             'step' => 4,
-        ], $typePayload, $dobPayload);
+        ], $typePayload, $dobPayload, $notesPayload);
     }
 
     private function normalizeOwnerCalendarType(mixed $value): string
@@ -295,6 +299,23 @@ class ContractController extends Controller
         $raw = strtolower(trim((string) ($value ?? 'hijri')));
 
         return in_array($raw, ['hijri', 'gregorian'], true) ? $raw : 'hijri';
+    }
+
+    /**
+     * Step 6: `tenant_role_ids` is the canonical list; `tenant_role_id` keeps the first id for legacy BelongsTo.
+     *
+     * @return array{0: list<int>, 1: int|null}
+     */
+    private function normalizeTenantRoleIdsFromStep6Request(Step6Request $request): array
+    {
+        $raw = $request->input('tenant_role_ids');
+        $ids = is_array($raw) ? $raw : [];
+
+        $ids = array_values(array_unique(array_filter(array_map(static fn ($v) => (int) $v, $ids))));
+
+        $first = $ids[0] ?? null;
+
+        return [$ids, $first];
     }
 
     private function hasOwnerAgent(Step3Request $request): bool
@@ -493,9 +514,12 @@ class ContractController extends Controller
             'additional_terms' => $request->additional_terms ?? 0,
             'text_additional_terms' => $request->text_additional_terms,
             'tenant_roles' => $request->tenant_roles ?? 0,
-            'tenant_role_id' => $request->tenant_role_id,
             'step' => 7,
         ];
+
+        [$tenantRoleIds, $firstTenantRoleId] = $this->normalizeTenantRoleIdsFromStep6Request($request);
+        $data['tenant_role_ids'] = $tenantRoleIds !== [] ? $tenantRoleIds : null;
+        $data['tenant_role_id'] = $firstTenantRoleId;
 
         if ($request->filled('other_conditions')) {
             $data['other_conditions'] = $request->other_conditions;

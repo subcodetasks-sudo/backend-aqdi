@@ -174,6 +174,7 @@ class Step3Request extends BaseApiV2Request
             'dob_of_property_owner_agent_year' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10|regex:/^05[0-9]{8}$/',
             'copy_of_the_authorization_or_agency' => 'nullable',
+            'notes_edits' => 'nullable|string|max:20000',
         ];
     }
 
@@ -202,6 +203,7 @@ class Step3Request extends BaseApiV2Request
             'dob_of_property_owner_agent_year' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10|regex:/^05[0-9]{8}$/',
             'copy_of_the_authorization_or_agency' => 'nullable',
+            'notes_edits' => 'nullable|string|max:20000',
         ];
     }
 

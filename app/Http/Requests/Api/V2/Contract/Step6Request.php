@@ -11,6 +11,13 @@ class Step6Request extends BaseApiV2Request
     protected function prepareForValidation(): void
     {
         ContractStartingDateInput::prepareRequest($this);
+
+        $legacy = $this->input('tenant_role_id');
+        if (($legacy !== null && $legacy !== '') && ! $this->filled('tenant_role_ids')) {
+            $this->merge([
+                'tenant_role_ids' => [(int) $legacy],
+            ]);
+        }
     }
 
     public function authorize(): bool
@@ -33,7 +40,9 @@ class Step6Request extends BaseApiV2Request
             'other_conditions' => 'required_if:conditions,1|string|max:255',
             'additional_terms' => 'nullable|boolean',
              'tenant_roles' => 'nullable|boolean',
-            'tenant_role_id' => 'nullable|exists:tenant_roles,id',
+            'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
+            'tenant_role_ids' => 'nullable|array',
+            'tenant_role_ids.*' => 'integer|exists:tenant_roles,id',
         ];
     }
 

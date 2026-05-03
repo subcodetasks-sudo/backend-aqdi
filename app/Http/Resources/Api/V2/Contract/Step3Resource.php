@@ -48,6 +48,7 @@ class Step3Resource extends JsonResource
             'copy_of_the_authorization_or_agency' => $this->copy_of_the_authorization_or_agency
                 ? asset('storage/' . $this->copy_of_the_authorization_or_agency)
                 : null,
+            'notes_edits' => $this->notes_edits,
             'step' => $this->step,
         ];
     }

@@ -131,8 +131,11 @@ class UpdateContractRequest extends FormRequest
             'real_units_id' => ['sometimes', 'nullable', 'integer', 'exists:real_units,id'],
             'additional_terms' => ['sometimes', 'nullable', 'boolean'],
             'text_additional_terms' => ['sometimes', 'nullable', 'string'],
+            'notes_edits' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'tenant_roles' => ['sometimes', 'nullable', 'boolean'],
             'tenant_role_id' => ['sometimes', 'nullable', 'integer', 'exists:tenant_roles,id'],
+            'tenant_role_ids' => ['sometimes', 'nullable', 'array'],
+            'tenant_role_ids.*' => ['integer', 'exists:tenant_roles,id'],
 
             'client_account_holder_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'draft_before_paid' => ['sometimes', 'nullable', 'string', 'max:2048'],
