@@ -4,8 +4,11 @@
     </IfModule>
 
     <IfModule mod_headers.c>
-        Header add Access-Control-Allow-Origin "*"
-        Header add Access-Control-Allow-Methods "GET,POST,OPTIONS,DELETE,PUT"
+        SetEnvIf Origin "http(s)?://(localhost:3000|localhost:3001)$" AccessControlAllowOrigin=$0
+
+        Header always set Access-Control-Allow-Origin %{AccessControlAllowOrigin}e env=AccessControlAllowOrigin
+        Header always set Access-Control-Allow-Methods "GET,POST,OPTIONS,DELETE,PUT"
+        Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
     </IfModule>
 
     RewriteEngine On
@@ -31,7 +34,6 @@
 </IfModule>
 
 # php -- BEGIN cPanel-generated handler, do not edit
-# Set the “ea-php82” package as the default “PHP” programming language.
 <IfModule mime_module>
   AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
 </IfModule>
