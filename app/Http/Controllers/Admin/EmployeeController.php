@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -24,53 +25,63 @@ class EmployeeController extends Controller
         return ['roleRelation', 'salaries', 'notes', 'receivedContract', 'refundableContract'];
     }
 
-        public function login_check(Request $request)
-        {
-            try {
-                $validated = $request->validate([
-                    'email' => ['required', 'email'],
-                    'password' => ['required', 'string'],
-                ]);
+    public function login_check(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required', 'string'],
+            ]);
 
-                $employee = Employee::where('email', $validated['email'])->first();
+            $employee = Employee::where('email', $validated['email'])->first();
 
-                
-                if (! $employee || ! Hash::check($validated['password'], $employee->password)) {
-                    return $this->errorMessage(trans('api.credentials_error'), 401);
-                }
-        
-                if (! $employee->is_active) {
-                    return $this->errorMessage(trans('api.employee_inactive'), 403);
-                }
+            if (! $employee || ! Hash::check($validated['password'], $employee->password)) {
+                return response()->json([
+                    'message' => trans('api.credentials_error'),
+                    'success' => false,
+                ], Response::HTTP_UNAUTHORIZED);
+            }
 
-            
-                if ($employee->blocked_until && now()->lt($employee->blocked_until)) {
-                    return $this->errorMessage(trans('api.employee_account_blocked'), 403);
-                }
+            if (! $employee->is_active) {
+                return response()->json([
+                    'message' => trans('api.employee_inactive'),
+                    'success' => false,
+                ], Response::HTTP_FORBIDDEN);
+            }
 
-            
-                $employee->tokens()->delete();
+            if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
+                return response()->json([
+                    'message' => trans('api.employee_account_blocked'),
+                    'success' => false,
+                ], Response::HTTP_FORBIDDEN);
+            }
 
-                $token = $employee->createToken('admin-employee')->plainTextToken;
+            $employee->tokens()->delete();
 
-                return $this->apiResponse([
-                    'employee' => new EmployeeResource(
-                        $employee->loadMissing($this->employeeBaseRelations())
-                    ),
+            $token = $employee->createToken('admin-employee')->plainTextToken;
+
+            return response()->json([
+                'message' => trans('api.login_success'),
+                'success' => true,
+                'data' => [
+                    'employee' => new EmployeeResource($employee->load($this->employeeBaseRelations())),
                     'token' => $token,
                     'token_type' => 'Bearer',
-                ], trans('api.login_success'));
-
-            } catch (ValidationException $e) {
-                return $this->errorResponse($e->errors(), 422);
-
-            } catch (Throwable $e) {
-                return $this->errorMessage(
-                    trans('api.error_occurred'),
-                    500
-                );
-            }
+                ],
+            ], Response::HTTP_OK);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => __('The given data was invalid.'),
+                'success' => false,
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        } catch (Throwable $e) {
+            return response()->json([
+                'message' => trans('api.error_occurred').': '.$e->getMessage(),
+                'success' => false,
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
 
     public function logout(Request $request)
     {
