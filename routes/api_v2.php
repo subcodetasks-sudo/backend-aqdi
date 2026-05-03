@@ -4,12 +4,12 @@ use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GeneralController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\TenantRoleController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
 use App\Http\Controllers\Api\V2\RealEstateControllor as V2RealEstateControllor;
 use App\Http\Controllers\Api\V2\SavedRealEstateController as V2SavedRealEstateController;
 use App\Http\Controllers\Api\V2\TenantRoleController as V2TenantRoleController;
-use App\Http\Controllers\Api\V2\TenantRoleController;
 use App\Http\Controllers\Api\V2\UnitEstateController as V2UnitEstateController;
 use App\Http\Middleware\ApiLocalization;
 use App\Http\Middleware\CheckApi;
@@ -120,13 +120,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/Coupon/{uuid}', 'Coupon');
     });
 
-    Route::prefix('tenant-roles')->controller(V2TenantRoleController::class)->group(function () {
-        Route::get('/', 'index');
-        Route::post('/', 'store');
-        Route::get('/{id}', 'show');
-        Route::match(['put', 'patch'], '/{id}', 'update');
-        Route::delete('/{id}', 'destroy');
-    });
+    
     
 
   Route::get('ads-images', function () {
@@ -154,6 +148,12 @@ Route::middleware('auth:sanctum')->group(function () {
             ->withoutMiddleware('auth:sanctum')
             ->name('payment.show');
     });
-
+Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{id}', 'show');
+        Route::match(['put', 'patch'], '/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
 });
 
