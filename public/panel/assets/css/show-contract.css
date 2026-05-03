@@ -1,0 +1,427 @@
+   /* Font  */
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-Light-2.ttf') format('truetype');
+  font-weight: 300;
+}
+
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-Regular-2.ttf') format('truetype');
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-Medium-1.ttf') format('truetype');
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-SemiBold-2.ttf') format('truetype');
+  font-weight: 600;
+}
+
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Montserrat Arabic';
+  src: url('/fonts/alfont_com_Montserrat-Arabic-ExtraBold-2.ttf') format('truetype');
+  font-weight: 800;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Montserrat Arabic";
+}
+
+
+.contract-info-unique {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 50px;
+  align-items: center;
+  width: 100%;
+  background-color: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.contract-item-unique {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.icon-unique {
+  font-size: 24px;
+  color: #1C7C70;
+}
+
+.content-unique {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+
+}
+
+.header-unique {
+  font-size: 18px;
+  font-weight: bold;
+  color: #0D5A50;
+}
+
+.value-unique {
+  font-size: 18px;
+  color: #616161;
+  font-weight: bold;
+}
+
+.print-button-unique {
+  display: flex;
+  align-items: center;
+  padding: 10px 30px;
+  justify-content: center;
+  color: #0D5A50;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 18px;
+  outline: none;
+  border: 2px solid #0D5A50;
+  transition: 0.3s all ease-in;
+  gap: 10px;
+}
+
+.print-button-unique:hover,
+.print-button-unique:hover .icon-unique {
+  background-color: #1C7C70;
+  color: #fff;
+}
+
+
+/* Boxes Style */
+.container-paper {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 50px;
+  padding: 0 50px;
+  margin: 50px 0;
+}
+
+.info-box-paper {
+  position: relative;
+  width: 100%;
+  background-color: #f9f9f9;
+  border-radius: 20px;
+  overflow: hidden;
+  transition: height 0.5s ease-in;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+}
+
+.toggle-icon-paper {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  color: #fff;
+}
+
+.header-paper {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background-color: #0D5A50;
+  color: white;
+  font-size: 20px;
+}
+
+.header-paper i {
+  margin-left: 10px;
+}
+
+.content-paper {
+  padding: 20px 20px 20px 150px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.items-holder-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.item-paper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.item-image-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-image-paper .info {
+  display: flex;
+  gap: 10px;
+  margin: 15px 0;
+  margin-bottom: 0;
+}
+
+.item-paper i,
+.item-image-paper .info i {
+  font-size: 18px;
+  color: #1C7C70;
+}
+
+.key-paper {
+  font-weight: bold;
+  color: #0D5A50;
+  font-size: 18px;
+}
+
+.value-paper {
+  color: #616161;
+  font-size: 24px;
+}
+
+img.value-paper {
+  margin: 20px 0;
+  width: 100%;
+  height: auto;
+}
+
+
+
+.file-message-box {
+  border-radius: 10px;
+  border: 4px solid #1C7C70;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 500px;
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.file-message-box .is-there-contract {
+  color: #0D5A50;
+  font-size: 16px;
+  margin-bottom: 15px;
+}
+
+.file-name {
+  color: #616161;
+  font-size: 16px;
+  margin-bottom: 8px;
+
+}
+
+
+
+.file-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.file-description:nth-of-type(3) {
+  color: #0D5A50;
+}
+
+
+form.upload-form {
+  width: 100%;
+  display: block;
+}
+
+.input-wrapper {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.file-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 50px;
+  background-color: #0D5A50;
+  color: #fff;
+  font-size: 18px;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.file-label:hover {
+  background-color: #1C7C70;
+}
+
+.file-input {
+  display: none;
+}
+
+
+
+
+.submit-btn {
+  background-color: #0D5A50;
+  color: white;
+  padding: 15px 50px;
+  border: none;
+  border-radius: 5px;
+  width: 100%;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.submit-btn:hover {
+  background-color: #1C7C70;
+}
+
+
+@media screen and (max-width: 1150px) {
+  .items-holder-paper {
+    width: 100%;
+  }
+
+  .content-paper {
+    padding: 20px;
+  }
+}
+
+
+@media screen and (max-width: 992px) {
+  .info-box-paper {
+    width: 100%;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  .file-message-box {
+    width: 100%;
+  }
+}
+
+
+@media (max-width: 768px) {
+  .container-paper {
+    flex-direction: column;
+  }
+
+  .info-box-paper {
+    max-width: 100%;
+  }
+
+  .placeholder-paper {
+    max-width: 100%;
+  }
+
+  .contract-info-unique {
+    flex-direction: column;
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+
+@media screen and (max-width: 700px) {
+  .item-paper {
+    flex-wrap: wrap;
+  }
+
+  .key-paper {
+    font-size: 15px;
+  }
+
+  .value-paper {
+    font-size: 13px;
+  }
+
+  .content-paper {
+    padding: 10px;
+  }
+}
+
+/* CSS to control the printed parts */
+@media print {
+  body {
+    margin: 0;
+  }
+
+  .toggle-icon-paper {
+    display: none;
+  }
+
+  .container-paper {
+    gap: 0px;
+    padding: 0px 50px;
+
+    width: 100%;
+    height: auto;
+    margin: 0;
+    page-break-inside: avoid;
+  }
+
+
+  .info-box-paper {
+    background-color: #fff;
+    box-shadow: unset;
+  }
+
+  .header-paper {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    color: #0D5A50;
+    font-size: 20px;
+  }
+
+  .contract-info-unique {
+    background-color: transparent;
+    box-shadow: unset;
+  }
+
+  form.upload-form {
+    display: none;
+  }
+
+  .no-print {
+    display: none;
+  }
+}
+ 
