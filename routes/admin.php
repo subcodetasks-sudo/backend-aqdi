@@ -27,6 +27,9 @@ use App\Http\Controllers\Admin\UnitRealController;
 use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UnitUsageController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\MessageAlertController;
+use App\Http\Controllers\Admin\MessageAlertSectionController;
+use App\Http\Controllers\Admin\MessageAlertSectionItemController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -256,6 +259,33 @@ use Illuminate\Support\Facades\Route;
 
     // FAQ Management
     Route::prefix('faqs')->name('faqs.')->controller(FaqController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Message alerts (explanatory messages) — sections & items + alerts CRUD
+    Route::prefix('message-alert-sections')->name('message-alert-sections.')->controller(MessageAlertSectionController::class)->group(function () {
+        Route::get('/options/list', 'options')->name('options');
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    Route::prefix('message-alert-section-items')->name('message-alert-section-items.')->controller(MessageAlertSectionItemController::class)->group(function () {
+        Route::get('/options/list', 'options')->name('options');
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    Route::prefix('message-alerts')->name('message-alerts.')->controller(MessageAlertController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
