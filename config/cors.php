@@ -21,13 +21,17 @@ return [
     | Allowed Origins
     |--------------------------------------------------------------------------
     */
-    'allowed_origins' => [
-        'http://localhost:3000',
-        'https://localhost:3000',
-        'https://aqid.subcodeco.com',
-        'http://aqid.subcodeco.com',
-        'https://new-dashboard.aqdi.sa'
-    ],
+'allowed_origins' => [
+    'http://localhost:3000',
+    'https://localhost:3000',
+
+    'http://localhost:3001',
+    'https://localhost:3001',
+
+    'https://aqid.subcodeco.com',
+    'http://aqid.subcodeco.com',
+    'https://new-dashboard.aqdi.sa'
+],
     /*
     |--------------------------------------------------------------------------
     | Allowed Headers
