@@ -24,42 +24,53 @@ class EmployeeController extends Controller
         return ['roleRelation', 'salaries', 'notes', 'receivedContract', 'refundableContract'];
     }
 
-    public function login_check(Request $request)
-    {
-        try {
-            $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required', 'string'],
-            ]);
+        public function login_check(Request $request)
+        {
+            try {
+                $validated = $request->validate([
+                    'email' => ['required', 'email'],
+                    'password' => ['required', 'string'],
+                ]);
 
-            $employee = Employee::where('email', $request->input('email'))->first();
+                $employee = Employee::where('email', $validated['email'])->first();
 
-            if (! $employee || ! Hash::check($request->input('password'), $employee->password)) {
-                return $this->errorMessage(trans('api.credentials_error'), 401);
+                
+                if (! $employee || ! Hash::check($validated['password'], $employee->password)) {
+                    return $this->errorMessage(trans('api.credentials_error'), 401);
+                }
+        
+                if (! $employee->is_active) {
+                    return $this->errorMessage(trans('api.employee_inactive'), 403);
+                }
+
+            
+                if ($employee->blocked_until && now()->lt($employee->blocked_until)) {
+                    return $this->errorMessage(trans('api.employee_account_blocked'), 403);
+                }
+
+            
+                $employee->tokens()->delete();
+
+                $token = $employee->createToken('admin-employee')->plainTextToken;
+
+                return $this->apiResponse([
+                    'employee' => new EmployeeResource(
+                        $employee->loadMissing($this->employeeBaseRelations())
+                    ),
+                    'token' => $token,
+                    'token_type' => 'Bearer',
+                ], trans('api.login_success'));
+
+            } catch (ValidationException $e) {
+                return $this->errorResponse($e->errors(), 422);
+
+            } catch (Throwable $e) {
+                return $this->errorMessage(
+                    trans('api.error_occurred'),
+                    500
+                );
             }
-
-            if (! $employee->is_active) {
-                return $this->errorMessage(trans('api.employee_inactive'), 403);
-            }
-
-            if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
-                return $this->errorMessage(trans('api.employee_account_blocked'), 403);
-            }
-
-            $employee->tokens()->delete();
-            $token = $employee->createToken('admin-employee')->plainTextToken;
-
-            return $this->apiResponse([
-                'employee' => new EmployeeResource($employee->load($this->employeeBaseRelations())),
-                'token' => $token,
-                'token_type' => 'Bearer',
-            ], trans('api.login_success'));
-        } catch (ValidationException $e) {
-            return $this->errorResponse($e->errors(), 422);
-        } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
-    }
 
     public function logout(Request $request)
     {
