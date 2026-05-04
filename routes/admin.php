@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\ContractStatusController;
 use App\Http\Controllers\Admin\ContractWhatsAppController;
 use App\Http\Controllers\Admin\CouponAdminController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\ReceivedContractController;
 use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\FilterContract;
 use App\Http\Controllers\Admin\FinanceController;
@@ -84,6 +85,12 @@ use Illuminate\Support\Facades\Route;
     });
 
 
+
+    // Received contract: which employee received the contract (`received_contracts` table)
+    Route::prefix('received-contracts')->name('received-contracts.')->controller(ReceivedContractController::class)->middleware('auth:sanctum')->group(function () {
+        Route::post('/', 'store')->name('store');
+        Route::get('{contractId}', 'show')->whereNumber('contractId')->name('show');
+    });
 
     // Orders Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
@@ -267,13 +274,19 @@ use Illuminate\Support\Facades\Route;
     });
 
     // Message alerts (explanatory messages) — sections & items + alerts CRUD
-    Route::prefix('message-alert-sections')->name('message-alert-sections.')->controller(MessageAlertSectionController::class)->group(function () {
-        Route::get('/options/list', 'options')->name('options');
-        Route::get('/', 'index')->name('index');
-        Route::post('/', 'store')->name('store');
-        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
-        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
-        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    Route::prefix('message-alert-sections')->name('message-alert-sections.')->group(function () {
+        Route::controller(MessageAlertSectionItemController::class)->group(function () {
+            Route::get('{sectionId}/items', 'indexForSection')->whereNumber('sectionId')->name('items.index');
+            Route::post('{sectionId}/items', 'storeForSection')->whereNumber('sectionId')->name('items.store');
+        });
+        Route::controller(MessageAlertSectionController::class)->group(function () {
+            Route::get('/options/list', 'options')->name('options');
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+            Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+            Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+        });
     });
 
     Route::prefix('message-alert-section-items')->name('message-alert-section-items.')->controller(MessageAlertSectionItemController::class)->group(function () {

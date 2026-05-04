@@ -67,4 +67,6 @@ return [
 
     'contract_updated_successfully' => 'تم تحديث العقد بنجاح',
     'contract_not_found' => 'العقد غير موجود',
+    'received_contract_not_found' => 'لا يوجد سجل استلام لهذا العقد',
+    'contract_already_received' => 'تم استلام العقد بالفعل',
 ];

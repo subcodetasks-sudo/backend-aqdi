@@ -14,6 +14,28 @@ class MessageAlertSectionItemController extends Controller
 {
     use Responser;
 
+    /**
+     * List items belonging to one section (REST-friendly path).
+     */
+    public function indexForSection(Request $request, int $sectionId)
+    {
+        MessageAlertSection::query()->findOrFail($sectionId);
+        $request->merge(['message_alert_section_id' => $sectionId]);
+
+        return $this->index($request);
+    }
+
+    /**
+     * Create an item under a section (`message_alert_section_id` taken from URL).
+     */
+    public function storeForSection(Request $request, int $sectionId)
+    {
+        MessageAlertSection::query()->findOrFail($sectionId);
+        $request->merge(['message_alert_section_id' => $sectionId]);
+
+        return $this->store($request);
+    }
+
     public function index(Request $request)
     {
         try {

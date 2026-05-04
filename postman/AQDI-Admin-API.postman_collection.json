@@ -41,6 +41,14 @@
         {
             "key": "id",
             "value": "1"
+        },
+        {
+            "key": "message_alert_section_id",
+            "value": "1"
+        },
+        {
+            "key": "message_alert_section_item_id",
+            "value": "1"
         }
     ],
     "item": [
@@ -2070,7 +2078,7 @@
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{id}}"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{message_alert_section_id}}"
                     }
                 },
                 {
@@ -2089,7 +2097,7 @@
                                 "type": "text"
                             }
                         ],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{id}}",
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{message_alert_section_id}}",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name_ar\": \"\"\n}",
@@ -2106,20 +2114,56 @@
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{id}}\/delete"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{message_alert_section_id}}\/delete"
+                    }
+                },
+                {
+                    "name": "List items under section",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{message_alert_section_id}}\/items?type=client&per_page=20"
+                    }
+                },
+                {
+                    "name": "Create item under section",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-sections\/{{message_alert_section_id}}\/items",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name_ar\": \"\",\n    \"name_en\": \"\",\n    \"sort_order\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     }
                 }
             ]
         },
         {
-            "name": "Message alerts — section items",
+            "name": "Message alerts — section items (flat)",
             "item": [
                 {
                     "name": "Options list (dropdown)",
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/options\/list?message_alert_section_id=1&type=client"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/options\/list?message_alert_section_id=%7B%7Bmessage_alert_section_id%7D%7D&type=client"
                     }
                 },
                 {
@@ -2127,7 +2171,7 @@
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items?type=client"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items?type=client&message_alert_section_id=%7B%7Bmessage_alert_section_id%7D%7D"
                     }
                 },
                 {
@@ -2163,7 +2207,7 @@
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{id}}"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{message_alert_section_item_id}}"
                     }
                 },
                 {
@@ -2182,7 +2226,7 @@
                                 "type": "text"
                             }
                         ],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{id}}",
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{message_alert_section_item_id}}",
                         "body": {
                             "mode": "raw",
                             "raw": "[]",
@@ -2199,20 +2243,20 @@
                     "request": {
                         "method": "POST",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{id}}\/delete"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alert-section-items\/{{message_alert_section_item_id}}\/delete"
                     }
                 }
             ]
         },
         {
-            "name": "Message alerts",
+            "name": "Message alerts (messages)",
             "item": [
                 {
                     "name": "List",
                     "request": {
                         "method": "GET",
                         "header": [],
-                        "url": "{{baseUrl}}\/api\/admin\/message-alerts?type=client"
+                        "url": "{{baseUrl}}\/api\/admin\/message-alerts?type=client&message_alert_section_id=%7B%7Bmessage_alert_section_id%7D%7D&message_alert_section_item_id=%7B%7Bmessage_alert_section_item_id%7D%7D"
                     }
                 },
                 {
@@ -2234,7 +2278,7 @@
                         "url": "{{baseUrl}}\/api\/admin\/message-alerts",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"type\": \"client\",\n    \"message_alert_section_item_id\": 1,\n    \"message\": \"\"\n}",
+                            "raw": "{\n    \"type\": \"client\",\n    \"message_alert_section_id\": 1,\n    \"message_alert_section_item_id\": 1,\n    \"message\": \"\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

@@ -56,5 +56,7 @@ return [
 
     'contract_updated_successfully' => 'Contract updated successfully',
     'contract_not_found' => 'Contract not found',
+    'received_contract_not_found' => 'No received-contract record for this contract',
+    'contract_already_received' => 'The contract has already been received',
 
 ];

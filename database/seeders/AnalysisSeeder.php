@@ -180,6 +180,7 @@ class AnalysisSeeder extends Seeder
             ReceivedContract::create([
                 'contract_id' => $contract->id,
                 'employee_id' => $employeeIds[array_rand($employeeIds)],
+                'status' => 'pending',
                 'date_of_received' => $contract->created_at?->toDateString() ?? Carbon::today(),
             ]);
         }

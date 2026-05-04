@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\V2\Api\AllUserResource;
 use App\Http\Traits\Responser;
-use App\Models\Contract;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -18,7 +18,7 @@ class UserController extends Controller
      */
     public function allusers(Request $request)
     {
-        $usersQuery = User::query();
+        $usersQuery = $this->usersWithTotalPaidQuery();
 
         $createdAtFilter = $request->query('created_at');
         if ($createdAtFilter) {
@@ -56,7 +56,7 @@ class UserController extends Controller
      */
     public function newcommersUser()
     {
-        $users = User::whereDate('created_at', now()->toDateString())
+        $users = $this->usersWithTotalPaidQuery()->whereDate('created_at', now()->toDateString())
                      ->latest()
                      ->paginate(20);
 
@@ -68,7 +68,8 @@ class UserController extends Controller
 
   public function usersCompleteContracts()
   {
-      $users = User::whereHas('contracts', function ($q) {
+      $users = $this->usersWithTotalPaidQuery()
+                  ->whereHas('contracts', function ($q) {
                       $q->where('is_completed', 1);
                   })
                   ->orderBy('updated_at', 'asc')
@@ -101,6 +102,22 @@ class UserController extends Controller
         );
     }
 
+
+    /**
+     * Users list query including aggregated successful payments (via contracts).
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\User>
+     */
+    protected function usersWithTotalPaidQuery()
+    {
+        return User::query()->addSelect([
+            'total_paid_amount' => Payment::query()
+                ->selectRaw('coalesce(sum(payments.amount), 0)')
+                ->join('contracts', 'payments.contract_uuid', '=', 'contracts.uuid')
+                ->whereColumn('contracts.user_id', 'users.id')
+                ->where('payments.status', 'success'),
+        ]);
+    }
 
     public function deleteUser($id)
     {

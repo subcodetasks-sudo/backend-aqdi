@@ -11,7 +11,7 @@ return new class extends Migration
     {
         if (! Schema::hasColumn('contracts', 'property_owner_dob')) {
             Schema::table('contracts', function (Blueprint $table) {
-                $table->string('property_owner_dob')->nullable();
+                $table->text('property_owner_dob')->nullable();
             });
         }
 

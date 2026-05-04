@@ -63,8 +63,14 @@ class MessageAlertController extends Controller
         try {
             $type = MessageAlertType::normalize($request->input('type'));
             $data = $request->validate($this->rules());
+            $this->assertItemBelongsToSection(
+                (int) $data['message_alert_section_item_id'],
+                (int) $data['message_alert_section_id']
+            );
             $this->assertItemMatchesSectionType((int) $data['message_alert_section_item_id'], $type);
-            $alert = MessageAlert::query()->create($data);
+            $alert = MessageAlert::query()->create(
+                collect($data)->only(['message_alert_section_item_id', 'message'])->all()
+            );
             $alert->load([
                 'sectionItem:id,message_alert_section_id,name_ar,name_en',
                 'sectionItem.section:id,name_ar,name_en,type',
@@ -106,13 +112,25 @@ class MessageAlertController extends Controller
         try {
             $type = MessageAlertType::normalize($request->input('type'));
             $alert = MessageAlert::query()->findOrFail($id);
+            $alert->loadMissing('sectionItem');
             $data = $request->validate($this->rules(true));
-            if (array_key_exists('message_alert_section_item_id', $data)) {
-                $this->assertItemMatchesSectionType((int) $data['message_alert_section_item_id'], $type);
+
+            $itemId = (int) ($data['message_alert_section_item_id'] ?? $alert->message_alert_section_item_id);
+            if (array_key_exists('message_alert_section_id', $data)) {
+                $sectionId = (int) $data['message_alert_section_id'];
+            } elseif (array_key_exists('message_alert_section_item_id', $data)) {
+                $linkedItem = MessageAlertSectionItem::query()->find($itemId);
+                $sectionId = $linkedItem ? (int) $linkedItem->message_alert_section_id : 0;
             } else {
-                $this->assertItemMatchesSectionType((int) $alert->message_alert_section_item_id, $type);
+                $sectionId = (int) ($alert->sectionItem?->message_alert_section_id ?? 0);
             }
-            $alert->update($data);
+
+            if (array_key_exists('message_alert_section_item_id', $data) || array_key_exists('message_alert_section_id', $data)) {
+                $this->assertItemBelongsToSection($itemId, $sectionId);
+            }
+            $this->assertItemMatchesSectionType($itemId, $type);
+
+            $alert->update(collect($data)->only(['message_alert_section_item_id', 'message'])->all());
             $alert->load([
                 'sectionItem:id,message_alert_section_id,name_ar,name_en',
                 'sectionItem.section:id,name_ar,name_en,type',
@@ -149,6 +167,7 @@ class MessageAlertController extends Controller
         $required = $isUpdate ? 'sometimes|required' : 'required';
 
         return [
+            'message_alert_section_id' => "{$required}|exists:message_alert_sections,id",
             'message_alert_section_item_id' => "{$required}|exists:message_alert_section_items,id",
             'message' => "{$required}|string|max:10000",
         ];
@@ -193,6 +212,21 @@ class MessageAlertController extends Controller
         if (! $ok) {
             throw ValidationException::withMessages([
                 'message_alert_section_item_id' => [__('The selected section item does not exist for this audience type.')],
+            ]);
+        }
+    }
+
+    private function assertItemBelongsToSection(int $messageAlertSectionItemId, int $messageAlertSectionId): void
+    {
+        $ok = MessageAlertSectionItem::query()
+            ->whereKey($messageAlertSectionItemId)
+            ->where('message_alert_section_id', $messageAlertSectionId)
+            ->exists();
+
+        if (! $ok) {
+            throw ValidationException::withMessages([
+                'message_alert_section_item_id' => [__('The selected item does not belong to this section.')],
+                'message_alert_section_id' => [__('The selected item does not belong to this section.')],
             ]);
         }
     }
