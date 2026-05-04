@@ -36,6 +36,7 @@ class OrderController extends Controller
             ->when($request->filled('contract_status_id'), fn ($q) =>
                 $q->where('contract_status_id', $request->contract_status_id)
             )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with([
                 'user',
                 'receivedContract.employee',
@@ -83,6 +84,7 @@ class OrderController extends Controller
             ->when($request->search, fn ($q) =>
                 $q->where('uuid', 'like', "%{$request->search}%")
             )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->orderBy(
                 $request->get('sort_by', 'created_at'),
                 $request->get('sort_order', 'desc')
@@ -160,6 +162,8 @@ class OrderController extends Controller
 
             // Exclude deleted contracts
             $query->where('is_delete', false);
+
+            $this->applyReceivedContractPresenceToQuery($query, $request);
 
             // Sorting
             $sortBy = $request->get('sort_by', 'created_at');
@@ -423,6 +427,51 @@ class OrderController extends Controller
                 500
             );
         }
+    }
+
+    /**
+     * Filter by whether `received_contracts.contract_id` matches this contract (`contracts.id`).
+     * Relation `receivedContract` is hasOne → same table/column.
+     *
+     * Query params (first match wins):
+     * - `is_received=1|true|yes` → row exists in `received_contracts`.
+     * - `is_received=0|false|no` → no row for this contract id.
+     * - Same semantics for legacy `received_contract=…`.
+     * Omit both → no filter.
+     */
+    private function applyReceivedContractPresenceToQuery($query, Request $request): void
+    {
+        $wantReceived = $this->parseReceivedContractQueryFilter($request);
+        if ($wantReceived === null) {
+            return;
+        }
+
+        if ($wantReceived) {
+            $query->whereHas('receivedContract');
+        } else {
+            $query->whereDoesntHave('receivedContract');
+        }
+    }
+
+    private function parseReceivedContractQueryFilter(Request $request): ?bool
+    {
+        if ($request->has('is_received')) {
+            $raw = $request->query('is_received');
+            if ($raw !== null && $raw !== '') {
+                return $request->boolean('is_received');
+            }
+        }
+
+        if (! $request->has('received_contract')) {
+            return null;
+        }
+
+        $raw = $request->query('received_contract');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return $request->boolean('received_contract');
     }
 
 

@@ -73,11 +73,15 @@ class ReceivedContractController extends Controller
             /** @var Employee $employee */
             $employee = $request->user();
 
+            $dateReceived = $request->filled('date_of_received')
+                ? $request->date('date_of_received')->format('Y-m-d')
+                : now()->toDateString();
+
             $attributes = [
                 'contract_id' => $contractId,
                 'employee_id' => $employee->id,
                 'status' => $status,
-                'date_of_received' => $request->date('date_of_received')->format('Y-m-d'),
+                'date_of_received' => $dateReceived,
             ];
             if ($request->has('notes')) {
                 $attributes['notes'] = $request->input('notes');

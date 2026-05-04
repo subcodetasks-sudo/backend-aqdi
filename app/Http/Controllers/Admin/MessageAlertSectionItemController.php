@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\MergesMessageAlertRequestAliases;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\Responser;
 use App\Models\MessageAlertSection;
@@ -12,6 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class MessageAlertSectionItemController extends Controller
 {
+    use MergesMessageAlertRequestAliases;
     use Responser;
 
     /**
@@ -107,6 +109,7 @@ class MessageAlertSectionItemController extends Controller
     public function store(Request $request)
     {
         try {
+            $this->mergeMessageAlertSectionItemAliases($request);
             $item = MessageAlertSectionItem::query()->create(
                 $request->validate($this->rules())
             );
@@ -136,6 +139,7 @@ class MessageAlertSectionItemController extends Controller
     {
         try {
             $item = MessageAlertSectionItem::query()->findOrFail($id);
+            $this->mergeMessageAlertSectionItemAliases($request);
             $item->update($request->validate($this->rules(true)));
 
             return $this->apiResponse($item->fresh()->load('section:id,name_ar,name_en,type'), trans('api.updated_successfully'));
