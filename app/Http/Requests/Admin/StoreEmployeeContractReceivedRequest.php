@@ -21,7 +21,7 @@ class StoreEmployeeContractReceivedRequest extends FormRequest
         return [
             'contract_id' => ['required', 'integer', 'exists:contracts,id'],
             'status' => ['sometimes', Rule::enum(ReceivedContractStatus::class)],
-            'date_of_received' => ['required', 'date'],
+            'date_of_received' => ['sometimes', 'nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ];
     }

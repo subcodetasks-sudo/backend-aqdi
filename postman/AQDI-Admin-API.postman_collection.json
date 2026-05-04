@@ -445,6 +445,38 @@
                     }
                 },
                 {
+                    "name": "List orders — is_received true",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders?is_received=1"
+                    }
+                },
+                {
+                    "name": "List orders — is_received false",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders?is_received=0"
+                    }
+                },
+                {
+                    "name": "List orders — received only (legacy param)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders?received_contract=1"
+                    }
+                },
+                {
+                    "name": "List orders — not received only (legacy param)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders?received_contract=0"
+                    }
+                },
+                {
                     "name": "Incomplete orders",
                     "request": {
                         "method": "GET",
@@ -453,11 +485,43 @@
                     }
                 },
                 {
+                    "name": "Incomplete orders — is_received true",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders\/incomplete\/list?is_received=1"
+                    }
+                },
+                {
+                    "name": "Incomplete orders — is_received false",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders\/incomplete\/list?is_received=0"
+                    }
+                },
+                {
                     "name": "Complete orders",
                     "request": {
                         "method": "GET",
                         "header": [],
                         "url": "{{baseUrl}}\/api\/admin\/orders\/complete\/list"
+                    }
+                },
+                {
+                    "name": "Complete orders — is_received true",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders\/complete\/list?is_received=1"
+                    }
+                },
+                {
+                    "name": "Complete orders — is_received false",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": "{{baseUrl}}\/api\/admin\/orders\/complete\/list?is_received=0"
                     }
                 },
                 {

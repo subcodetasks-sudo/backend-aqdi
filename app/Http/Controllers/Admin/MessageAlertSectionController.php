@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\MergesMessageAlertRequestAliases;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\Responser;
 use App\Models\MessageAlertSection;
@@ -11,6 +12,7 @@ use Illuminate\Validation\ValidationException;
 
 class MessageAlertSectionController extends Controller
 {
+    use MergesMessageAlertRequestAliases;
     use Responser;
 
     public function index(Request $request)
@@ -66,8 +68,9 @@ class MessageAlertSectionController extends Controller
     public function store(Request $request)
     {
         try {
+            $this->mergeMessageAlertSectionAliases($request);
             $data = $request->validate($this->rules());
-            $data['type'] = MessageAlertType::normalize($request->input('type'));
+            $data['type'] = MessageAlertType::normalize($data['type'] ?? $request->input('type'));
             $section = MessageAlertSection::query()->create($data);
 
             return $this->apiResponse($section, trans('api.created_successfully'), 201);
@@ -95,6 +98,7 @@ class MessageAlertSectionController extends Controller
     {
         try {
             $section = MessageAlertSection::query()->findOrFail($id);
+            $this->mergeMessageAlertSectionAliases($request);
             $data = $request->validate($this->rules(true));
             if ($request->has('type')) {
                 $data['type'] = MessageAlertType::normalize($request->input('type'));
