@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\V2\Api;
 
+use App\Enums\ReceivedContractStatus;
 use App\Models\Account;
 use App\Models\City;
 use App\Models\ContractPeriod;
@@ -366,6 +367,9 @@ class AdminContractDetailResource extends JsonResource
             'id' => $r->id,
             'contract_id' => $r->contract_id,
             'employee_id' => $r->employee_id,
+            'status' => $r->status instanceof ReceivedContractStatus
+                ? $r->status->value
+                : $r->status,
             'notes' => $r->notes,
             'date_of_received' => $r->date_of_received,
             'employee' => $this->employeeSummary($r->employee),

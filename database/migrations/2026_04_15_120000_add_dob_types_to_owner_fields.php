@@ -22,19 +22,25 @@ return new class extends Migration
             }
         });
 
-        Schema::table('real_estates', function (Blueprint $table) {
-            if (! Schema::hasColumn('real_estates', 'type_dob_property_owner')) {
-                $table->enum('type_dob_property_owner', ['hijri', 'gregorian'])
-                    ->default('hijri')
-                    ->after('property_owner_id_num');
-            }
+        if (! Schema::hasColumn('real_estates', 'type_dob_property_owner')) {
+            Schema::table('real_estates', function (Blueprint $table) {
+                $column = $table->enum('type_dob_property_owner', ['hijri', 'gregorian'])
+                    ->default('hijri');
+                if (Schema::hasColumn('real_estates', 'property_owner_id_num')) {
+                    $column->after('property_owner_id_num');
+                }
+            });
+        }
 
-            if (! Schema::hasColumn('real_estates', 'type_dob_property_owner_agent')) {
-                $table->enum('type_dob_property_owner_agent', ['hijri', 'gregorian'])
-                    ->nullable()
-                    ->after('type_dob_property_owner');
-            }
-        });
+        if (! Schema::hasColumn('real_estates', 'type_dob_property_owner_agent')) {
+            Schema::table('real_estates', function (Blueprint $table) {
+                $column = $table->enum('type_dob_property_owner_agent', ['hijri', 'gregorian'])
+                    ->nullable();
+                if (Schema::hasColumn('real_estates', 'type_dob_property_owner')) {
+                    $column->after('type_dob_property_owner');
+                }
+            });
+        }
     }
 
     public function down(): void
