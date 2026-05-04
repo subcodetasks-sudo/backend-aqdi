@@ -62,6 +62,7 @@ class MessageAlertController extends Controller
     {
         try {
             $type = MessageAlertType::normalize($request->input('type'));
+            $this->mergeMessageAlertSectionIdFromItem($request);
             $data = $request->validate($this->rules());
             $this->assertItemBelongsToSection(
                 (int) $data['message_alert_section_item_id'],
@@ -113,6 +114,7 @@ class MessageAlertController extends Controller
             $type = MessageAlertType::normalize($request->input('type'));
             $alert = MessageAlert::query()->findOrFail($id);
             $alert->loadMissing('sectionItem');
+            $this->mergeMessageAlertSectionIdFromItem($request);
             $data = $request->validate($this->rules(true));
 
             $itemId = (int) ($data['message_alert_section_item_id'] ?? $alert->message_alert_section_item_id);
@@ -228,6 +230,29 @@ class MessageAlertController extends Controller
                 'message_alert_section_item_id' => [__('The selected item does not belong to this section.')],
                 'message_alert_section_id' => [__('The selected item does not belong to this section.')],
             ]);
+        }
+    }
+
+    /**
+     * Older dashboards send only message_alert_section_item_id; derive section id so validation passes.
+     */
+    private function mergeMessageAlertSectionIdFromItem(Request $request): void
+    {
+        if ($request->filled('message_alert_section_id')) {
+            return;
+        }
+
+        $itemId = $request->input('message_alert_section_item_id');
+        if ($itemId === null || $itemId === '') {
+            return;
+        }
+
+        $sectionId = MessageAlertSectionItem::query()
+            ->whereKey((int) $itemId)
+            ->value('message_alert_section_id');
+
+        if ($sectionId !== null) {
+            $request->merge(['message_alert_section_id' => (int) $sectionId]);
         }
     }
 }
