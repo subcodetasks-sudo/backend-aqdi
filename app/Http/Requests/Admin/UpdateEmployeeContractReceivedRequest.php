@@ -3,10 +3,11 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ReceivedContractStatus;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class StoreEmployeeContractReceivedRequest extends FormRequest
+class UpdateEmployeeContractReceivedRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -40,10 +41,27 @@ class StoreEmployeeContractReceivedRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
             'status' => ['sometimes', Rule::enum(ReceivedContractStatus::class)],
             'date_of_received' => ['sometimes', 'nullable', 'date'],
-            'notes' => ['nullable', 'string', 'max:5000'],
+            'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $hasNotesKey = array_key_exists('notes', $this->all());
+
+            if (
+                ! $this->filled('status')
+                && ! $this->filled('date_of_received')
+                && ! $hasNotesKey
+            ) {
+                $validator->errors()->add(
+                    'status',
+                    trans('api.received_contract_update_requires_field')
+                );
+            }
+        });
     }
 }

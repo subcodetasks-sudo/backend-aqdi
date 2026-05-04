@@ -89,6 +89,7 @@ use Illuminate\Support\Facades\Route;
     // Received contract: which employee received the contract (`received_contracts` table)
     Route::prefix('received-contracts')->name('received-contracts.')->controller(ReceivedContractController::class)->middleware('auth:sanctum')->group(function () {
         Route::post('/', 'store')->name('store');
+        Route::patch('{contractId}', 'update')->whereNumber('contractId')->name('update');
         Route::get('{contractId}', 'show')->whereNumber('contractId')->name('show');
     });
 

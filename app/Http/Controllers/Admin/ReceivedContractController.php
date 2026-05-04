@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEmployeeContractReceivedRequest;
+use App\Http\Requests\Admin\UpdateEmployeeContractReceivedRequest;
 use App\Http\Resources\Admin\V2\Api\ReceivedContractResource;
 use App\Http\Traits\Responser;
 use App\Enums\ReceivedContractStatus;
@@ -102,6 +103,58 @@ class ReceivedContractController extends Controller
                 }
 
                 throw $queryException;
+            }
+
+            $received->load('employee');
+
+            return $this->apiResponse(
+                new ReceivedContractResource($received),
+                trans('api.success')
+            );
+        } catch (Throwable $throwable) {
+            return $this->errorMessage(
+                trans('api.error_occurred') . ': ' . $throwable->getMessage(),
+                500
+            );
+        }
+    }
+
+    /**
+     * Update fields on an existing received-contract row (`status` accepts Arabic e.g. مستلم → finish).
+     */
+    public function update(UpdateEmployeeContractReceivedRequest $request, int $contractId)
+    {
+        try {
+            if (! $request->user() instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            $received = ReceivedContract::query()
+                ->where('contract_id', $contractId)
+                ->first();
+
+            if (! $received) {
+                return $this->errorMessage(trans('api.received_contract_not_found'), 404);
+            }
+
+            $validated = $request->validated();
+            $updates = [];
+
+            if (array_key_exists('status', $validated)) {
+                $updates['status'] = $validated['status'] instanceof ReceivedContractStatus
+                    ? $validated['status']
+                    : ReceivedContractStatus::from((string) $validated['status']);
+            }
+            if (array_key_exists('date_of_received', $validated)) {
+                $updates['date_of_received'] = $validated['date_of_received'];
+            }
+            if (array_key_exists('notes', $validated)) {
+                $updates['notes'] = $validated['notes'];
+            }
+
+            if ($updates !== []) {
+                $received->fill($updates);
+                $received->save();
             }
 
             $received->load('employee');
