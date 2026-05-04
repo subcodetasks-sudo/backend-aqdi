@@ -105,6 +105,12 @@ $folders = [
         req('Update comment', 'POST', '/orders/{{contract_id}}/comments/{{comment_id}}', ['bearer' => true, 'body' => ['body' => '']]),
         req('Delete comment', 'POST', '/orders/{{contract_id}}/comments/{{comment_id}}/delete', ['bearer' => true]),
     ],
+    'Received contracts (Bearer)' => [
+        req('Register receipt', 'POST', '/received-contracts', ['bearer' => true, 'body' => ['contract_id' => 1, 'status' => 'مستلم']]),
+        req('Show receipt', 'GET', '/received-contracts/{{contract_id}}', ['bearer' => true]),
+        req('Update status — مستلم (maps to finish)', 'PATCH', '/received-contracts/{{contract_id}}', ['bearer' => true, 'body' => ['status' => 'مستلم']]),
+        req('Update status — finish', 'PATCH', '/received-contracts/{{contract_id}}', ['bearer' => true, 'body' => ['status' => 'finish']]),
+    ],
     'Users' => [
         req('All users', 'GET', '/users'),
         req('New users', 'GET', '/users/new'),

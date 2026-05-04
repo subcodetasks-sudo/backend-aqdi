@@ -670,6 +670,124 @@
             ]
         },
         {
+            "name": "Received contracts (Bearer)",
+            "item": [
+                {
+                    "name": "Register receipt",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": "{{baseUrl}}\/api\/admin\/received-contracts",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_id\": 1,\n    \"status\": \"مستلم\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Show receipt",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": "{{baseUrl}}\/api\/admin\/received-contracts\/{{contract_id}}"
+                    }
+                },
+                {
+                    "name": "Update status — مستلم (maps to finish)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": "{{baseUrl}}\/api\/admin\/received-contracts\/{{contract_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"مستلم\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Update status — finish",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": "{{baseUrl}}\/api\/admin\/received-contracts\/{{contract_id}}",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"finish\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
             "name": "Users",
             "item": [
                 {
