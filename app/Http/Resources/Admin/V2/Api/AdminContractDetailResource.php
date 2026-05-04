@@ -88,7 +88,43 @@ class AdminContractDetailResource extends JsonResource
         ];
     }
 
-   
+    /**
+     * Full URL for paths stored via `store(..., 'public')` (relative to the public disk root).
+     */
+    private function publicStorageUrl(mixed $raw): ?string
+    {
+        if ($raw === null) {
+            return null;
+        }
+
+        if (! is_string($raw)) {
+            if (! is_scalar($raw)) {
+                return null;
+            }
+            $raw = (string) $raw;
+        }
+
+        $path = trim($raw);
+        if ($path === '') {
+            return null;
+        }
+
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        if (Str::startsWith($path, '/storage/')) {
+            return url($path);
+        }
+
+        $path = ltrim($path, '/');
+        if (Str::startsWith($path, 'storage/')) {
+            $path = substr($path, strlen('storage/'));
+        }
+
+        return asset('storage/' . $path);
+    }
+
     /**
      * @return array<string, mixed>
      */
