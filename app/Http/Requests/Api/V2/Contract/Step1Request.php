@@ -62,9 +62,7 @@ class Step1Request extends BaseApiV2Request
             'image_instrument' => [
                 'nullable',
                 'image',
-                Rule::requiredIf(
-                    in_array($effectiveInstrumentType, ['electronic', 'electronic_deed_from_the_ministry_of_justice', 'lease_renewal'], true)
-                ),
+                
             ],
             'image_address' => 'nullable|image',
             'instrument_history' => 'nullable|date',
@@ -117,9 +115,7 @@ class Step1Request extends BaseApiV2Request
             'property_usages_id.required_if' => 'استخدام العقار مطلوب.',
             'number_of_units_in_realestate.required' => 'عدد الوحدات مطلوب.',
             'number_of_units_in_realestate.integer' => 'عدد الوحدات يجب أن يكون رقمًا صحيحًا.',
-            'image_instrument.required_if' => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
-            'image_instrument.image' => 'حقل صورة الصك يجب أن يكون صورة.',
-            'image_address.image' => 'حقل صورة العنوان يجب أن يكون صورة.',
+             'image_address.image' => 'حقل صورة العنوان يجب أن يكون صورة.',
             'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك الولاية يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'is_multiple_trusteeship_deed_copy.boolean' => 'حقل تعدد نسخ صك الولاية يجب أن يكون true أو false.',
