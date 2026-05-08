@@ -77,6 +77,7 @@ class Step5Request extends BaseApiV2Request
             'type_furnished' => 'nullable|boolean',
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
+            'notes_edits' => 'nullable|string|max:20000',
         ];
     }
 
