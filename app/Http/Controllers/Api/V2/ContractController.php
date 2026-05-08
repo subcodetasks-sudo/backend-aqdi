@@ -99,8 +99,9 @@ class ContractController extends Controller
             'image_instrument_from_the_front'=>$validated['image_instrument_from_the_front']??null,
             'property_type_id' => $validated['property_type_id'] ?? null,
             'property_usages_id' => $validated['property_usages_id'] ?? null,
+
             'age_of_the_property' => $validated['age_of_the_property'] ?? null,
-            'number_of_floors' => $validated['number_of_floors'],
+            'number_of_floors' => $validated['number_of_floors'] ?? null,
             'number_of_units_per_floor' => $validated['number_of_units_per_floor'] ?? null,
             'number_of_units_in_realestate' => $validated['number_of_units_in_realestate'] ?? null,
             'is_multiple_trusteeship_deed_copy' => array_key_exists('is_multiple_trusteeship_deed_copy', $validated)
