@@ -62,9 +62,8 @@ class Step1Request extends BaseApiV2Request
             'image_instrument' => [
                 'nullable',
                 'image',
-
                 Rule::requiredIf(
-                    in_array($this->instrument_type, ['electronic', 'electronic_deed_from_the_ministry_of_justice'])
+                    in_array($effectiveInstrumentType, ['electronic', 'electronic_deed_from_the_ministry_of_justice', 'lease_renewal'], true)
                 ),
             ],
             'image_address' => 'nullable|image',
