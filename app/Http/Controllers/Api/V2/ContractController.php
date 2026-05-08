@@ -258,15 +258,10 @@ class ContractController extends Controller
             'property_owner_dob' => $dob,
         ];
 
-        $notesPayload = [];
-        if ($request->has('notes_edits')) {
-            $notesPayload['notes_edits'] = $request->input('notes_edits');
-        }
-
         if ($contract->instrument_type === 'lease_renewal') {
             $data = array_merge([
                 'step' => 5,
-            ], $typePayload, $dobPayload, $notesPayload);
+            ], $typePayload, $dobPayload);
             if ($request->filled('name_owner')) {
                 $data['name_owner'] = $request->name_owner;
             }
@@ -293,7 +288,7 @@ class ContractController extends Controller
             'property_owner_iban' => $request->property_owner_iban,
             'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
             'step' => 4,
-        ], $typePayload, $dobPayload, $notesPayload);
+        ], $typePayload, $dobPayload);
     }
 
     private function normalizeOwnerCalendarType(mixed $value): string
@@ -395,7 +390,12 @@ class ContractController extends Controller
                 return $this->errorMessage(trans('api.completed_contract'));
             }
 
-            $contract->update(['step' => 5]);
+            $leaseRenewalData = ['step' => 5];
+            if ($request->has('notes_edits')) {
+                $leaseRenewalData['notes_edits'] = $request->input('notes_edits');
+            }
+
+            $contract->update($leaseRenewalData);
 
             return response()->json([
                 'message' => trans('api.success'),
@@ -486,7 +486,6 @@ class ContractController extends Controller
             'type_furnished' => (int) $request->boolean('type_furnished'),
             'electricity_meter' => (int) $request->boolean('electricity_meter'),
             'water_meter' => (int) $request->boolean('water_meter'),
-         
         ];
 
         $contract->update($data);

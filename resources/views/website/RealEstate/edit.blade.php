@@ -13,8 +13,8 @@
             <label for="ownership-state" class="label-state">هل أنت المـالك أو المستاجر؟</label>
             <select id="ownership-state" class="select-state" name="contract_ownership">
                 <option value="" disabled selected>هل أنت المـالك أو المستاجر؟</option>
-                <option value="1" {{ old('contract_ownership', $realEstate->contract_ownership) == '1' ? 'selected' : '' }}>مالك</option>
-                <option value="0" {{ old('contract_ownership', $realEstate->contract_ownership) == '0' ? 'selected' : '' }}>مستأجر</option>
+                <option value="owner" {{ in_array(old('contract_ownership', $realEstate->contract_ownership), ['owner', '1', 1, true], true) ? 'selected' : '' }}>مالك</option>
+                <option value="tenant" {{ in_array(old('contract_ownership', $realEstate->contract_ownership), ['tenant', '0', 0, false], true) ? 'selected' : '' }}>مستأجر</option>
             </select>
             @error('contract_ownership')
                 <div class="error-message">{{ $message }}</div>

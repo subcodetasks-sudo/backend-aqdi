@@ -16,13 +16,6 @@ use App\Models\Ad;
 use Illuminate\Support\Facades\Route;
 
 
-
-
-
-
-
-
-
 Route::controller(GeneralController::class)->group(function () {
     Route::get('/cities', 'cities');
     Route::get('/regions', 'regions');
@@ -97,21 +90,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/finance-summary/{uuid}', 'financial');
     });
 
-    Route::prefix('realstate')->controller(V2RealEstateControllor::class)->group(function () {
-        Route::post('/step1', 'step1');
-        Route::post('/step2', 'step2');
-        Route::post('/step3', 'step3');
-        Route::post('/update/step1', 'updateStep1');
-        Route::post('/update/step2', 'updateStep2');
-        Route::post('/update/step3', 'updateStep3');
-    });
+    foreach (['realstate', 'realState'] as $realEstatePrefix) {
+        Route::prefix($realEstatePrefix)->controller(V2RealEstateControllor::class)->group(function () {
+            Route::post('/step1', 'step1');
+            Route::post('/step2', 'step2');
+            Route::post('/step3', 'step3');
+            Route::post('/update/step1', 'updateStep1');
+            Route::post('/update/step2', 'updateStep2');
+            Route::post('/update/step3', 'updateStep3');
+        });
+    }
 
     Route::controller(V2RealEstateControllor::class)->group(function () {
-        Route::get('/realState/index', 'index');
-        Route::get('/realState/show/{id}', 'show');
-        Route::get('/real-estates/units/{id}', 'showUnits');
-        Route::delete('/realState/delete/{id}', 'delete');
-        Route::get('/realState/all', 'all');
+        foreach (['realstate', 'realState'] as $p) {
+            Route::get("/{$p}/index", 'index');
+            Route::get("/{$p}/show/{id}", 'show');
+            Route::get("/{$p}/units/{id}", 'showUnits');
+            Route::delete("/{$p}/delete/{id}", 'delete');
+            Route::get("/{$p}/all", 'all');
+        }
     });
 
     Route::prefix('unit')->controller(V2UnitEstateController::class)->group(function () {
@@ -128,22 +125,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     
-    
-
-  Route::get('ads-images', function () {
-    $ads = [
-        'images' => [
-            'https://aqid.subcodeco.com/website/asset/images/hero.png',
-            'https://aqid.subcodeco.com/website/asset/images/hero2.png',
-        ],
-    ];
-
-        return response()->json([
-        'data' => $ads,
-        'message' => trans('api.success')
-    ]);
-});
-   
  Route::withoutMiddleware([CheckApi::class, ApiLocalization::class])->group(function () {
         Route::post('/status/{uuid}/success', [PaymentController::class, 'updateCartByIPN'])->name('callback');
         Route::post('/status/{uuid}', [PaymentController::class, 'Callback'])->name('return');

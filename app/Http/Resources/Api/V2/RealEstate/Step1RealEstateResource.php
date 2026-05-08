@@ -29,6 +29,16 @@ class Step1RealEstateResource extends JsonResource
             'image_instrument' => $this->image_instrument
                 ? asset('storage/'.$this->image_instrument)
                 : null,
+            'copy_of_the_endowment_registration_certificate' => $this->copy_of_the_endowment_registration_certificate
+                ? asset('storage/'.$this->copy_of_the_endowment_registration_certificate)
+                : null,
+            'copy_of_the_trusteeship_deed' => $this->copy_of_the_trusteeship_deed
+                ? asset('storage/'.$this->copy_of_the_trusteeship_deed)
+                : null,
+            'is_multiple_trusteeship_deed_copy' => (bool) $this->is_multiple_trusteeship_deed_copy,
+            'copy_of_guardians_power_of_attorney_for_agent' => $this->copy_of_guardians_power_of_attorney_for_agent
+                ? asset('storage/'.$this->copy_of_guardians_power_of_attorney_for_agent)
+                : null,
             'image_address' => $this->image_address
                 ? asset('storage/'.$this->image_address)
                 : null,

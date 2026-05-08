@@ -43,6 +43,7 @@ class Step4Request extends BaseApiV2Request
         if ($this->isLeaseRenewalContract()) {
             return [
                 'id' => 'required|exists:contracts,id',
+                'notes_edits' => 'nullable|string|max:20000',
             ];
         }
 
@@ -67,6 +68,7 @@ class Step4Request extends BaseApiV2Request
             'dobof_property_tenant_agent_year' => 'nullable',
             'type_tenant_dob' => 'nullable|in:hijri,gregorian',
             'type_dob_tenant_agent' => 'nullable|in:hijri,gregorian',
+            'notes_edits' => 'nullable|string|max:20000',
 
         ];
     }
