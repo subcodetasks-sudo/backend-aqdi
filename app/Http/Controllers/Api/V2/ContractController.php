@@ -122,13 +122,14 @@ class ContractController extends Controller
             }
         }
 
-        if ($request->hasFile('image_instrument')) {
+        $imageInstrumentFile = $request->file('image_instrument');
+        if ($imageInstrumentFile instanceof \Illuminate\Http\UploadedFile && $imageInstrumentFile->isValid()) {
             $contract->update([
-                'image_instrument' => $request->file('image_instrument')->store('images/contracts', 'public'),
+                'image_instrument' => $imageInstrumentFile->store('images/contracts', 'public'),
             ]);
-        } elseif ($request->filled('image_instrument')) {
+        } elseif (array_key_exists('image_instrument', $validated) && is_string($validated['image_instrument']) && $validated['image_instrument'] !== '') {
             $contract->update([
-                'image_instrument' => $request->input('image_instrument'),
+                'image_instrument' => $validated['image_instrument'],
             ]);
         }
 
