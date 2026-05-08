@@ -28,11 +28,11 @@ class Step3Request extends BaseApiV2Request
         }
 
         // Alias keys used by mobile clients / docs (same as Step3RealEstateRequest).
-        if (! $this->filled('property_owner_dob_day') && $this->filled('property_owner_dob_hijri_day')) {
+        if (! $this->filled('property_owner_dob_day') && $this->filled('property_owner_dob_day')) {
             $this->merge([
-                'property_owner_dob_day' => $this->input('property_owner_dob_hijri_day'),
-                'property_owner_dob_month' => $this->input('property_owner_dob_hijri_month'),
-                'property_owner_dob_year' => $this->input('property_owner_dob_hijri_year'),
+                'property_owner_dob_day' => $this->input('property_owner_dob_day'),
+                'property_owner_dob_month' => $this->input('property_owner_dob_month'),
+                'property_owner_dob_year' => $this->input('property_owner_dob_year'),
             ]);
         }
 
