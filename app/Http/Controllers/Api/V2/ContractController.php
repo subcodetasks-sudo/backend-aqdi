@@ -390,7 +390,12 @@ class ContractController extends Controller
                 return $this->errorMessage(trans('api.completed_contract'));
             }
 
-            $contract->update(['step' => 5]);
+            $leaseRenewalData = ['step' => 5];
+            if ($request->has('notes_edits')) {
+                $leaseRenewalData['notes_edits'] = $request->input('notes_edits');
+            }
+
+            $contract->update($leaseRenewalData);
 
             return response()->json([
                 'message' => trans('api.success'),
@@ -481,7 +486,6 @@ class ContractController extends Controller
             'type_furnished' => (int) $request->boolean('type_furnished'),
             'electricity_meter' => (int) $request->boolean('electricity_meter'),
             'water_meter' => (int) $request->boolean('water_meter'),
-            'notes_edits' => $request->input('notes_edits'),
         ];
 
         $contract->update($data);
