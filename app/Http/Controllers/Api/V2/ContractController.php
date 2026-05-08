@@ -333,7 +333,7 @@ class ContractController extends Controller
     {
         $data['id_num_of_property_owner_agent'] = $request->id_num_of_property_owner_agent;
         $data['type_dob_property_owner_agent'] = $request->input('type_dob_property_owner_agent', 'hijri');
-        $data['dob_hijri_of_property_owner_agent'] = HijriDobParts::combine(
+        $data['dob_of_property_owner_agent'] = HijriDobParts::combine(
             $request->input('dob_of_property_owner_agent_day'),
             $request->input('dob_of_property_owner_agent_month'),
             $request->input('dob_of_property_owner_agent_year')

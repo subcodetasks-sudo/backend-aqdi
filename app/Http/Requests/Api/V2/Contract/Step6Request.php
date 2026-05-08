@@ -29,9 +29,9 @@ class Step6Request extends BaseApiV2Request
     {
         return [
             'id' => 'required|exists:contracts,id',
-            'contract_starting_date_hijri_day' => 'nullable',
-            'contract_starting_date_hijri_month' => 'nullable',
-            'contract_starting_date_hijri_year' => 'nullable',
+            'contract_starting_date_day' => 'nullable',
+            'contract_starting_date_month' => 'nullable',
+            'contract_starting_date_year' => 'nullable',
             'type_contract_starting_date' => 'nullable|in:hijri,gregorian',
             'contract_term_in_years' => 'required|exists:contract_periods,id',
             'annual_rent_amount_for_the_unit' => 'required|numeric',
