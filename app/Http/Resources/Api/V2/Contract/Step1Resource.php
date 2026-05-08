@@ -10,6 +10,21 @@ class Step1Resource extends JsonResource
 {
     use WithContractDocumentationDeadline;
 
+    private function fileUrl(?string $path): ?string
+    {
+        if (! $path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $normalized = str_starts_with($path, 'storage/') ? substr($path, 8) : $path;
+
+        return getFilePath($normalized);
+    }
+
     public function toArray(Request $request): array
     {
         return [
@@ -26,9 +41,9 @@ class Step1Resource extends JsonResource
             'number_of_floors' => $this->number_of_floors,
             'property_type_id' => $this->property_type_id,
             'property_usages_id' => $this->property_usages_id,
-            'image_instrument' => $this->image_instrument ? asset('storage/'.$this->image_instrument) : null,
-            'image_instrument_from_the_front' => $this->image_instrument_from_the_front ? asset('storage/'.$this->image_instrument_from_the_front) : null,
-            'image_instrument_from_the_back' => $this->image_instrument_from_the_back ? asset('storage/'.$this->image_instrument_from_the_back) : null,
+            'image_instrument' => $this->fileUrl($this->image_instrument),
+            'image_instrument_from_the_front' => $this->fileUrl($this->image_instrument_from_the_front),
+            'image_instrument_from_the_back' => $this->fileUrl($this->image_instrument_from_the_back),
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'instrument_number' => $this->instrument_number,
@@ -37,12 +52,8 @@ class Step1Resource extends JsonResource
             'real_estate_registry_number' => $this->real_estate_registry_number,
             'date_first_registration' => $this->date_first_registration,
             'type_date_first_registration' => $this->type_date_first_registration ?? 'hijri',
-            'copy_of_the_endowment_registration_certificate' => $this->copy_of_the_endowment_registration_certificate
-                ? asset('storage/'.$this->copy_of_the_endowment_registration_certificate)
-                : null,
-            'copy_of_the_trusteeship_deed' => $this->copy_of_the_trusteeship_deed
-                ? asset('storage/'.$this->copy_of_the_trusteeship_deed)
-                : null,
+            'copy_of_the_endowment_registration_certificate' => $this->fileUrl($this->copy_of_the_endowment_registration_certificate),
+            'copy_of_the_trusteeship_deed' => $this->fileUrl($this->copy_of_the_trusteeship_deed),
             'is_multiple_trusteeship_deed_copy' => (bool) $this->is_multiple_trusteeship_deed_copy,
             'step' => $this->step,
 

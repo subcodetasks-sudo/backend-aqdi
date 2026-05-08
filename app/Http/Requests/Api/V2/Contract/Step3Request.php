@@ -179,7 +179,7 @@ class Step3Request extends BaseApiV2Request
     }
 
     /**
-     * lease_renewal: only owner DOB is required; other fields optional.
+     * lease_renewal: requested edits are required; other fields optional.
      */
     private function leaseRenewalRules(): array
     {
@@ -191,9 +191,9 @@ class Step3Request extends BaseApiV2Request
             'name_real_estate' => 'nullable|string|max:255',
             'name_owner' => 'nullable|string',
             'property_owner_id_num' => 'nullable|min:10',
-            'property_owner_dob_day' => 'required',
-            'property_owner_dob_month' => 'required',
-            'property_owner_dob_year' => 'required',
+            'property_owner_dob_day' => 'nullable',
+            'property_owner_dob_month' => 'nullable',
+            'property_owner_dob_year' => 'nullable',
             'property_owner_mobile' => 'nullable|min:10|regex:/^05[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
             'add_legal_agent_of_owner' => 'nullable',
@@ -203,7 +203,7 @@ class Step3Request extends BaseApiV2Request
             'dob_of_property_owner_agent_year' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10|regex:/^05[0-9]{8}$/',
             'copy_of_the_authorization_or_agency' => 'nullable',
-            'notes_edits' => 'nullable|string|max:20000',
+            'notes_edits' => 'required|string|max:20000',
         ];
     }
 
@@ -266,6 +266,7 @@ class Step3Request extends BaseApiV2Request
             'property_owner_dob_day.required' => 'يوم تاريخ ميلاد المالك مطلوب.',
             'property_owner_dob_month.required' => 'شهر تاريخ ميلاد المالك مطلوب.',
             'property_owner_dob_year.required' => 'سنة تاريخ ميلاد المالك مطلوبة.',
+            'notes_edits.required' => 'الرجاء كتابة جميع التعديلات المطلوبة.',
         ];
     }
 }
