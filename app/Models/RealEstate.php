@@ -14,12 +14,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class RealEstate extends Model
 {
+    /** صك ملكية ومالك العقار وقف — requires deed + endowment registration + trusteeship deed uploads */
+    public const INSTRUMENT_TYPE_OWNER_ENDOWMENT = 'property_ownership_owner_is_endowment';
+
     public const INSTRUMENT_TYPES = [
         'electronic',
         'old_handwritten',
         'strong_argument',
         'electronic_tax_register',
         'property_ownership_owner_are_deceased_endowment',
+        self::INSTRUMENT_TYPE_OWNER_ENDOWMENT,
         'sale_agreement',
         'electronic_deed_from_the_ministry_of_justice',
         'economic_cities_authority_suspended',
@@ -37,7 +41,26 @@ class RealEstate extends Model
     protected $casts = [
         'property_type_id' => 'integer',
         'property_usages_id' => 'integer',
+        'is_multiple_trusteeship_deed_copy' => 'boolean',
     ];
+
+    /**
+     * Normalize web (0/1) and API (owner|tenant) payloads to stored enum strings.
+     */
+    public function setContractOwnershipAttribute(mixed $value): void
+    {
+        if ($value === null || $value === '') {
+            $this->attributes['contract_ownership'] = null;
+
+            return;
+        }
+        if ($value === 'owner' || $value === 'tenant') {
+            $this->attributes['contract_ownership'] = $value;
+
+            return;
+        }
+        $this->attributes['contract_ownership'] = in_array($value, [1, '1', true], true) ? 'owner' : 'tenant';
+    }
     use HasFactory;
     protected $fillable = [
         'dob_hijri',
@@ -52,6 +75,10 @@ class RealEstate extends Model
         'type_dob_property_owner', 'type_dob_property_owner_agent',
         'type_instrument_history', 'type_date_first_registration', 'type_agency_instrument_date_of_property_owner',
         'copy_of_the_authorization_or_agency',
+        'copy_of_the_endowment_registration_certificate',
+        'copy_of_the_trusteeship_deed',
+        'is_multiple_trusteeship_deed_copy',
+        'copy_of_guardians_power_of_attorney_for_agent',
         'image_instrument', 'age_of_the_property', 'number_of_units_per_floor', 'image_address', 'latitude', 'longitude'
     ];
   

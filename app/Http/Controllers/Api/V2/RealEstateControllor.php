@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Api\RealEstateControllor as ApiRealEstateControllor;
 use App\Http\Requests\Api\V2\RealEstate\Step1RealEstateRequest;
+use App\Http\Requests\Api\V2\RealEstate\UpdateStep1RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\Step2RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\Step3RealEstateRequest;
 use App\Http\Resources\Api\V2\RealEstate\RealEstateResource;
@@ -18,8 +19,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class RealEstateControllor extends ApiRealEstateControllor
 {
@@ -136,7 +135,6 @@ class RealEstateControllor extends ApiRealEstateControllor
             'name_owner' => $request->name_owner,
             'user_id' => $user->id,
             'type_dob_property_owner' => $request->input('type_dob_property_owner', 'hijri'),
-            //'property_owner_id_num' => $request->property_owner_id_num,
             'property_owner_dob_hijri' => HijriDobParts::combine(
                 $request->property_owner_dob_day,
                 $request->property_owner_dob_month,
@@ -200,74 +198,45 @@ class RealEstateControllor extends ApiRealEstateControllor
 
     public function updateStep1(Request $request)
     {
-        $instrumentTypes = RealEstate::instrumentTypes();
-        $validator = Validator::make($request->all(), [
-            'id' => 'required|exists:real_estates,id',
-            'name_real_estate' => 'nullable|string|max:255',
-            'contract_ownership' => 'required|in:owner,tenant',
-            'contract_type' => 'required|in:housing,commercial',
-            'instrument_number' => [Rule::requiredIf($request->input('instrument_type') === 'electronic')],
-            'instrument_history' => [Rule::requiredIf($request->input('instrument_type') === 'electronic')],
-            'real_estate_registry_number' => [Rule::requiredIf($request->input('instrument_type') === 'strong_argument')],
-            'date_first_registration' => [Rule::requiredIf($request->input('instrument_type') === 'strong_argument')],
-            'property_type_id' => 'required|exists:rea_estat_types,id',
-            'property_owner_is_deceased' => 'required|boolean',
-            'number_of_floors' => 'required',
-            'instrument_type' => ['nullable', Rule::in($instrumentTypes), 'required_if:property_owner_is_deceased,1'],
-            'property_usages_id' => 'required_if:instrument_type,electronic,strong_argument',
-            'number_of_units_in_realestate' => 'required_if:instrument_type,electronic,strong_argument|nullable|integer',
-            'image_instrument' => 'nullable|image',
-            'image_address' => 'nullable|image',
-            'age_of_the_property' => 'nullable|integer|min:0',
-            'number_of_units_per_floor' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'type_instrument_history' => 'nullable|in:hijri,gregorian',
-            'type_date_first_registration' => 'nullable|in:hijri,gregorian',
-        ], [
-            'id.required' => 'معرف العقار مطلوب.',
-            'id.exists' => 'العقار المحدد غير موجود.',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => $validator->errors()->first() ?: 'البيانات المدخلة غير صحيحة.',
-                'code' => 422,
-                'success' => false,
-            ], 422);
-        }
+        $form = UpdateStep1RealEstateRequest::createFrom($request);
+        $form->setContainer(app())->setRedirector(app(Redirector::class));
+        $form->validateResolved();
 
         $user = Auth::user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($request->id);
+        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($form->input('id'));
 
         $data = [
-            'name_real_estate' => $request->input('name_real_estate'),
-            'contract_ownership' => $request->contract_ownership,
-            'contract_type' => $request->contract_type,
-            'instrument_number' => $request->instrument_number,
-            'instrument_history' => $request->instrument_history,
-            'real_estate_registry_number' => $request->real_estate_registry_number,
-            'date_first_registration' => $request->date_first_registration,
-            'property_owner_is_deceased' => $request->property_owner_is_deceased,
-            'number_of_units_in_realestate' => $request->number_of_units_in_realestate,
-            'instrument_type' => $request->instrument_type,
-            'property_type_id' => $request->property_type_id,
-            'property_usages_id' => $request->property_usages_id,
-            'number_of_floors' => $request->number_of_floors,
-            'age_of_the_property' => $request->input('age_of_the_property'),
-            'number_of_units_per_floor' => $request->input('number_of_units_per_floor'),
-            'latitude' => $request->input('latitude'),
-            'longitude' => $request->input('longitude'),
+            'name_real_estate' => $form->input('name_real_estate'),
+            'contract_ownership' => $form->input('contract_ownership'),
+            'contract_type' => $form->input('contract_type'),
+            'instrument_number' => $form->input('instrument_number'),
+            'instrument_history' => $form->input('instrument_history'),
+            'real_estate_registry_number' => $form->input('real_estate_registry_number'),
+            'date_first_registration' => $form->input('date_first_registration'),
+            'property_owner_is_deceased' => $form->input('property_owner_is_deceased'),
+            'number_of_units_in_realestate' => $form->input('number_of_units_in_realestate'),
+            'instrument_type' => $form->input('instrument_type'),
+            'property_type_id' => $form->input('property_type_id'),
+            'property_usages_id' => $form->input('property_usages_id'),
+            'number_of_floors' => $form->input('number_of_floors'),
+            'age_of_the_property' => $form->input('age_of_the_property'),
+            'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
+            'latitude' => $form->input('latitude'),
+            'longitude' => $form->input('longitude'),
             'step' => 2,
         ];
 
-        if ($request->input('instrument_type') === 'electronic' && $request->filled('instrument_history')) {
-            $data['instrument_history'] = date('Y-m-d', strtotime((string) $request->instrument_history));
-            $data['type_instrument_history'] = $request->input('type_instrument_history', 'hijri');
+        if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
+            $data['is_multiple_trusteeship_deed_copy'] = $form->boolean('is_multiple_trusteeship_deed_copy');
         }
 
-        if ($request->input('instrument_type') === 'strong_argument' && $request->filled('date_first_registration')) {
-            $data['type_date_first_registration'] = $request->input('type_date_first_registration', 'hijri');
+        if ($form->input('instrument_type') === 'electronic' && $form->filled('instrument_history')) {
+            $data['instrument_history'] = date('Y-m-d', strtotime((string) $form->input('instrument_history')));
+            $data['type_instrument_history'] = $form->input('type_instrument_history', 'hijri');
+        }
+
+        if ($form->input('instrument_type') === 'strong_argument' && $form->filled('date_first_registration')) {
+            $data['type_date_first_registration'] = $form->input('type_date_first_registration', 'hijri');
         }
 
         if ($request->hasFile('image_instrument')) {
@@ -275,6 +244,19 @@ class RealEstateControllor extends ApiRealEstateControllor
         }
         if ($request->hasFile('image_address')) {
             $data['image_address'] = $request->file('image_address')->store('images/real_estates', 'public');
+        }
+
+        if ($request->hasFile('copy_of_the_endowment_registration_certificate')) {
+            $data['copy_of_the_endowment_registration_certificate'] = $request->file('copy_of_the_endowment_registration_certificate')
+                ->store('real_estates/endowment-registration-certificates', 'public');
+        }
+        if ($request->hasFile('copy_of_the_trusteeship_deed')) {
+            $data['copy_of_the_trusteeship_deed'] = $request->file('copy_of_the_trusteeship_deed')
+                ->store('real_estates/trusteeship-deeds', 'public');
+        }
+        if ($request->hasFile('copy_of_guardians_power_of_attorney_for_agent')) {
+            $data['copy_of_guardians_power_of_attorney_for_agent'] = $request->file('copy_of_guardians_power_of_attorney_for_agent')
+                ->store('real_estates/guardians-power-of-attorney', 'public');
         }
 
         $realEstate->update($data);
