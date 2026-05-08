@@ -14,6 +14,7 @@ class Step1Resource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'contract_id' => $this->id,
             'uuid' => $this->uuid,
             'contract_type' => $this->contract_type,
             'contract_type_trans' => $this->contract_type_trans,
