@@ -187,12 +187,16 @@ class ContractController extends Controller
         $data['instrument_history'] = $request->instrument_history;
         $data['real_estate_registry_number'] = $request->real_estate_registry_number;
         $data['date_first_registration'] = $request->date_first_registration;
-        $data['property_owner_is_deceased'] = $request->property_owner_is_deceased;
         $data['number_of_units_in_realestate']=$request->number_of_units_in_realestate;
         $data['instrument_type'] = $request->instrument_type ?? 'electronic';
         $data['property_type_id']=$request->property_type_id;
         $data['property_usages_id']=$request->property_usages_id;
         $data['number_of_floors']=$request->number_of_floors;
+
+        // Keep DB not-null constraint safe when initial-step fields are skipped.
+        if ($request->exists('property_owner_is_deceased') && $request->property_owner_is_deceased !== null) {
+            $data['property_owner_is_deceased'] = $request->boolean('property_owner_is_deceased');
+        }
   
    
         if ($request->instrument_type == 'electronic') {
@@ -215,6 +219,7 @@ class ContractController extends Controller
             'data' => [
                 'contract_id' => $contract->id,
                 'uuid' => (string) $contract->uuid,
+                
             ],
         ]);   
     
@@ -269,6 +274,8 @@ class ContractController extends Controller
             'data' => [
                 'contract_id' => $contract->id,
                 'uuid' => (string) $contract->uuid,
+                'instrument_type' => $contract->instrument_type,
+                'image_instrument' => $contract->image_instrument ? getFilePath($contract->image_instrument) : null,
             ],
         ]);
     
