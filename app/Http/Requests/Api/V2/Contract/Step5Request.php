@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Models\Contract;
 
 class Step5Request extends BaseApiV2Request
 {
@@ -57,6 +58,10 @@ class Step5Request extends BaseApiV2Request
 
     public function rules(): array
     {
+        if ($this->isSubleaseAgreementContract()) {
+            return $this->subleaseAgreementRules();
+        }
+
         return [
             'id' => 'required|exists:contracts,id',
             'unit_type_id' => 'required|exists:unit_types,id',
@@ -78,6 +83,39 @@ class Step5Request extends BaseApiV2Request
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];
+    }
+
+    private function subleaseAgreementRules(): array
+    {
+        return [
+            'id' => 'required|exists:contracts,id',
+            'unit_type_id' => 'nullable|exists:unit_types,id',
+            'unit_usage_id' => 'nullable|exists:unit_usages,id',
+            'unit_number' => 'required|string|max:255',
+            'floor_number' => 'required|integer',
+            'unit_area' => 'required|numeric',
+            'tootal_rooms' => 'nullable|integer',
+            'The_number_of_halls' => 'nullable|integer',
+            'The_number_of_kitchens' => 'nullable|integer',
+            'The_number_of_toilets' => 'nullable|integer',
+            'window_ac' => 'nullable|integer',
+            'split_ac' => 'nullable|integer',
+            'electricity_meter_number' => 'nullable|string|max:255',
+            'water_meter_number' => 'nullable|string|max:255',
+            'kitchen_tank' => 'nullable|boolean',
+            'furnished' => 'nullable|boolean',
+            'type_furnished' => 'nullable|boolean',
+            'electricity_meter' => 'nullable|boolean',
+            'water_meter' => 'nullable|boolean',
+        ];
+    }
+
+    private function isSubleaseAgreementContract(): bool
+    {
+        $contractId = $this->input('id');
+
+        return $contractId
+            && Contract::query()->whereKey($contractId)->value('instrument_type') === 'sublease_agreement';
     }
 
     public function messages(): array
