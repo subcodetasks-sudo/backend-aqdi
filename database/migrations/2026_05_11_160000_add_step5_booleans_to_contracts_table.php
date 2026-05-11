@@ -18,7 +18,7 @@ return new class extends Migration
             }
 
             if (! Schema::hasColumn('contracts', 'type_furnished')) {
-                $table->boolean('type_furnished')->default(false);
+                $table->string('type_furnished')->nullable();
             }
         });
     }

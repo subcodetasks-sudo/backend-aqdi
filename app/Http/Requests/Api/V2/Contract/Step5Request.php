@@ -9,7 +9,7 @@ class Step5Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
-        $booleanKeys = ['kitchen_tank', 'furnished', 'type_furnished', 'electricity_meter', 'water_meter'];
+        $booleanKeys = ['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'];
         $normalizedBooleans = [];
 
         foreach ($booleanKeys as $key) {
@@ -45,7 +45,6 @@ class Step5Request extends BaseApiV2Request
         $this->merge(array_merge([
             'kitchen_tank' => 0,
             'furnished' => 0,
-            'type_furnished' => 0,
             'electricity_meter' => 0,
             'water_meter' => 0,
         ], $normalizedBooleans));
@@ -79,7 +78,7 @@ class Step5Request extends BaseApiV2Request
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
             'furnished' => 'nullable|boolean',
-            'type_furnished' => 'nullable|boolean',
+            'type_furnished' => 'nullable|string|max:255',
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];
@@ -104,7 +103,7 @@ class Step5Request extends BaseApiV2Request
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
             'furnished' => 'nullable|boolean',
-            'type_furnished' => 'nullable|boolean',
+            'type_furnished' => 'nullable|string|max:255',
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];

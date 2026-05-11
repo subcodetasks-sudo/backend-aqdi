@@ -485,7 +485,7 @@ class ContractController extends Controller
             'water_meter_number' => $request->water_meter_number,
             'kitchen_tank' => (int) $request->boolean('kitchen_tank'),
             'furnished' => (int) $request->boolean('furnished'),
-            'type_furnished' => (int) $request->boolean('type_furnished'),
+            'type_furnished' => $request->type_furnished,
             'electricity_meter' => (int) $request->boolean('electricity_meter'),
             'water_meter' => (int) $request->boolean('water_meter'),
         ];
