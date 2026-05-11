@@ -14,7 +14,7 @@ class Step4Resource extends JsonResource
     public function toArray(Request $request): array
     {
         $tenantDob = HijriDobParts::split($this->tenant_dob);
-        $tenantAgentDob = HijriDobParts::split($this->dob_hijri_of_property_tenant_agent);
+        $tenantAgentDob = HijriDobParts::split($this->dob_of_property_tenant_agent);
 
         return [
             'id' => $this->id,
@@ -35,10 +35,10 @@ class Step4Resource extends JsonResource
             'copy_of_the_owner_record' => $this->copy_of_the_owner_record,
             'id_num_of_property_tenant_agent' => $this->id_num_of_property_tenant_agent,
             'mobile_of_property_tenant_agent' => $this->mobile_of_property_tenant_agent,
-            'dob_hijri_of_property_tenant_agent' => $this->dob_hijri_of_property_tenant_agent,
-            'dob_hijri_of_property_tenant_agent_day' => $tenantAgentDob['day'],
-            'dob_hijri_of_property_tenant_agent_month' => $tenantAgentDob['month'],
-            'dob_hijri_of_property_tenant_agent_year' => $tenantAgentDob['year'],
+            'dob_of_property_tenant_agent' => $this->dob_of_property_tenant_agent,
+            'dob_of_property_tenant_agent_day' => $tenantAgentDob['day'],
+            'dob_of_property_tenant_agent_month' => $tenantAgentDob['month'],
+            'dob_of_property_tenant_agent_year' => $tenantAgentDob['year'],
             'step' => $this->step,
         ];
     }

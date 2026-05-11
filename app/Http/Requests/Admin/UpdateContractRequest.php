@@ -78,7 +78,7 @@ class UpdateContractRequest extends FormRequest
             'add_legal_agent_of_tenant' => ['sometimes', 'nullable', 'boolean'],
             'id_num_of_property_tenant_agent' => ['sometimes', 'nullable', 'string', 'max:255'],
             'dob_gregorian_of_property_tenant_agent' => ['sometimes', 'nullable', 'date'],
-            'dob_hijri_of_property_tenant_agent' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'dob_of_property_tenant_agent' => ['sometimes', 'nullable', 'string', 'max:255'],
             'mobile_of_property_tenant_agent' => ['sometimes', 'nullable', 'string', 'max:255'],
             'agency_number_in_instrument_of_property_tenant' => ['sometimes', 'nullable', 'string', 'max:255'],
             'agency_instrument_date_of_property_tenant' => ['sometimes', 'nullable', 'date'],

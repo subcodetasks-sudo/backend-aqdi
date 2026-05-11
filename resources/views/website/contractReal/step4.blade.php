@@ -117,10 +117,10 @@
         <div class="form-group-state">
             <label for="record-owner-agent-birthdate" class="label-state">تاريخ ميلاد وكيل مالك السجل</label>
             <input id="record-owner-agent-birthdate" class="input-state date-picker" type="text"
-                name="dob_hijri_of_property_tenant_agent" value="{{ old('dob_hijri_of_property_tenant_agent',$contract->dob_hijri_of_property_tenant_agent) }}" placeholder="تاريخ ميلاد وكيل مالك السجل" />
+                name="dob_of_property_tenant_agent" value="{{ old('dob_of_property_tenant_agent',$contract->dob_of_property_tenant_agent) }}" placeholder="تاريخ ميلاد وكيل مالك السجل" />
         </div>
     </div>
-    @error('dob_hijri_of_property_tenant_agent')
+    @error('dob_of_property_tenant_agent')
     <div class="error-message">{{ $message }}</div>
 @enderror
 
