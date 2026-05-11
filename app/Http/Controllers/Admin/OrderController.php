@@ -217,9 +217,7 @@ class OrderController extends Controller
                 'id',
                 'uuid',
                 'contract_type',
-                'contract_type_trans',
                 'instrument_type',
-                'instrument_type_trans',
                 'image_instrument',
                 'image_instrument_from_the_back',
                 'image_instrument_from_the_front',
@@ -247,6 +245,10 @@ class OrderController extends Controller
                 'copy_of_the_authorization_or_agency',
             ]), [
                 'contract_status_name' => Arr::get($detail, 'contract_status.name'),
+                'contract_type' => Arr::get($detail, 'contract_type_trans', Arr::get($detail, 'contract_type')),
+                'instrument_type' => Arr::get($detail, 'instrument_type_trans', Arr::get($detail, 'instrument_type')),
+                'contract_type_key' => Arr::get($detail, 'contract_type'),
+                'instrument_type_key' => Arr::get($detail, 'instrument_type'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                

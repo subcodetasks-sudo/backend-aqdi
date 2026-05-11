@@ -18,8 +18,8 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'uuid' => $this->uuid,
-            'contract_type' => $this->contract_type,
-            'contract_type_trans' => $this->contract_type_trans,
+            'contract_type' => $this->contract_type_trans,
+            'contract_type_key' => $this->contract_type,
             'amount_payment' => $this->contract->payments->amount ?? 'لم يتم الدفع',
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'status' => [
@@ -34,8 +34,8 @@ class OrderResource extends JsonResource
             'user_name' => $this->user->name ?? null,
             'user_mobile' => $this->user->mobile ?? null,
             'ownership' => $this->contract_ownership,
-            'instrument_type' => $this->instrument_type,
-            'instrument_type_trans' => $this->instrument_type_trans,
+            'instrument_type' => $this->instrument_type_trans,
+            'instrument_type_key' => $this->instrument_type,
             'is_completed' => (bool) $this->is_completed,
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
