@@ -286,6 +286,7 @@ class OrderController extends Controller
                 'The_number_of_kitchens',
                 'The_number_of_toilets',
                 'window_ac',
+                'number_of_unit_air_conditioners',
                 'split_ac',
                 'electricity_meter_number',
                 'water_meter_number',
