@@ -9,6 +9,7 @@ use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
 use App\Models\Order;
+use App\Models\TenantRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -250,12 +251,11 @@ class OrderController extends Controller
                 'instrument_type' => Arr::get($detail, 'instrument_type_trans', Arr::get($detail, 'instrument_type')),
                 'contract_type_key' => Arr::get($detail, 'contract_type'),
                 'instrument_type_key' => Arr::get($detail, 'instrument_type'),
-                'contract_period_name' => Arr::get($detail, 'contract_periods.period'),
+                'contract_period' => Arr::get($detail, 'contract_term_in_years.period'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
                 'building_number',
-           
                  'property_place_id',
                 'property_city_id',
                 'neighborhood',
@@ -321,7 +321,7 @@ class OrderController extends Controller
                 'tenant_role_id',
                 'tenant_role',
             ]), [
-                'tenant_role_name' => Arr::get($detail, 'tenant_role.name'),
+                'tenant_role_names' => $this->tenantRoleNames($detail),
             ]),
             'step4' => array_merge(Arr::only($detail, [
                 'contract_starting_date',
@@ -341,7 +341,7 @@ class OrderController extends Controller
             ]), [
                 'contract_term_name' => $this->relationName(Arr::get($detail, 'contract_term_in_years')),
                 'payment_type_name' => $this->relationName(Arr::get($detail, 'payment_type')),
-                'tenant_role_name' => $this->relationName(Arr::get($detail, 'tenant_role')),
+                'tenant_role_names' => $this->tenantRoleNames($detail),
             ]),
           
             
@@ -364,6 +364,44 @@ class OrderController extends Controller
 
         // Return one display value only (localized name; Arabic by default via app locale).
         return $relation['name'] ?? $relation['name_ar'] ?? $relation['name_en'] ?? null;
+    }
+
+    /**
+     * Return tenant role labels as array (one or many).
+     *
+     * @param  array<string, mixed>  $detail
+     * @return array<int, string>
+     */
+    private function tenantRoleNames(array $detail): array
+    {
+        $ids = Arr::get($detail, 'tenant_role_ids', []);
+        if (! is_array($ids)) {
+            $ids = [];
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map(static fn ($v) => (int) $v, $ids))));
+
+        if ($ids !== []) {
+            $names = TenantRole::query()
+                ->whereIn('id', $ids)
+                ->orderByRaw('FIELD(id,'.implode(',', $ids).')')
+                ->pluck('text_of_reason')
+                ->filter(static fn ($v) => is_string($v) && trim($v) !== '')
+                ->map(static fn ($v) => trim((string) $v))
+                ->values()
+                ->all();
+
+            if ($names !== []) {
+                return $names;
+            }
+        }
+
+        $single = Arr::get($detail, 'tenant_role.name');
+        if (is_string($single) && trim($single) !== '') {
+            return [trim($single)];
+        }
+
+        return [];
     }
 
     public function updateContractStatus(Request $request, $id)
