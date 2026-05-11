@@ -38,12 +38,12 @@
      
         <div class="form-group-state">
             <label for="tenant-birthdate" class="label-state">تاريخ ميلاد المستأجر</label>
-            <input id="tenant-birthdate" class="input-state date-picker" type="text" name="tenant_dob_hijri"
-                value="{{ old('tenant_dob_hijri',$contract->tenant_dob_hijri) }}" placeholder="تاريخ ميلاد المستأجر" />
+            <input id="tenant-birthdate" class="input-state date-picker" type="text" name="tenant_dob"
+                value="{{ old('tenant_dob',$contract->tenant_dob) }}" placeholder="تاريخ ميلاد المستأجر" />
         </div>
     
     </div>
-    @error('tenant_dob_hijri')
+    @error('tenant_dob')
         <div class="error-message">{{ $message }}</div>
     @enderror
     <div class="form-group-state tenant-dependent" style="display: none">

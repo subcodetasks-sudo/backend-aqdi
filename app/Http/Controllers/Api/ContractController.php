@@ -367,7 +367,7 @@ class ContractController extends Controller
          $rules = [
             'tenant_entity' => 'required|in:person,institution',
             'tenant_id_num' => 'nullable|required_if:tenant_entity,person|min:10',
-            'tenant_dob_hijri' => 'nullable|required_if:tenant_entity,person',
+            'tenant_dob' => 'nullable|required_if:tenant_entity,person',
             'tenant_mobile' => 'nullable|required_if:tenant_entity,person|min:10|regex:/^05[0-9]{8}$/',
             'region_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:regions,id',
             'city_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:cities,id',
@@ -384,7 +384,7 @@ class ContractController extends Controller
             'tenant_entity.required' => 'نوع الكيان المستأجر مطلوب.',
             'tenant_entity.in' => 'الكيان المستأجر يجب أن يكون شخص أو مؤسسة.',
             'tenant_id_num.required_if' => 'رقم الهوية مطلوب إذا كان الكيان المستأجر شخصاً.',
-            'tenant_dob_hijri.required_if' => 'تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
+            'tenant_dob.required_if' => 'تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
             'tenant_mobile.required_if' => 'رقم الجوال مطلوب إذا كان الكيان المستأجر شخصاً.',
             'tenant_mobile.regex' => 'رقم الجوال يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام.',
             'authorization_type.required_if' => 'نوع التوكيل مطلوب إذا كان الكيان مؤسسة.',

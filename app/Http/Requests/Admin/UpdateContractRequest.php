@@ -69,7 +69,7 @@ class UpdateContractRequest extends FormRequest
 
             'tenant_id_num' => ['sometimes', 'nullable', 'string', 'max:255'],
             'tenant_dob_gregorian' => ['sometimes', 'nullable', 'date'],
-            'tenant_dob_hijri' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'tenant_dob' => ['sometimes', 'nullable', 'string', 'max:255'],
             'tenant_mobile' => ['sometimes', 'nullable', 'string', 'max:255'],
             'name_owner' => ['sometimes', 'nullable', 'string', 'max:255'],
             'name_real_estate' => ['sometimes', 'nullable', 'string', 'max:255'],

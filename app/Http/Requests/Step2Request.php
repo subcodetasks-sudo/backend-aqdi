@@ -75,7 +75,7 @@ class Step2Request extends FormRequest
             'tenant_entity' => 'required',
             'tenant_id_num' => 'required',
             
-            'tenant_dob_hijri' => [
+            'tenant_dob' => [
                 'required', 
                 'date',
                 'before:' . now()->subYears(18),
@@ -128,8 +128,8 @@ class Step2Request extends FormRequest
             // Tenant
             'tenant_entity.required' => 'يجب اختيار صفة المستأجر',
             'tenant_id_num.required' => 'رقم هوية المستأجر مطلوب',
-              'tenant_dob_hijri.required' => 'تاريخ ميلاد المستأجر  مطلوب',
-            'tenant_dob_hijri.before' => 'يجب أن يكون عمر المستأجر أكبر من 18 عامًا',
+              'tenant_dob.required' => 'تاريخ ميلاد المستأجر  مطلوب',
+            'tenant_dob.before' => 'يجب أن يكون عمر المستأجر أكبر من 18 عامًا',
     
             // Agent Tenant
             'add_legal_agent_of_tenant.required' => 'يجب تحديد ما إذا كنت ترغب في إضافة وكيل للمستأجر',
@@ -146,7 +146,7 @@ class Step2Request extends FormRequest
             //date vaild
 
              'dob_hijri_of_property_tenant_agent.date' => 'حقل تاريخ الميلاد  للوكيل الشرعي لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
-            'tenant_dob_hijri.date' => 'حقل تاريخ   لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
+            'tenant_dob.date' => 'حقل تاريخ   لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
              'dob_hijri_of_property_owner_agent.date' => 'حقل تاريخ الميلاد  للوكيل الشرعي لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
              'property_owner_dob.date' => 'حقل تاريخ الميلاد  لمالك العقار يجب أن يكون تاريخاً صالحاً.',
  

@@ -264,7 +264,7 @@ return [
         'agent_iban_of_property_owner' => 'رقم الآيبان للوكيل الشرعي لمالك العقار',
         'tenant_id_num' => 'رقم هوية المستأجر',
         'tenant_dob_gregorian' => 'تاريخ ميلاد المستأجر',
-        'tenant_dob_hijri' => 'تاريخ الميلاد بالهجري للمستأجر',
+        'tenant_dob' => 'تاريخ ميلاد المستأجر',
         'tenant_mobile' => 'رقم جوال المستأجر',
         'add_legal_agent_of_tenant' => 'إضافة ممثل أو وكيل شرعي لمستأجر العقار',
         'id_num_of_property_tenant_agent' => 'رقم هوية الوكيل الشرعي لمستأجر العقار',

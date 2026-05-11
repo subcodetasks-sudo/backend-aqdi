@@ -225,7 +225,7 @@ class ContractRealDataSeeder extends Seeder
 
                 'tenant_id_num' => $tenantNationalId,
                 'tenant_dob_gregorian' => Carbon::create(1988 + $i * 2, 4 + $i, 12 + $i)->toDateString(),
-                'tenant_dob_hijri' => $tenantHijriDob,
+                'tenant_dob' => $tenantHijriDob,
                 'tenant_mobile' => '05'.str_pad((string) (30000000 + $i * 13), 8, '0', STR_PAD_LEFT),
                 'name_owner' => $ownerFull,
 
