@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractPeriod;
+use App\Models\ContractStatus;
 use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\ReaEstatType;
@@ -23,7 +24,8 @@ use Illuminate\Support\Facades\Schema;
  */
 class ContractRealDataSeeder extends Seeder
 {
-    private const COUNT = 22;
+    /** Three fully-filled completed contracts for manual / API testing. */
+    private const COUNT = 3;
 
     public function run(): void
     {
@@ -41,8 +43,6 @@ class ContractRealDataSeeder extends Seeder
 
         $cities = City::query()->get();
         $userIds = User::query()->pluck('id')->all();
-        // Keep to values from create_contracts enum; expanded enum may not exist if column was created early.
-        $instrumentTypes = ['electronic', 'old_handwritten', 'strong_argument'];
         $tenantRoleId = Schema::hasTable('tenant_roles') && TenantRole::query()->exists()
             ? TenantRole::query()->value('id')
             : null;
@@ -73,37 +73,80 @@ class ContractRealDataSeeder extends Seeder
             ['بندر', 'الخالدي'], ['شهد', 'اليامي'], ['نايف', 'الماجد'], ['جواهر', 'السبيعي'],
         ];
 
+        /** One housing (full parties + tenant agent), one commercial (tenant as party + authorization), one housing endowment. */
+        $scenarios = [
+            [
+                'contract_type' => 'housing',
+                'instrument_type' => 'electronic',
+                'ownership' => 'owner',
+                'with_owner_agent' => true,
+                'with_tenant_agent' => true,
+                'deceased_owner' => false,
+                'authorization_type' => 'owner_and_representative_of_record',
+                'assign_tenant_role' => true,
+            ],
+            [
+                'contract_type' => 'commercial',
+                'instrument_type' => 'old_handwritten',
+                'ownership' => 'tenant',
+                'with_owner_agent' => false,
+                'with_tenant_agent' => false,
+                'deceased_owner' => false,
+                'authorization_type' => 'agent_for_the_tenant',
+                'assign_tenant_role' => false,
+            ],
+            [
+                'contract_type' => 'housing',
+                'instrument_type' => 'property_ownership_owner_is_endowment',
+                'ownership' => 'owner',
+                'with_owner_agent' => true,
+                'with_tenant_agent' => false,
+                'deceased_owner' => false,
+                'authorization_type' => null,
+                'assign_tenant_role' => true,
+            ],
+        ];
+
         for ($i = 0; $i < self::COUNT; $i++) {
-            $city = $cities->random();
+            $scenario = $scenarios[$i];
+            $city = $cities[$i % max(1, $cities->count())];
             $regionId = (int) $city->region_id;
-            $contractType = ($i % 4 === 0) ? 'commercial' : 'housing';
-            $completed = $i < 16;
-            $step = $completed ? 7 : [3, 4, 5, 6][$i % 4];
-            $ownership = ($i % 5 === 0) ? 'tenant' : 'owner';
+            $contractType = $scenario['contract_type'];
+            $completed = true;
+            $step = 7;
+            $ownership = $scenario['ownership'];
+            $withAgent = $scenario['with_owner_agent'];
+            $deceasedOwner = $scenario['deceased_owner'];
+            $withTenantAgent = $scenario['with_tenant_agent'];
+            $instrumentType = $scenario['instrument_type'];
 
             $period = ContractPeriod::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
-                ->first();
+                ->orderBy('id')
+                ->offset($i % 3)
+                ->first()
+                ?? ContractPeriod::query()->where('contract_type', $contractType)->orderBy('id')->first();
             $paymentType = PaymentType::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
-                ->first();
+                ->orderBy('id')
+                ->offset($i % 3)
+                ->first()
+                ?? PaymentType::query()->where('contract_type', $contractType)->orderBy('id')->first();
             $propertyType = ReaEstatType::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
+                ->orderBy('id')
                 ->first();
             $propertyUsage = ReaEstatUsage::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
+                ->orderBy('id')
                 ->first();
             $unitType = UnitType::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
+                ->orderBy('id')
                 ->first();
             $unitUsage = UsageUnit::query()
                 ->where('contract_type', $contractType)
-                ->inRandomOrder()
+                ->orderBy('id')
                 ->first();
 
             if (! $period || ! $paymentType || ! $propertyType || ! $propertyUsage || ! $unitType || ! $unitUsage) {
@@ -120,11 +163,10 @@ class ContractRealDataSeeder extends Seeder
 
             $ownerNationalId = '1'.str_pad((string) (100000000 + $i * 791), 9, '0', STR_PAD_LEFT);
             $tenantNationalId = '2'.str_pad((string) (100000000 + $i * 503), 9, '0', STR_PAD_LEFT);
-            $instrumentType = $instrumentTypes[$i % count($instrumentTypes)];
 
             $annualRent = $contractType === 'commercial'
-                ? (string) (80000 + $i * 4500 + random_int(0, 15000))
-                : (string) (18000 + $i * 1200 + random_int(0, 8000));
+                ? (string) (95000 + $i * 5000)
+                : (string) (22000 + $i * 1500);
 
             $latBase = match ((int) $city->region_id) {
                 1 => [24.7136, 46.6753],
@@ -134,44 +176,37 @@ class ContractRealDataSeeder extends Seeder
                 default => [24.0, 45.0],
             };
 
-            $latitude = round($latBase[0] + (random_int(-800, 800) / 10000), 8);
-            $longitude = round($latBase[1] + (random_int(-800, 800) / 10000), 8);
+            $latitude = round($latBase[0] + (($i + 1) * 0.002), 8);
+            $longitude = round($latBase[1] + (($i + 1) * 0.002), 8);
 
-            $hijriStart = sprintf('%02d-%02d-%d', random_int(1, 28), random_int(1, 12), 1445 + ($i % 3));
-            $ownerHijriDob = sprintf('%02d-%02d-%d', random_int(1, 28), random_int(1, 12), 1375 + ($i % 25));
-            $tenantHijriDob = sprintf('%02d-%02d-%d', random_int(1, 28), random_int(1, 12), 1405 + ($i % 20));
+            $hijriStart = sprintf('%02d-%02d-%d', 1 + $i, 4 + $i, 1446);
+            $ownerHijriDob = sprintf('%02d-%02d-%d', 10 + $i, 6, 1378 + $i);
+            $tenantHijriDob = sprintf('%02d-%02d-%d', 5 + $i, 9, 1408 + $i);
 
-            $createdAt = Carbon::now()->subDays(random_int(2, 120))->subHours(random_int(0, 20));
-
-            $withAgent = $i % 7 === 0;
-            $deceasedOwner = $i % 11 === 0;
-
-            if ($deceasedOwner) {
-                $instrumentType = 'strong_argument';
-            }
+            $createdAt = Carbon::now()->subDays(12 + $i * 8)->subHours(3 + $i);
 
             $payload = [
                 'contract_type' => $contractType,
-                'user_id' => $userIds[array_rand($userIds)],
+                'user_id' => $userIds[$i % count($userIds)],
                 'app_or_web' => ($i % 2 === 0) ? 'web' : 'app',
                 'contract_ownership' => $ownership,
                 'instrument_type' => $instrumentType,
                 'status' => null,
-                'instrument_number' => (string) (4300000000 + $i * 137 + random_int(0, 99)),
-                'instrument_history' => Carbon::create(2015 + ($i % 8), random_int(1, 12), random_int(1, 28))->toDateString(),
-                'date_first_registration' => (string) (1420 + ($i % 6)),
-                'real_estate_registry_number' => 'رقم صك '.(900000 + $i),
-                'number_of_units_in_realestate' => (string) random_int(1, 24),
+                'instrument_number' => (string) (4300000000 + $i * 137 + 11),
+                'instrument_history' => Carbon::create(2016 + $i, 3 + $i, 10 + $i)->toDateString(),
+                'date_first_registration' => (string) (1422 + $i),
+                'real_estate_registry_number' => 'رقم صك '.(900100 + $i),
+                'number_of_units_in_realestate' => (string) (4 + $i * 2),
                 'property_owner_is_deceased' => $deceasedOwner,
                 'property_usages_id' => $propertyUsage->id,
                 'property_city_id' => $city->id,
                 'property_place_id' => $regionId,
                 'property_type_id' => $propertyType->id,
                 'neighborhood' => $neighborhoods[$i % count($neighborhoods)],
-                'building_number' => (string) random_int(1, 9999),
-                'postal_code' => str_pad((string) random_int(10000, 99999), 5, '0', STR_PAD_LEFT),
+                'building_number' => (string) (1200 + $i * 111),
+                'postal_code' => str_pad((string) (12345 + $i), 5, '0', STR_PAD_LEFT),
                 'extra_figure' => '701'.$i,
-                'number_of_floors' => (string) random_int(1, 12),
+                'number_of_floors' => (string) (3 + $i),
                 'street' => $streets[$i % count($streets)],
 
                 'property_owner_id_num' => $ownerNationalId,
@@ -189,94 +224,177 @@ class ContractRealDataSeeder extends Seeder
                 'agent_iban_of_property_owner' => $withAgent ? 'SA0380000000608020'.str_pad((string) (120000 + $i), 6, '0', STR_PAD_LEFT) : null,
 
                 'tenant_id_num' => $tenantNationalId,
-                'tenant_dob_gregorian' => Carbon::create(1988 + ($i % 25), random_int(1, 12), random_int(1, 28))->toDateString(),
+                'tenant_dob_gregorian' => Carbon::create(1988 + $i * 2, 4 + $i, 12 + $i)->toDateString(),
                 'tenant_dob_hijri' => $tenantHijriDob,
                 'tenant_mobile' => '05'.str_pad((string) (30000000 + $i * 13), 8, '0', STR_PAD_LEFT),
-                'name_owner' => $ownership === 'tenant' ? $ownerFull : $ownerFull,
+                'name_owner' => $ownerFull,
 
-                'add_legal_agent_of_tenant' => false,
+                'add_legal_agent_of_tenant' => $withTenantAgent,
+                'id_num_of_property_tenant_agent' => $withTenantAgent ? '1'.str_pad((string) (210000000 + $i), 9, '0', STR_PAD_LEFT) : null,
+                'dob_gregorian_of_property_tenant_agent' => $withTenantAgent ? Carbon::create(1985, 7, 20)->toDateString() : null,
+                'dob_hijri_of_property_tenant_agent' => $withTenantAgent ? '15-03-1405' : null,
+                'mobile_of_property_tenant_agent' => $withTenantAgent ? '05'.str_pad((string) (21000000 + $i), 8, '0', STR_PAD_LEFT) : null,
+                'agency_number_in_instrument_of_property_tenant' => $withTenantAgent ? (string) (7700 + $i) : null,
+                'agency_instrument_date_of_property_tenant' => $withTenantAgent ? Carbon::create(2023, 1, 10)->toDateString() : null,
                 'tenant_entity' => 'person',
                 'tenant_entity_unified_registry_number' => null,
                 'tenant_entity_region_id' => null,
                 'tenant_entity_city_id' => null,
-                'authorization_type' => $i % 6 === 0 ? 'owner_and_representative_of_record' : null,
+                'authorization_type' => $scenario['authorization_type'],
 
                 'unit_number' => (string) ($i % 48 + 101),
                 'unit_type_id' => $unitType->id,
-                'tootal_rooms' => $contractType === 'housing' ? (string) random_int(1, 5) : '0',
-                'floor_number' => (string) random_int(0, 8),
-                'unit_area' => (string) (80 + $i * 3 + random_int(0, 40)),
+                'tootal_rooms' => $contractType === 'housing' ? (string) (3 + $i) : '0',
+                'floor_number' => (string) (1 + $i),
+                'unit_area' => (string) (95 + $i * 12),
                 'electricity_meter_number' => 'EL-'.(100000 + $i),
                 'water_meter_number' => 'WT-'.(200000 + $i),
-                'number_of_unit_air_conditioners' => (string) random_int(1, 5),
+                'number_of_unit_air_conditioners' => (string) (2 + $i),
 
                 'contract_starting_date' => $hijriStart,
                 'contract_term_in_years' => $period->id,
                 'annual_rent_amount_for_the_unit' => $annualRent,
                 'payment_type_id' => $paymentType->id,
-                'daily_fine' => (string) random_int(50, 500),
-                'sub_delay' => (bool) ($i % 4 === 0),
+                'daily_fine' => (string) (100 + $i * 25),
+                'sub_delay' => true,
                 'other_conditions' => 'يُمنع التأجير من الباطن دون موافقة خطية من المؤجر. الصيانة الدورية للمكيفات على المستأجر.',
-                'premium_membership_for_free' => (bool) ($i % 5 === 0),
-                'deposit' => (string) random_int(1000, 8000),
-                'Guarantee_amount' => (string) random_int(500, 5000),
+                'premium_membership_for_free' => true,
+                'deposit' => (string) (3000 + $i * 500),
+                'Guarantee_amount' => (string) (2000 + $i * 400),
                 'contract_period_id' => $period->id,
                 'real_id' => null,
                 'real_units_id' => null,
                 'unit_usage_id' => $unitUsage->id,
 
-                'client_account_holder_name' => $completed ? $tenantFull : null,
-                'bank_account_number' => $completed ? str_pad((string) (3000000000000 + $i), 24, '0', STR_PAD_LEFT) : null,
+                'client_account_holder_name' => $tenantFull,
+                'bank_account_number' => str_pad((string) (3000000000000 + $i), 24, '0', STR_PAD_LEFT),
 
-                'The_number_of_the_toilet' => (string) random_int(1, 4),
-                'The_number_of_halls' => (string) random_int(1, 3),
+                'The_number_of_the_toilet' => (string) (2 + $i),
+                'The_number_of_halls' => (string) (1 + $i),
                 'The_number_of_kitchens' => '1',
                 'Gasmeter' => 'G-'.(5000 + $i),
-                'Number_parking_spaces' => (string) random_int(0, 2),
+                'Number_parking_spaces' => (string) $i,
 
-                'rating' => $completed ? random_int(4, 5) : null,
-                'rating_note' => $completed ? 'خدمة ممتازة وسرعة في إصدار العقد.' : null,
-                'Services' => (bool) ($completed && $i % 3 === 0),
+                'rating' => 5,
+                'rating_note' => 'خدمة ممتازة وسرعة في إصدار العقد.',
+                'Services' => true,
                 'step' => $step,
                 'is_completed' => $completed,
                 'is_delete' => false,
-                'is_real' => (bool) ($i % 9 === 0),
-                'is_review' => (bool) ($completed && $i % 4 === 0),
-                'notes' => 'بيانات تجريبية واقعية للاختبار — عقد إيجار '.$propertyType->name_ar.' في '.$city->name_ar.'.',
-                'tenant_roles' => (bool) ($i % 8 === 0 && $tenantRoleId),
-                'tenant_role_id' => ($i % 8 === 0 && $tenantRoleId) ? $tenantRoleId : null,
-                'text_additional_terms' => $i % 5 === 0 ? 'يُسمح باصطحاب حيوان أليف صغير بشرط عدم الإزعاج.' : null,
-                'additional_terms' => (bool) ($i % 5 === 0),
-                'age_of_the_property' => random_int(2, 25),
-                'number_of_units_per_floor' => (string) random_int(2, 8),
+                'is_real' => true,
+                'is_review' => $i === 1,
+                'notes' => 'بيانات تجريبية كاملة للاختبار — عقد إيجار '.$propertyType->name_ar.' في '.$city->name_ar.' (#'.($i + 1).').',
+                'tenant_roles' => (bool) ($scenario['assign_tenant_role'] && $tenantRoleId),
+                'tenant_role_id' => ($scenario['assign_tenant_role'] && $tenantRoleId) ? $tenantRoleId : null,
+                'text_additional_terms' => 'يُسمح باصطحاب حيوان أليف صغير بشرط عدم الإزعاج.',
+                'additional_terms' => true,
+                'age_of_the_property' => 5 + $i * 3,
+                'number_of_units_per_floor' => (string) (4 + $i),
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'name_real_estate' => $contractType === 'commercial' ? 'مجمع الأعمال — مبنى '.($i + 1) : null,
+                'name_real_estate' => $contractType === 'commercial' ? 'مجمع الأعمال — مبنى '.($i + 1) : 'عمارة الاختبار — '.$city->name_ar,
             ];
 
+            $payload = $this->mergeOptionalFullTestFields($payload, $i, $city, $regionId, $tenantRoleId, $scenario);
+
             if (Schema::hasColumn('contracts', 'expiry_date')) {
-                $payload['expiry_date'] = $completed
-                    ? Carbon::now()->addYear()->addMonths(random_int(0, 6))->toDateString()
-                    : null;
+                $payload['expiry_date'] = Carbon::now()->addYear()->addMonths($i)->toDateString();
             }
 
             $contract = Contract::query()->create($payload);
 
-            if ($completed) {
-                Payment::query()->create([
-                    'name' => 'عقد توثيق',
-                    'amount' => random_int(150, 450),
-                    'payment_date' => $createdAt->copy()->addDays(random_int(0, 3))->toDateString(),
-                    'contract_uuid' => $contract->uuid,
-                    'tran_currency' => 'SAR',
-                    'payment_method' => ['mada', 'apple_pay', 'stc_pay'][$i % 3],
-                    'status' => 'success',
-                ]);
-            }
+            Payment::query()->create([
+                'name' => 'عقد توثيق',
+                'amount' => 199 + $i * 50,
+                'payment_date' => $createdAt->copy()->addDays(1 + $i)->toDateString(),
+                'contract_uuid' => $contract->uuid,
+                'tran_currency' => 'SAR',
+                'payment_method' => ['mada', 'apple_pay', 'stc_pay'][$i % 3],
+                'status' => 'success',
+            ]);
 
             $contract->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->saveQuietly();
         }
 
-        $this->command?->info('ContractRealDataSeeder: created '.self::COUNT.' contracts with realistic fields.');
+        $this->command?->info('ContractRealDataSeeder: created '.self::COUNT.' completed contracts with full wizard-style fields.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $scenario
+     * @return array<string, mixed>
+     */
+    private function mergeOptionalFullTestFields(
+        array $payload,
+        int $i,
+        City $city,
+        int $regionId,
+        ?int $tenantRoleId,
+        array $scenario,
+    ): array {
+        $completedStatusId = Schema::hasTable('contract_statuses')
+            ? ContractStatus::query()->where('name', 'مكتمل')->value('id')
+            : null;
+
+        if ($completedStatusId && Schema::hasColumn('contracts', 'contract_status_id')) {
+            $payload['contract_status_id'] = (int) $completedStatusId;
+        }
+
+        if (Schema::hasColumn('contracts', 'notes_edits')) {
+            $payload['notes_edits'] = 'ملاحظات التحرير التجريبية للعقد رقم '.($i + 1).'.';
+        }
+
+        $calendarDefaults = [
+            'type_tenant_dob' => $i === 1 ? 'gregorian' : 'hijri',
+            'type_dob_tenant_agent' => $scenario['with_tenant_agent'] ? 'hijri' : null,
+            'type_contract_starting_date' => 'hijri',
+            'type_instrument_history' => 'gregorian',
+            'type_date_first_registration' => 'hijri',
+            'type_agency_instrument_date_of_property_owner' => 'gregorian',
+        ];
+        foreach ($calendarDefaults as $col => $val) {
+            if (Schema::hasColumn('contracts', $col) && $val !== null) {
+                $payload[$col] = $val;
+            }
+        }
+
+        if (Schema::hasColumn('contracts', 'type_dob')) {
+            $payload['type_dob'] = 'hijri';
+        }
+        if (Schema::hasColumn('contracts', 'type_dob_property_owner')) {
+            $payload['type_dob_property_owner'] = 'hijri';
+        }
+        if (Schema::hasColumn('contracts', 'type_dob_property_owner_agent') && ($payload['add_legal_agent_of_owner'] ?? false)) {
+            $payload['type_dob_property_owner_agent'] = 'hijri';
+        }
+
+        if (($scenario['instrument_type'] ?? '') === 'property_ownership_owner_is_endowment') {
+            if (Schema::hasColumn('contracts', 'copy_of_the_endowment_registration_certificate')) {
+                $payload['copy_of_the_endowment_registration_certificate'] = 'seed-test/endowment-cert-placeholder.pdf';
+            }
+            if (Schema::hasColumn('contracts', 'copy_of_the_trusteeship_deed')) {
+                $payload['copy_of_the_trusteeship_deed'] = 'seed-test/trusteeship-deed-placeholder.pdf';
+            }
+            if (Schema::hasColumn('contracts', 'is_multiple_trusteeship_deed_copy')) {
+                $payload['is_multiple_trusteeship_deed_copy'] = false;
+            }
+        }
+
+        if (($scenario['authorization_type'] ?? null) === 'agent_for_the_tenant') {
+            if (Schema::hasColumn('contracts', 'city_of_the_tenant_legal_agent')) {
+                $payload['city_of_the_tenant_legal_agent'] = $city->id;
+            }
+            if (Schema::hasColumn('contracts', 'region_of_the_tenant_legal_agent')) {
+                $payload['region_of_the_tenant_legal_agent'] = $regionId;
+            }
+        }
+
+        if (($scenario['assign_tenant_role'] ?? false) && $tenantRoleId && Schema::hasColumn('contracts', 'tenant_role_ids')) {
+            $payload['tenant_role_ids'] = [$tenantRoleId];
+            $payload['tenant_roles'] = true;
+            $payload['tenant_role_id'] = $tenantRoleId;
+        }
+
+        return $payload;
     }
 }
