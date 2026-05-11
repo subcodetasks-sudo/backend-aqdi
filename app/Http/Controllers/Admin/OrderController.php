@@ -232,7 +232,6 @@ class OrderController extends Controller
                 'property_owner_id_num',
                 'property_owner_iban',
                 'property_owner_dob',
-              
                 'dob_of_property_owner_agent',
                 'id_num_of_property_owner_agent',
                 'property_owner_mobile',
@@ -245,6 +244,7 @@ class OrderController extends Controller
                 'copy_of_the_authorization_or_agency',
             ]), [
                 'contract_status_name' => Arr::get($detail, 'contract_status.name'),
+                'contract_status_color' => Arr::get($detail, 'contract_status.color'),
                 'contract_type' => Arr::get($detail, 'contract_type_trans', Arr::get($detail, 'contract_type')),
                 'instrument_type' => Arr::get($detail, 'instrument_type_trans', Arr::get($detail, 'instrument_type')),
                 'contract_type_key' => Arr::get($detail, 'contract_type'),
