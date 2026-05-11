@@ -286,7 +286,7 @@ class OrderController extends Controller
                 'tootal_rooms',
                 'The_number_of_halls',
                 'The_number_of_kitchens',
-                'The_number_of_toilets',
+                'The_number_of_the_toilet',
                 'window_ac',
                 'number_of_unit_air_conditioners',
                 'split_ac',
@@ -305,7 +305,7 @@ class OrderController extends Controller
             'step3' => array_merge(Arr::only($detail, [
                'tenant_name',
                 'type_tenant_dob',
-                'tenant_id_number',
+                'tenant_id_num',
                 'tenant_dob',
                 'tenant_mobile',
                 'tenant_email',
