@@ -106,7 +106,7 @@ class UpdateContractRequest extends FormRequest
             'split_ac' => ['sometimes', 'nullable', 'integer', 'min:0'],
             'kitchen_tank' => ['sometimes', 'nullable', 'boolean'],
             'furnished' => ['sometimes', 'nullable', 'boolean'],
-            'type_furnished' => ['sometimes', 'nullable', 'boolean'],
+            'type_furnished' => ['sometimes', 'nullable', 'string', 'max:255'],
             'electricity_meter' => ['sometimes', 'nullable', 'boolean'],
             'water_meter' => ['sometimes', 'nullable', 'boolean'],
             'The_number_of_halls' => ['sometimes', 'nullable', 'string', 'max:255'],

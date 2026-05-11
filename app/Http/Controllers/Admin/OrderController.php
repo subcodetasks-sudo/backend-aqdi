@@ -226,6 +226,7 @@ class OrderController extends Controller
                 'copy_of_the_trusteeship_deed',
                 'is_completed',
                 'status',
+                'contract_period_id',
                 'documentation_deadline_at',
                 'name_owner',
                 'type_dob_property_owner',
@@ -249,6 +250,7 @@ class OrderController extends Controller
                 'instrument_type' => Arr::get($detail, 'instrument_type_trans', Arr::get($detail, 'instrument_type')),
                 'contract_type_key' => Arr::get($detail, 'contract_type'),
                 'instrument_type_key' => Arr::get($detail, 'instrument_type'),
+                'contract_period_name' => Arr::get($detail, 'contract_periods.period'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
