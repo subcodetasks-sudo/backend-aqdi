@@ -344,7 +344,7 @@ class Contract extends Model
 
     public function getContractTypeTransAttribute()
     {
-        $locale = config('app.locale');
+        $locale = app()->getLocale();
         $contract_type = $this->contract_type;
 
         if ($locale == 'en') {
