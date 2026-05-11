@@ -377,8 +377,11 @@ class Contract extends Model
                 'electronic_deed_from_the_ministry_of_justice' => 'Electronic deed from Ministry of Justice',
                 'economic_cities_authority_suspended' => 'Economic Cities Authority (suspended)',
                 'property_ownership_owner_are_deceased' => 'Owner deceased property ownership deed',
+                'property_ownership_owner_are_suspended' => 'Ownership deed (owner suspended)',
                 'old_handwritten' => 'Old handwritten deed',
                 'strong_argument' => 'Strong argument deed',
+                'sublease_agreement' => 'Sublease agreement',
+                'lease_renewal' => 'Lease renewal',
                 default => $instrumentType,
             };
         }
@@ -392,8 +395,11 @@ class Contract extends Model
             'electronic_deed_from_the_ministry_of_justice' => 'صك إلكتروني من وزارة العدل',
             'economic_cities_authority_suspended' => 'هيئة المدن الاقتصادية (معلق)',
             'property_ownership_owner_are_deceased' => 'صك ملكية لمالك متوفى',
+            'property_ownership_owner_are_suspended' => 'صك ملكية (مالك موقوف)',
             'old_handwritten' => 'صك يدوي قديم',
             'strong_argument' => 'حجة استحكام',
+            'sublease_agreement' => 'اتفاقية إعارة من الباطن',
+            'lease_renewal' => 'تجديد عقد إيجار',
             default => $instrumentType,
         };
     }
