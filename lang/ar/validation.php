@@ -301,7 +301,7 @@ return [
         'premium_membership_for_free' => 'عضوية مميزة مجاناً',
         'daily_fine' => 'التأخير من الباطن',
         'other_conditions' => 'شروط أخرى',
-        'tenant_roles' => 'وجود صفة للمستأجر',
+        'tenant_roles' => 'صلاحيات المستخدم',
         'tenant_role_id' => 'صفة المستأجر',
         'tenant_role_ids' => 'صفات المستأجر',
         'additional_terms' => 'إضافة شروط',

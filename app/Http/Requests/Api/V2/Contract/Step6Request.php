@@ -12,6 +12,23 @@ class Step6Request extends BaseApiV2Request
     {
         ContractStartingDateInput::prepareRequest($this);
 
+        // صلاحيات المستخدم (أدوار المستأجر): الافتراضي false؛ يُقبل true/false أو 1/0 أو نصوص شائعة.
+        if (! array_key_exists('tenant_roles', $this->all())) {
+            $this->merge(['tenant_roles' => false]);
+        } else {
+            $tr = $this->input('tenant_roles');
+            if ($tr === null || $tr === '') {
+                $this->merge(['tenant_roles' => false]);
+            } elseif (is_string($tr)) {
+                $v = strtolower(trim($tr));
+                if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
+                    $this->merge(['tenant_roles' => true]);
+                } elseif (in_array($v, ['0', 'false', 'no', 'off'], true)) {
+                    $this->merge(['tenant_roles' => false]);
+                }
+            }
+        }
+
         $legacy = $this->input('tenant_role_id');
         if (($legacy !== null && $legacy !== '') && ! $this->filled('tenant_role_ids')) {
             $this->merge([
@@ -39,7 +56,7 @@ class Step6Request extends BaseApiV2Request
             'conditions' => 'required|boolean',
             'other_conditions' => 'required_if:conditions,1|string|max:255',
             'additional_terms' => 'nullable|boolean',
-             'tenant_roles' => 'nullable|boolean',
+            'tenant_roles' => 'boolean',
             'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
             'tenant_role_ids' => 'nullable|array',
             'tenant_role_ids.*' => 'integer|exists:tenant_roles,id',
@@ -67,6 +84,7 @@ class Step6Request extends BaseApiV2Request
             'payment_type_id.required' => 'نوع الدفع مطلوب.',
             'conditions.required' => 'حقل الشروط مطلوب.',
             'other_conditions.required_if' => 'حقل شروط أخرى مطلوب عندما تكون الشروط مفعلة.',
+            'tenant_roles.boolean' => 'صلاحيات المستخدم يجب أن تكون true أو false أو 1 أو 0.',
         ];
     }
 }

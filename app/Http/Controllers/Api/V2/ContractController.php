@@ -516,7 +516,7 @@ class ContractController extends Controller
             'payment_type_id' => $request->payment_type_id,
             'additional_terms' => $request->additional_terms ?? 0,
             'text_additional_terms' => $request->text_additional_terms,
-            'tenant_roles' => $request->tenant_roles ?? 0,
+            'tenant_roles' => $request->boolean('tenant_roles'),
             'step' => 7,
         ];
 
