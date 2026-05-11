@@ -232,7 +232,7 @@ class ContractRealDataSeeder extends Seeder
                 'add_legal_agent_of_tenant' => $withTenantAgent,
                 'id_num_of_property_tenant_agent' => $withTenantAgent ? '1'.str_pad((string) (210000000 + $i), 9, '0', STR_PAD_LEFT) : null,
                 'dob_gregorian_of_property_tenant_agent' => $withTenantAgent ? Carbon::create(1985, 7, 20)->toDateString() : null,
-                'dob_hijri_of_property_tenant_agent' => $withTenantAgent ? '15-03-1405' : null,
+                'dob_of_property_tenant_agent' => $withTenantAgent ? '15-03-1405' : null,
                 'mobile_of_property_tenant_agent' => $withTenantAgent ? '05'.str_pad((string) (21000000 + $i), 8, '0', STR_PAD_LEFT) : null,
                 'agency_number_in_instrument_of_property_tenant' => $withTenantAgent ? (string) (7700 + $i) : null,
                 'agency_instrument_date_of_property_tenant' => $withTenantAgent ? Carbon::create(2023, 1, 10)->toDateString() : null,

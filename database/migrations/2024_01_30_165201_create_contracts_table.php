@@ -73,7 +73,7 @@ return new class extends Migration
             $table->boolean('add_legal_agent_of_tenant')->nullable();
             $table->string('id_num_of_property_tenant_agent')->nullable();
             $table->date('dob_gregorian_of_property_tenant_agent')->nullable();
-            $table->string('dob_hijri_of_property_tenant_agent')->nullable();
+            $table->string('dob_of_property_tenant_agent')->nullable();
             $table->string('mobile_of_property_tenant_agent')->nullable();
             $table->string('agency_number_in_instrument_of_property_tenant')->nullable();
             $table->date('agency_instrument_date_of_property_tenant')->nullable();

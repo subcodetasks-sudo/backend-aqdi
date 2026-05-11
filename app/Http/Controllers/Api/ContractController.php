@@ -377,7 +377,7 @@ class ContractController extends Controller
             'copy_of_the_owner_record' => 'nullable|mimes:jpg,jpeg,png,pdf',
             'id_num_of_property_tenant_agent' => 'nullable|min:10',
             'mobile_of_property_tenant_agent'=>'nullable',
-            'dob_hijri_of_property_tenant_agent' => 'nullable|required_if:tenant_entity,institution',
+            'dob_of_property_tenant_agent' => 'nullable|required_if:tenant_entity,institution',
         ];
     
         $messages = [
@@ -389,7 +389,7 @@ class ContractController extends Controller
             'tenant_mobile.regex' => 'رقم الجوال يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام.',
             'authorization_type.required_if' => 'نوع التوكيل مطلوب إذا كان الكيان مؤسسة.',
             'id_num_of_property_tenant_agent.min' => 'رقم الهوية لا يقل عن عشرة أرقام.',
-            'dob_hijri_of_property_tenant_agent.required_if' => 'تاريخ ميلاد وكيل المالك مطلوب.',
+            'dob_of_property_tenant_agent.required_if' => 'تاريخ ميلاد وكيل المالك مطلوب.',
             'copy_of_the_owner_record.mimes' => 'نسخة السجل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_authorization_or_agency.required_if' => 'نسخة من التوكيل مطلوبة.',
             'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
@@ -489,9 +489,9 @@ class ContractController extends Controller
         $rules = [
             'id' => 'required|exists:contracts,id',
             'contract_starting_date' => 'nullable|string',
-            'contract_starting_date_hijri_day' => 'nullable',
-            'contract_starting_date_hijri_month' => 'nullable',
-            'contract_starting_date_hijri_year' => 'nullable',
+            'contract_starting_date_day' => 'nullable',
+            'contract_starting_date_month' => 'nullable',
+            'contract_starting_date_year' => 'nullable',
             'contract_term_in_years' => 'required|exists:contract_periods,id',
             'annual_rent_amount_for_the_unit' => 'required|numeric',
             'payment_type_id' => 'required|exists:payment_types,id',

@@ -308,7 +308,7 @@ class OrderController extends Controller
                 'is_there_a_legal_representative_of_the_tenant',
                 'id_number_of_property_tenant_agent',
                 'type_dob_tenant_agent',
-                'dob_hijri_of_property_tenant_agent',
+                'dob_of_property_tenant_agent',
                 'mobile_of_property_tenant_agent',
                 'copy_of_the_owner_record',
                 'tenant_role_id',

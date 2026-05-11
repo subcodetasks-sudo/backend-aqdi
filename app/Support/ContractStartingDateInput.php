@@ -10,12 +10,12 @@ use Illuminate\Http\Request;
 final class ContractStartingDateInput
 {
     /**
-     * Split DD-MM-YYYY / DD/MM/YYYY from contract_starting_date into *_hijri_* when those parts are absent.
+     * Split DD-MM-YYYY / DD/MM/YYYY from contract_starting_date into day/month/year when those parts are absent.
      * Leaves YYYY-MM-DD on contract_starting_date only (Gregorian / legacy DB).
      */
     public static function prepareRequest(Request $request): void
     {
-        if ($request->filled('contract_starting_date_hijri_day')) {
+        if ($request->filled('contract_starting_date_day')) {
             return;
         }
         if (! $request->filled('contract_starting_date')) {
@@ -30,9 +30,9 @@ final class ContractStartingDateInput
             return;
         }
         $request->merge([
-            'contract_starting_date_hijri_day' => (int) $parts[0],
-            'contract_starting_date_hijri_month' => (int) $parts[1],
-            'contract_starting_date_hijri_year' => (int) $parts[2],
+            'contract_starting_date_day' => (int) $parts[0],
+            'contract_starting_date_month' => (int) $parts[1],
+            'contract_starting_date_year' => (int) $parts[2],
         ]);
     }
 
@@ -40,23 +40,23 @@ final class ContractStartingDateInput
     {
         $type = $request->input('type_contract_starting_date', 'hijri');
 
-        if ($request->filled('contract_starting_date_hijri_day')
-            && $request->filled('contract_starting_date_hijri_month')
-            && $request->filled('contract_starting_date_hijri_year')) {
+        if ($request->filled('contract_starting_date_day')
+            && $request->filled('contract_starting_date_month')
+            && $request->filled('contract_starting_date_year')) {
             if ($type === 'gregorian') {
                 $mysql = DateInputNormalizer::combineFromParts(
-                    $request->input('contract_starting_date_hijri_day'),
-                    $request->input('contract_starting_date_hijri_month'),
-                    $request->input('contract_starting_date_hijri_year'),
+                    $request->input('contract_starting_date_day'),
+                    $request->input('contract_starting_date_month'),
+                    $request->input('contract_starting_date_year'),
                 );
 
                 return $mysql ?? '';
             }
 
             return HijriDobParts::combine(
-                $request->input('contract_starting_date_hijri_day'),
-                $request->input('contract_starting_date_hijri_month'),
-                $request->input('contract_starting_date_hijri_year'),
+                $request->input('contract_starting_date_day'),
+                $request->input('contract_starting_date_month'),
+                $request->input('contract_starting_date_year'),
             );
         }
 
@@ -89,17 +89,17 @@ final class ContractStartingDateInput
     public static function validationErrors(Request $request): array
     {
         $errors = [];
-        $hasD = $request->filled('contract_starting_date_hijri_day');
-        $hasM = $request->filled('contract_starting_date_hijri_month');
-        $hasY = $request->filled('contract_starting_date_hijri_year');
-        $hijriCount = (int) $hasD + (int) $hasM + (int) $hasY;
+        $hasD = $request->filled('contract_starting_date_day');
+        $hasM = $request->filled('contract_starting_date_month');
+        $hasY = $request->filled('contract_starting_date_year');
+        $partsCount = (int) $hasD + (int) $hasM + (int) $hasY;
         $raw = trim((string) $request->input('contract_starting_date', ''));
 
-        if ($hijriCount > 0 && $hijriCount < 3) {
-            $errors['contract_starting_date'] = ['أدخل يوم وشهر وسنة بداية العقد بالهجري كاملة.'];
+        if ($partsCount > 0 && $partsCount < 3) {
+            $errors['contract_starting_date'] = ['أدخل يوم وشهر وسنة بداية العقد كاملة.'];
         }
 
-        if ($hijriCount === 0 && $raw === '') {
+        if ($partsCount === 0 && $raw === '') {
             $errors['contract_starting_date'] = ['تاريخ بداية العقد مطلوب.'];
         }
 

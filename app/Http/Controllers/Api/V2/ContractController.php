@@ -448,7 +448,7 @@ class ContractController extends Controller
         $data = array_merge($validatedData, [
             'step' => 5,
             'tenant_dob' => $tenantDobCombined,
-            'dob_hijri_of_property_tenant_agent' => $tenantAgentDobCombined,
+            'dob_of_property_tenant_agent' => $tenantAgentDobCombined,
             'type_tenant_dob' => $request->input('type_tenant_dob', 'hijri'),
             'type_dob_tenant_agent' => $request->input('type_dob_tenant_agent', 'hijri'),
             'copy_of_the_owner_record' => $validatedData['copy_of_the_owner_record'] ?? $contract->copy_of_the_owner_record,

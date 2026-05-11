@@ -41,7 +41,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_hijri_day\": \"01\",\n  \"contract_starting_date_hijri_month\": \"01\",\n  \"contract_starting_date_hijri_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_ids\": [1, 2],\n  \"additional_terms\": false\n}"
+                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_day\": \"01\",\n  \"contract_starting_date_month\": \"01\",\n  \"contract_starting_date_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_ids\": [1, 2],\n  \"additional_terms\": false\n}"
                 },
                 "url": "{{baseUrl}}/api/v2/contract/step6",
                 "description": "استبدل أرقام `tenant_role_ids` بمعرفات موجودة من جدول `tenant_roles`. بدلاً من القائمة يمكن إرسال قيمة واحدة قديمة: `\"tenant_role_id\": 1`."
@@ -57,7 +57,7 @@
                 ],
                 "body": {
                     "mode": "raw",
-                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_hijri_day\": \"01\",\n  \"contract_starting_date_hijri_month\": \"01\",\n  \"contract_starting_date_hijri_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_id\": 1,\n  \"additional_terms\": false\n}"
+                    "raw": "{\n  \"id\": {{contract_id}},\n  \"type_contract_starting_date\": \"hijri\",\n  \"contract_starting_date_day\": \"01\",\n  \"contract_starting_date_month\": \"01\",\n  \"contract_starting_date_year\": \"1447\",\n  \"contract_term_in_years\": 1,\n  \"annual_rent_amount_for_the_unit\": 24000,\n  \"payment_type_id\": 1,\n  \"conditions\": false,\n  \"tenant_roles\": true,\n  \"tenant_role_id\": 1,\n  \"additional_terms\": false\n}"
                 },
                 "url": "{{baseUrl}}/api/v2/contract/step6"
             }

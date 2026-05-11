@@ -84,16 +84,16 @@ class Step2Request extends FormRequest
             // Agent tenant
             'add_legal_agent_of_tenant' => 'required|in:1,0',
            
-            'dob_hijri_of_property_tenant_agent' => [
+            'dob_of_property_tenant_agent' => [
+                'nullable',
                 'date',
                 'before:' . now()->subYears(18),
+                function ($attribute, $value, $fail) {
+                    if ($this->add_legal_agent_of_tenant == 1 && empty($value)) {
+                        $fail('يجب إدخال تاريخ ميلاد  لمستأجر العقار.');
+                    }
+                },
             ],
-
-            'dob_hijri_of_property_tenant_agent' => function ($attribute, $value, $fail) {
-                if ($this->add_legal_agent_of_tenant == 1 && empty($value)) {
-                    $fail('يجب إدخال تاريخ ميلاد  لمستأجر العقار.');
-                }
-            },
 
           
 
@@ -134,8 +134,8 @@ class Step2Request extends FormRequest
             // Agent Tenant
             'add_legal_agent_of_tenant.required' => 'يجب تحديد ما إذا كنت ترغب في إضافة وكيل للمستأجر',
             'add_legal_agent_of_tenant.in' => 'القيمة المدخلة لـ "إضافة وكيل للمستأجر" غير صحيحة',
-             'dob_hijri_of_property_tenant_agent.before' => 'يجب أن يكون عمر وكيل المستأجر أكبر من 18 عامًا',
-        //    'dob_hijri_of_property_tenant_agent.required'=>'',
+             'dob_of_property_tenant_agent.before' => 'يجب أن يكون عمر وكيل المستأجر أكبر من 18 عامًا',
+        //    'dob_of_property_tenant_agent.required'=>'',
             // Custom error messages for specific validations
             'property_owner_mobile.required_if' => 'رقم الجوال مطلوب عندما يكون المالك حياً',
             'property_owner_iban.required_if' => 'رقم الآيبان مطلوب عندما يكون المالك حياً',
@@ -145,7 +145,7 @@ class Step2Request extends FormRequest
 
             //date vaild
 
-             'dob_hijri_of_property_tenant_agent.date' => 'حقل تاريخ الميلاد  للوكيل الشرعي لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
+             'dob_of_property_tenant_agent.date' => 'حقل تاريخ الميلاد  للوكيل الشرعي لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
             'tenant_dob.date' => 'حقل تاريخ   لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
              'dob_hijri_of_property_owner_agent.date' => 'حقل تاريخ الميلاد  للوكيل الشرعي لمستأجر العقار يجب أن يكون تاريخاً صالحاً.',
              'property_owner_dob.date' => 'حقل تاريخ الميلاد  لمالك العقار يجب أن يكون تاريخاً صالحاً.',

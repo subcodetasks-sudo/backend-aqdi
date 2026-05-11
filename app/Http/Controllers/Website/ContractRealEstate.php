@@ -481,7 +481,7 @@ class ContractRealEstate extends Controller
                     'copy_of_the_owner_record' => 'nullable',
                     'id_num_of_property_tenant_agent' => 'nullable|min:10',
                     'mobile_of_property_tenant_agent' => 'nullable',
-                    'dob_hijri_of_property_tenant_agent' => 'nullable|required_if:tenant_entity,institution',
+                    'dob_of_property_tenant_agent' => 'nullable|required_if:tenant_entity,institution',
                 ], [
                     'tenant_entity.required' => 'نوع الكيان المستأجر مطلوب.',
                     'tenant_entity.in' => 'الكيان المستأجر يجب أن يكون شخص أو مؤسسة.',
@@ -493,7 +493,7 @@ class ContractRealEstate extends Controller
                     'city_of_the_tenant_legal_agent.requied_if'=>'المدينه مطلوبه',
                     'region_of_the_tenant_legal_agent.requied_if'=>'المنطقه مطلوبه',
                     'id_num_of_property_tenant_agent.min' => 'رقم الهوية لا يقل عن عشرة أرقام.',
-                    'dob_hijri_of_property_tenant_agent.required_if' => 'تاريخ ميلاد وكيل المالك مطلوب.',
+                    'dob_of_property_tenant_agent.required_if' => 'تاريخ ميلاد وكيل المالك مطلوب.',
                     'copy_of_the_owner_record.mimes' => 'نسخة السجل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
                     'copy_of_the_authorization_or_agency.required_if' => 'نسخة من التوكيل مطلوبة.',
                     'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
@@ -640,9 +640,9 @@ class ContractRealEstate extends Controller
 
                 $validatedData = $request->validate([
                     'contract_starting_date' => 'nullable|string',
-                    'contract_starting_date_hijri_day' => 'nullable',
-                    'contract_starting_date_hijri_month' => 'nullable',
-                    'contract_starting_date_hijri_year' => 'nullable',
+                    'contract_starting_date_day' => 'nullable',
+                    'contract_starting_date_month' => 'nullable',
+                    'contract_starting_date_year' => 'nullable',
                     'annual_rent_amount_for_the_unit' => 'required|numeric',
                     'contract_term_in_years' => 'required|exists:contract_periods,id',
                     'payment_type_id' => 'required|exists:payment_types,id',
