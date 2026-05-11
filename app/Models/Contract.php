@@ -41,6 +41,9 @@ class Contract extends Model
 
     protected $casts = [
         'tenant_role_ids' => 'array',
+        'kitchen_tank' => 'boolean',
+        'furnished' => 'boolean',
+        'type_furnished' => 'boolean',
     ];
 
     protected $appends = [
