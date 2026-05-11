@@ -300,6 +300,7 @@ class AdminContractDetailResource extends JsonResource
 
         return [
             'id' => $m->id,
+            'period' => $m->period ?? null,
             'name' => $this->translatedName($m, 'note'),
             'note_ar' => $m->note_ar ?? null,
             'note_en' => $m->note_en ?? null,
