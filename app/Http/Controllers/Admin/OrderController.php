@@ -299,7 +299,7 @@ class OrderController extends Controller
                'tenant_name',
                 'type_tenant_dob',
                 'tenant_id_number',
-                'tenant_dob_hijri',
+                'tenant_dob',
                 'tenant_mobile',
                 'tenant_email',
                 'tenant_nationality',

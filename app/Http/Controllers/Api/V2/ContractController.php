@@ -407,7 +407,7 @@ class ContractController extends Controller
 
         $validatedData = $request->validated();
 
-        $validatedData['tenant_dob'] = (
+        $tenantDobCombined = (
             $request->filled('tenant_dob_day')
             && $request->filled('tenant_dob_month')
             && $request->filled('tenant_dob_year')
@@ -419,15 +419,15 @@ class ContractController extends Controller
             )
             : null;
 
-        $validatedData['dob_of_property_tenant_agent'] = (
-            $request->filled('dob_of_property_tenant_agent_day')
-            && $request->filled('dob_of_property_tenant_agent_month')
-            && $request->filled('dob_of_property_tenant_agent_year')
+        $tenantAgentDobCombined = (
+            $request->filled('dobof_property_tenant_agent_day')
+            && $request->filled('dobof_property_tenant_agent_month')
+            && $request->filled('dobof_property_tenant_agent_year')
         )
             ? HijriDobParts::combine(
-                $request->input('dob_of_property_tenant_agent_day'),
-                $request->input('dob_of_property_tenant_agent_month'),
-                $request->input('dob_of_property_tenant_agent_year')
+                $request->input('dobof_property_tenant_agent_day'),
+                $request->input('dobof_property_tenant_agent_month'),
+                $request->input('dobof_property_tenant_agent_year')
             )
             : null;
 
@@ -436,9 +436,9 @@ class ContractController extends Controller
             $validatedData['tenant_dob_day'],
             $validatedData['tenant_dob_month'],
             $validatedData['tenant_dob_year'],
-            $validatedData['dob_of_property_tenant_agent_day'],
-            $validatedData['dob_of_property_tenant_agent_month'],
-            $validatedData['dob_of_property_tenant_agent_year']
+            $validatedData['dobof_property_tenant_agent_day'],
+            $validatedData['dobof_property_tenant_agent_month'],
+            $validatedData['dobof_property_tenant_agent_year']
         );
 
         if ($request->hasFile('copy_of_the_owner_record')) {
@@ -447,6 +447,8 @@ class ContractController extends Controller
 
         $data = array_merge($validatedData, [
             'step' => 5,
+            'tenant_dob' => $tenantDobCombined,
+            'dob_hijri_of_property_tenant_agent' => $tenantAgentDobCombined,
             'type_tenant_dob' => $request->input('type_tenant_dob', 'hijri'),
             'type_dob_tenant_agent' => $request->input('type_dob_tenant_agent', 'hijri'),
             'copy_of_the_owner_record' => $validatedData['copy_of_the_owner_record'] ?? $contract->copy_of_the_owner_record,

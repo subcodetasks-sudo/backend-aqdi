@@ -425,7 +425,7 @@ public function submitStep3(Request $request, $uuid)
         $validatedData = $request->validate([
             'tenant_entity' => 'required|in:person,institution',
             'tenant_id_num' => 'nullable|required_if:tenant_entity,person|min:10',
-            'tenant_dob_hijri' => 'nullable|required_if:tenant_entity,person',
+            'tenant_dob' => 'nullable|required_if:tenant_entity,person',
             'tenant_mobile' => 'nullable|required_if:tenant_entity,person|min:10|regex:/^05[0-9]{8}$/',
             'region_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:regions,id',
             'city_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:cities,id',
@@ -440,7 +440,7 @@ public function submitStep3(Request $request, $uuid)
             'tenant_entity.required' => 'نوع الكيان المستأجر مطلوب.',
             'tenant_entity.in' => 'الكيان المستأجر يجب أن يكون شخص أو مؤسسة.',
             'tenant_id_num.required_if' => 'رقم الهوية مطلوب إذا كان الكيان المستأجر شخصاً.',
-            'tenant_dob_hijri.required_if' => 'تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
+            'tenant_dob.required_if' => 'تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
             'tenant_mobile.required_if' => 'رقم الجوال مطلوب إذا كان الكيان المستأجر شخصاً.',
             'tenant_mobile.regex' => 'رقم الجوال يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام.',
             'authorization_type.required_if' => 'نوع التوكيل مطلوب إذا كان الكيان مؤسسة.',
@@ -465,8 +465,8 @@ public function submitStep3(Request $request, $uuid)
             'copy_of_the_owner_record' => $validatedData['copy_of_the_owner_record'] ?? $contract->copy_of_the_owner_record,
             'copy_of_the_authorization_or_agency' => $validatedData['copy_of_the_authorization_or_agency'] ?? $contract->copy_of_the_authorization_or_agency,
         ]);
-        if ($request->tenant_entity === 'person' && $request->filled('tenant_dob_hijri')) {
-            $dob = $request->input('tenant_dob_hijri');
+        if ($request->tenant_entity === 'person' && $request->filled('tenant_dob')) {
+            $dob = $request->input('tenant_dob');
             $dateParts = explode('-', $dob);
             if (count($dateParts) === 3) {
                 try {
@@ -474,10 +474,10 @@ public function submitStep3(Request $request, $uuid)
                     $age = now()->diffInYears($birthDate);
 
                     if ($age < 18) {
-                        return redirect()->back()->withErrors(['tenant_dob_hijri' => 'يجب أن يكون عمر المستأجر 18 عامًا على الأقل.'])->withInput();
+                        return redirect()->back()->withErrors(['tenant_dob' => 'يجب أن يكون عمر المستأجر 18 عامًا على الأقل.'])->withInput();
                     }
                 } catch (\Exception $e) {
-                    return redirect()->back()->withErrors(['tenant_dob_hijri' => 'تاريخ الميلاد غير صالح.'])->withInput();
+                    return redirect()->back()->withErrors(['tenant_dob' => 'تاريخ الميلاد غير صالح.'])->withInput();
                 }
             }
         }

@@ -66,7 +66,7 @@ return new class extends Migration
 
             $table->string('tenant_id_num')->nullable();
             $table->date('tenant_dob_gregorian')->nullable();
-            $table->string('tenant_dob_hijri')->nullable();
+            $table->string('tenant_dob')->nullable();
             $table->string('tenant_mobile')->nullable();
             $table->string('name_owner')->nullable();
 
