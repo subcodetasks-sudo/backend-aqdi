@@ -288,6 +288,9 @@ use Illuminate\Support\Facades\Route;
         });
         Route::controller(MessageAlertSectionController::class)->group(function () {
             Route::get('/options/list', 'options')->name('options');
+            Route::get('/{audience}/options/list', 'options')
+                ->where('audience', 'client|employee')
+                ->name('options.audience');
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
             Route::get('/{id}', 'show')->whereNumber('id')->name('show');
@@ -298,6 +301,9 @@ use Illuminate\Support\Facades\Route;
 
     Route::prefix('message-alert-section-items')->name('message-alert-section-items.')->controller(MessageAlertSectionItemController::class)->group(function () {
         Route::get('/options/list', 'options')->name('options');
+        Route::get('/{audience}/options/list', 'options')
+            ->where('audience', 'client|employee')
+            ->name('options.audience');
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
@@ -306,6 +312,15 @@ use Illuminate\Support\Facades\Route;
     });
 
     Route::prefix('message-alerts')->name('message-alerts.')->controller(MessageAlertController::class)->group(function () {
+        Route::prefix('{audience}')->where(['audience' => 'client|employee'])->group(function () {
+            Route::get('/create', 'create')->name('create.audience');
+            Route::get('/', 'index')->name('index.audience');
+            Route::post('/', 'store')->name('store.audience');
+            Route::get('/{id}', 'show')->whereNumber('id')->name('show.audience');
+            Route::post('/{id}', 'update')->whereNumber('id')->name('update.audience');
+            Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy.audience');
+        });
+
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');

@@ -19,6 +19,21 @@ trait MergesMessageAlertRequestAliases
         ]);
     }
 
+    protected function mergeMessageAlertAliases(Request $request): void
+    {
+        $this->applyMessageAlertAliasMap($request, [
+            'messageAlertSectionId' => 'message_alert_section_id',
+            'section_id' => 'message_alert_section_id',
+            'sectionId' => 'message_alert_section_id',
+            'messageAlertSectionItemId' => 'message_alert_section_item_id',
+            'section_item_id' => 'message_alert_section_item_id',
+            'sectionItemId' => 'message_alert_section_item_id',
+            'item_id' => 'message_alert_section_item_id',
+            'text' => 'message',
+            'message_text' => 'message',
+        ]);
+    }
+
     protected function mergeMessageAlertSectionItemAliases(Request $request): void
     {
         $this->applyMessageAlertAliasMap($request, [

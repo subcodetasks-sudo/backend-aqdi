@@ -74,22 +74,26 @@ class MessageAlertSectionItemController extends Controller
     /**
      * Items for one section — for the “بند القسم” dropdown.
      */
-    public function options(Request $request)
+    public function options(Request $request, ?string $audience = null)
     {
         try {
+            $this->mergeMessageAlertSectionItemAliases($request);
+
             $request->validate([
                 'message_alert_section_id' => 'required|exists:message_alert_sections,id',
                 'type' => 'nullable|in:client,employee',
             ]);
 
             $section = MessageAlertSection::query()->findOrFail((int) $request->input('message_alert_section_id'));
-            if ($request->filled('type')) {
-                $expected = MessageAlertType::normalize($request->input('type'));
-                if ($section->type !== $expected) {
-                    throw ValidationException::withMessages([
-                        'type' => [__('The section does not belong to the requested type.')],
-                    ]);
-                }
+            $expected = $audience !== null && $audience !== ''
+                ? MessageAlertType::normalize($audience)
+                : ($request->filled('type') ? MessageAlertType::normalize($request->input('type')) : null);
+
+            if ($expected !== null && $section->type !== $expected) {
+                throw ValidationException::withMessages([
+                    'type' => [__('The section does not belong to the requested type.')],
+                    'message_alert_section_id' => [__('The section does not belong to the requested type.')],
+                ]);
             }
 
             $items = MessageAlertSectionItem::query()
