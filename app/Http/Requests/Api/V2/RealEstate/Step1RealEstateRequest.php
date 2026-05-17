@@ -18,8 +18,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
         $instrumentType = $this->input('instrument_type');
 
         $aliases = [
-            'electronic_deed_from_the_ministry_of_justice' => 'electronic',
-            'electronic_deed'                              => 'electronic',
+            'electronic_deed_from_the_ministry_of_justice' => 'electronic_deed_from_the_ministry_of_justice',
+            'electronic_deed'                              => 'electronic_deed',
         ];
 
         if (is_string($instrumentType) && isset($aliases[$instrumentType])) {
