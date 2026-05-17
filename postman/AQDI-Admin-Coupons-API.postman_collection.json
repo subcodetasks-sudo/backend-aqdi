@@ -1,0 +1,176 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-coupons-api",
+        "name": "AQDI Admin — Coupons API",
+        "description": "Full coupon management under `/api/admin/coupons`.\n\n**Variables**\n- `baseUrl` — e.g. `http://localhost:8000`\n- `coupon_id` — coupon id for show/update/inactive/delete\n\n**Status fields**\n- `is_review` / `is_active` — `true` = active, `false` = inactive\n- `is_delete` / `is_deleted` — soft delete flag\n\n**type_coupon:** `ratio` (percentage) or `value` (fixed amount)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "coupon_id",
+            "value": "1"
+        }
+    ],
+    "item": [
+        {
+            "name": "List coupons",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/admin/coupons?search=&type_coupon=&status=&per_page=20&with_deleted=0",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "admin",
+                        "coupons"
+                    ],
+                    "query": [
+                        {
+                            "key": "search",
+                            "value": "",
+                            "description": "name or code_coupon"
+                        },
+                        {
+                            "key": "type_coupon",
+                            "value": "",
+                            "description": "ratio | value"
+                        },
+                        {
+                            "key": "status",
+                            "value": "",
+                            "description": "active | inactive"
+                        },
+                        {
+                            "key": "per_page",
+                            "value": "20"
+                        },
+                        {
+                            "key": "with_deleted",
+                            "value": "0",
+                            "description": "1 to include soft-deleted"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "name": "Create coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"name\": \"خصم رمضان\",\n    \"code_coupon\": \"RAMADAN2026\",\n    \"type_coupon\": \"ratio\",\n    \"value_coupon\": 15,\n    \"date_start\": \"2026-03-01\",\n    \"date_end\": \"2026-04-30\",\n    \"usage\": 100,\n    \"usage_of_user\": 1,\n    \"is_review\": true\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": "{{baseUrl}}/api/admin/coupons"
+            }
+        },
+        {
+            "name": "Show coupon",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/admin/coupons/{{coupon_id}}"
+            }
+        },
+        {
+            "name": "Update coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"name\": \"خصم رمضان محدث\",\n    \"value_coupon\": 20,\n    \"date_end\": \"2026-05-31\",\n    \"usage\": 150\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": "{{baseUrl}}/api/admin/coupons/{{coupon_id}}"
+            }
+        },
+        {
+            "name": "Inactive coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/admin/coupons/{{coupon_id}}/inactive",
+                "description": "Sets `is_review` = false (deactivates coupon)."
+            }
+        },
+        {
+            "name": "Activate coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/admin/coupons/{{coupon_id}}/activate",
+                "description": "Sets `is_review` = true (activates coupon)."
+            }
+        },
+        {
+            "name": "Delete coupon",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "url": "{{baseUrl}}/api/admin/coupons/{{coupon_id}}/delete",
+                "description": "Soft delete: sets `is_delete` = true."
+            }
+        }
+    ]
+}

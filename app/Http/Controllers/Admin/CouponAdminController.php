@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\V2\StoreCouponRequest;
+use App\Http\Requests\Admin\V2\UpdateCouponRequest;
+use App\Http\Resources\Admin\V2\Api\CouponResource;
 use App\Http\Traits\Responser;
 use App\Models\Coupon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class CouponAdminController extends Controller
 {
@@ -16,7 +20,7 @@ class CouponAdminController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Coupon::query();
+            $query = Coupon::query()->withCount('usages');
 
             if (! $request->boolean('with_deleted')) {
                 $query->where('is_delete', false);
@@ -34,32 +38,47 @@ class CouponAdminController extends Controller
                 $query->where('type_coupon', $request->string('type_coupon'));
             }
 
-            if ($request->filled('is_review')) {
+            if ($request->filled('status')) {
+                $status = strtolower((string) $request->input('status'));
+                if ($status === 'active') {
+                    $query->where('is_review', true);
+                } elseif (in_array($status, ['inactive', 'deactive'], true)) {
+                    $query->where('is_review', false);
+                }
+            } elseif ($request->filled('is_review')) {
                 $query->where('is_review', $request->boolean('is_review'));
             }
 
-            $coupons = $query->latest()->paginate((int) $request->get('per_page', 20));
+            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+            $coupons = $query->latest()->paginate($perPage);
 
             return $this->apiResponse([
-                'items' => $coupons->items(),
+                'items' => CouponResource::collection($coupons),
                 'pagination' => $this->paginate($coupons),
             ], trans('api.success'));
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    public function store(Request $request)
+    public function store(StoreCouponRequest $request)
     {
         try {
-            $coupon = Coupon::query()->create(
-                $request->validate($this->rules())
-            );
+            $data = $request->validated();
+            $data['is_review'] = $data['is_review'] ?? true;
+            $data['is_delete'] = false;
 
-            return $this->apiResponse($coupon, trans('api.created_successfully'), 201);
+            $coupon = Coupon::query()->create($data);
+            $coupon->loadCount('usages');
+
+            return $this->apiResponse(
+                new CouponResource($coupon),
+                trans('api.coupon_created_successfully'),
+                201
+            );
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
@@ -67,28 +86,78 @@ class CouponAdminController extends Controller
     public function show(int $id)
     {
         try {
-            $coupon = Coupon::query()->findOrFail($id);
+            $coupon = Coupon::query()->withCount('usages')->findOrFail($id);
 
-            return $this->apiResponse($coupon, trans('api.success'));
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return $this->apiResponse(new CouponResource($coupon), trans('api.success'));
+        } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateCouponRequest $request, int $id)
     {
         try {
             $coupon = Coupon::query()->findOrFail($id);
-            $coupon->update($request->validate($this->rules(true, $coupon->id)));
+            $coupon->update($request->validated());
+            $coupon->loadCount('usages');
 
-            return $this->apiResponse($coupon->fresh(), trans('api.updated_successfully'));
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return $this->apiResponse(
+                new CouponResource($coupon->fresh()),
+                trans('api.coupon_updated_successfully')
+            );
+        } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function inactive(int $id)
+    {
+        try {
+            $coupon = Coupon::query()->findOrFail($id);
+
+            if ($coupon->is_delete) {
+                return $this->errorMessage(trans('api.coupon_already_deleted'), 400);
+            }
+
+            $coupon->update(['is_review' => false]);
+            $coupon->loadCount('usages');
+
+            return $this->apiResponse(
+                new CouponResource($coupon->fresh()),
+                trans('api.coupon_inactivated_successfully')
+            );
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.not_found'), 404);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function activate(int $id)
+    {
+        try {
+            $coupon = Coupon::query()->findOrFail($id);
+
+            if ($coupon->is_delete) {
+                return $this->errorMessage(trans('api.coupon_already_deleted'), 400);
+            }
+
+            $coupon->update(['is_review' => true]);
+            $coupon->loadCount('usages');
+
+            return $this->apiResponse(
+                new CouponResource($coupon->fresh()),
+                trans('api.coupon_activated_successfully')
+            );
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.not_found'), 404);
+        } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
@@ -97,36 +166,13 @@ class CouponAdminController extends Controller
     {
         try {
             $coupon = Coupon::query()->findOrFail($id);
-            $coupon->update(['is_delete' => true]);
+            $coupon->update(['is_delete' => true, 'is_review' => false]);
 
-            return $this->apiResponse([], trans('api.deleted_successfully'));
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return $this->apiResponse([], trans('api.coupon_deleted_successfully'));
+        } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
-    }
-
-    private function rules(bool $isUpdate = false, ?int $couponId = null): array
-    {
-        $required = $isUpdate ? 'sometimes|required' : 'required';
-
-        return [
-            'name' => "{$required}|string|max:255",
-            'code_coupon' => [
-                $required,
-                'string',
-                'max:255',
-                Rule::unique('coupons', 'code_coupon')->ignore($couponId),
-            ],
-            'type_coupon' => "{$required}|in:ratio,value",
-            'value_coupon' => "{$required}|numeric|min:0",
-            'date_start' => "{$required}|date",
-            'date_end' => "{$required}|date|after_or_equal:date_start",
-            'usage' => "{$required}|integer|min:0",
-            'usage_of_user' => "{$required}|integer|min:0",
-            'is_review' => 'nullable|boolean',
-            'is_delete' => 'nullable|boolean',
-        ];
     }
 }

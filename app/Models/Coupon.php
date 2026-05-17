@@ -8,7 +8,45 @@ use Illuminate\Database\Eloquent\Model;
 class Coupon extends Model
 {
     use HasFactory;
-    protected $fillable=['name', 'code_coupon', 'type_coupon', 'is_delete','value_coupon', 'date_start', 'date_end','usage','status','usage_of_user'];
+
+    protected $fillable = [
+        'name',
+        'code_coupon',
+        'type_coupon',
+        'is_delete',
+        'value_coupon',
+        'date_start',
+        'date_end',
+        'usage',
+        'usage_of_user',
+        'is_review',
+    ];
+
+    protected $casts = [
+        'date_start' => 'date',
+        'date_end' => 'date',
+        'is_review' => 'boolean',
+        'is_delete' => 'boolean',
+        'usage' => 'integer',
+        'usage_of_user' => 'integer',
+        'value_coupon' => 'decimal:2',
+    ];
+
+    public function usages()
+    {
+        return $this->hasMany(CouponUsage::class, 'coupon_id');
+    }
+
+    public function isValidNow(): bool
+    {
+        if ($this->is_delete || ! $this->is_review) {
+            return false;
+        }
+
+        $today = now()->startOfDay();
+
+        return $this->date_start <= $today && $this->date_end >= $today;
+    }
 
 
 

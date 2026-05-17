@@ -257,6 +257,8 @@ use Illuminate\Support\Facades\Route;
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/inactive', 'inactive')->whereNumber('id')->name('inactive');
+        Route::post('/{id}/activate', 'activate')->whereNumber('id')->name('activate');
         Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
     });
 
