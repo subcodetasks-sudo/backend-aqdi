@@ -10,7 +10,7 @@ trait RealEstateLocationRules
     protected function locationRules(bool $requireId = false): array
     {
         $rules = [
-            'property_place_id' => 'required|integer|exists:regions,id',
+            'property_place_id' => 'nullable|integer|exists:regions,id',
             'property_city_id' => 'required|integer|exists:cities,id',
             'neighborhood' => 'required|string|max:255',
             'street' => 'required|string|max:255',

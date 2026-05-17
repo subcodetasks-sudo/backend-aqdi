@@ -64,7 +64,6 @@ class Step1RealEstateRequest extends BaseApiV2Request
                 ),
             ],
 
-            'image_address'      => 'nullable|image',
             'instrument_history' => 'nullable|date',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
@@ -76,8 +75,6 @@ class Step1RealEstateRequest extends BaseApiV2Request
                 'max:255',
                 Rule::requiredIf($instrumentType === $ownerEndowment),
             ],
-            'latitude'           => 'nullable|numeric',
-            'longitude'          => 'nullable|numeric',
             'copy_of_the_endowment_registration_certificate' => [
                 'nullable',
                 'file',
