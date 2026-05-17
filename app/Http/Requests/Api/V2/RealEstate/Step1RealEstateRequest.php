@@ -44,7 +44,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'real_id'            => 'nullable|exists:contracts,id',
             'instrument_type'    => ['nullable', Rule::in(Contract::instrumentTypes())],
             'number_of_floors'   => 'required',
-            'contract_type'   => 'required',
+            'contract_type'    => 'required|in:housing,commercial',
             'property_type_id'   => 'required|exists:rea_estat_types,id',
             'property_usages_id' => [
                 'nullable',
@@ -104,6 +104,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
         return [
             'property_type_id.required'               => 'نوع العقار مطلوب.',
             'property_type_id.exists'                 => 'نوع العقار غير موجود.',
+            'contract_type.required'                  => 'نوع العقد مطلوب.',
+            'contract_type.in'                        => 'نوع العقد يجب أن يكون سكني أو تجاري.',
             'number_of_floors.required'               => 'عدد الأدوار مطلوب.',
             'property_usages_id.required_if'          => 'استخدام العقار مطلوب.',
             'number_of_units_in_realestate.required'  => 'عدد الوحدات مطلوب.',
@@ -126,7 +128,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
     {
         $payload = [
             'user_id'                        => $userId,
-             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
+            'contract_type'                  => $this->input('contract_type'),
+            'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
             'instrument_type'                => $this->input('instrument_type'),
             'property_type_id'               => $this->input('property_type_id'),
             'property_usages_id'             => $this->input('property_usages_id'),
