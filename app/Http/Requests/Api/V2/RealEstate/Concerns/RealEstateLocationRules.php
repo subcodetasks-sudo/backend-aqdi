@@ -11,9 +11,9 @@ trait RealEstateLocationRules
     {
         $rules = [
             'property_place_id' => 'nullable|integer|exists:regions,id',
-            'property_city_id' => 'required|integer|exists:cities,id',
-            'neighborhood' => 'required|string|max:255',
-            'street' => 'required|string|max:255',
+            'property_city_id' => 'nullable|integer|exists:cities,id',
+            'neighborhood' => 'nullable|string|max:255',
+            'street' => 'nullable|string|max:255',
             'building_number' => 'required|string|max:50',
             'postal_code' => 'required|string|max:20',
             'extra_figure' => 'required|string|max:255',
