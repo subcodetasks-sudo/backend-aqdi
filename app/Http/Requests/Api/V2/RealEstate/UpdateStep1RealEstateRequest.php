@@ -3,12 +3,16 @@
 namespace App\Http\Requests\Api\V2\RealEstate;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
+use App\Models\City;
 use App\Models\RealEstate;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
 class UpdateStep1RealEstateRequest extends BaseApiV2Request
 {
+    use RealEstateLocationRules;
+
     protected function prepareForValidation(): void
     {
         $instrumentType = $this->input('instrument_type');
@@ -35,7 +39,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         $instrumentTypes = RealEstate::instrumentTypes();
         $instrumentType = $this->input('instrument_type');
 
-        return [
+        return array_merge([
             'id' => 'required|exists:real_estates,id',
             'name_real_estate' => 'nullable|string|max:255',
             'contract_ownership' => 'required|in:owner,tenant',
@@ -78,23 +82,38 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'copy_of_the_trusteeship_deed' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
             'is_multiple_trusteeship_deed_copy' => 'nullable|boolean',
             'copy_of_guardians_power_of_attorney_for_agent' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
-        ];
+        ], $this->locationRules(requireId: false));
     }
 
     public function messages(): array
     {
-        return [
+        return array_merge([
             'id.required' => 'معرف العقار مطلوب.',
             'id.exists' => 'العقار المحدد غير موجود.',
             'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك النظارة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_guardians_power_of_attorney_for_agent.mimes' => 'نسخة وكالة النظار يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-        ];
+        ], $this->locationMessages());
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            if ($this->filled('property_city_id') && $this->filled('property_place_id')) {
+                $valid = City::query()
+                    ->where('id', $this->input('property_city_id'))
+                    ->where('region_id', $this->input('property_place_id'))
+                    ->exists();
+
+                if (! $valid) {
+                    $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
+                }
+            }
+
             $instrumentType = $this->input('instrument_type');
             $ownerEndowment = RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT;
 
