@@ -90,7 +90,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step1RealEstateResource($realEstate->fresh()),
+            'data' => new Step1RealEstateResource($realEstate->fresh(['propertyType', 'propertyUsages'])),
         ]);
     }
 
@@ -118,7 +118,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'latitude' => $request->input('latitude'),
             'longitude' => $request->input('longitude'),
             'user_id' => $user->id,
-            'step' => 3,
+            'step' => 2,
         ];
 
         if ($request->hasFile('image_address')) {
@@ -126,11 +126,17 @@ class RealEstateControllor extends ApiRealEstateControllor
         }
 
         $realEstate->update($data);
+
         return response()->json([
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step2RealEstateResource($realEstate->fresh()),
+            'data' => new Step2RealEstateResource($realEstate->fresh([
+                'propertyType',
+                'propertyUsages',
+                'tenantEntityCity',
+                'tenantEntityRegion',
+            ])),
         ]);
     }
 
@@ -152,7 +158,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'property_owner_mobile' => $request->property_owner_mobile,
             'property_owner_iban' => $request->property_owner_iban,
             'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
-            'step' => 4,
+            'step' => 3,
         ];
 
         $hasAgent = in_array((string) $request->add_legal_agent_of_owner, ['1', 'true'], true)
@@ -201,7 +207,12 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step3RealEstateResource($realEstate->fresh()),
+            'data' => new Step3RealEstateResource($realEstate->fresh([
+                'propertyType',
+                'propertyUsages',
+                'tenantEntityCity',
+                'tenantEntityRegion',
+            ])),
         ]);
     }
 
@@ -232,7 +243,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
             'latitude' => $form->input('latitude'),
             'longitude' => $form->input('longitude'),
-            'step' => 2,
+            'step' => 1,
         ];
 
         if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
@@ -274,7 +285,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.updated_success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step1RealEstateResource($realEstate->fresh()),
+            'data' => new Step1RealEstateResource($realEstate->fresh(['propertyType', 'propertyUsages'])),
         ]);
     }
 
@@ -302,7 +313,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'extra_figure' => $request->extra_figure,
             'latitude' => $request->input('latitude'),
             'longitude' => $request->input('longitude'),
-            'step' => 3,
+            'step' => 2,
         ];
 
         if ($request->hasFile('image_address')) {
@@ -315,7 +326,12 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.updated_success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step2RealEstateResource($realEstate->fresh()),
+            'data' => new Step2RealEstateResource($realEstate->fresh([
+                'propertyType',
+                'propertyUsages',
+                'tenantEntityCity',
+                'tenantEntityRegion',
+            ])),
         ]);
     }
 
@@ -338,7 +354,7 @@ class RealEstateControllor extends ApiRealEstateControllor
             'property_owner_mobile' => $request->property_owner_mobile,
             'property_owner_iban' => $request->property_owner_iban,
             'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
-            'step' => 4,
+            'step' => 3,
         ];
 
         $hasAgent = in_array((string) $request->add_legal_agent_of_owner, ['1', 'true'], true)
@@ -385,7 +401,12 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.updated_success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step3RealEstateResource($realEstate->fresh()),
+            'data' => new Step3RealEstateResource($realEstate->fresh([
+                'propertyType',
+                'propertyUsages',
+                'tenantEntityCity',
+                'tenantEntityRegion',
+            ])),
         ]);
     }
 

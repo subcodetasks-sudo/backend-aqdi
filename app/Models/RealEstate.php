@@ -42,6 +42,7 @@ class RealEstate extends Model
         'property_type_id' => 'integer',
         'property_usages_id' => 'integer',
         'is_multiple_trusteeship_deed_copy' => 'boolean',
+        'step' => 'integer',
     ];
 
     /**
@@ -75,11 +76,14 @@ class RealEstate extends Model
         'type_dob_property_owner', 'type_dob_property_owner_agent',
         'type_instrument_history', 'type_date_first_registration', 'type_agency_instrument_date_of_property_owner',
         'copy_of_the_authorization_or_agency',
-        'image_instrument', 'age_of_the_property', 'number_of_units_per_floor', 'image_address', 'latitude', 'longitude'
+        'copy_of_the_endowment_registration_certificate',
+        'copy_of_the_trusteeship_deed',
+        'copy_of_guardians_power_of_attorney_for_agent',
+        'is_multiple_trusteeship_deed_copy',
+        'image_instrument', 'age_of_the_property', 'number_of_units_per_floor', 'image_address', 'latitude', 'longitude',
+        'step',
     ];
-  
-    
- 
+
     public function user()
     {
         return $this->belongsTo(User::class);

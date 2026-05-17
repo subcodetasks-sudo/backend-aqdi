@@ -15,7 +15,11 @@ class Step1RealEstateResource extends JsonResource
             'contract_type' => $this->contract_type,
             'instrument_type' => $this->instrument_type,
             'property_type_id' => $this->property_type_id,
+            'property_type_name' => optional($this->propertyType)->name_trans
+                ?? optional($this->propertyType)->name_ar,
             'property_usages_id' => $this->property_usages_id,
+            'property_usages_name' => optional($this->propertyUsages)->name_trans
+                ?? optional($this->propertyUsages)->name_ar,
             'number_of_floors' => $this->number_of_floors,
             'number_of_units_in_realestate' => $this->number_of_units_in_realestate,
             'property_owner_is_deceased' => $this->property_owner_is_deceased,
