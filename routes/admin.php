@@ -50,8 +50,12 @@ use Illuminate\Support\Facades\Route;
 
         Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index')->name('index');
+            Route::get('/employee-salary', 'employeeSalary')->name('employee-salary');
+            Route::get('/employee-notes', 'employeeNotes')->name('employee-notes');
+            Route::post('/{id}/salary', 'storeSalary')->whereNumber('id')->name('salary.store');
+            Route::post('/{id}/note', 'storeNote')->whereNumber('id')->name('note.store');
             Route::post('/logout', 'logout')->name('logout');
-            Route::post('/', 'store')->name('store');
+            Route::post('/', 'store')->name('');
             Route::get('/{id}', 'show')->whereNumber('id')->name('show');
             Route::post('/{id}', 'update')->whereNumber('id')->name('update');
             Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');

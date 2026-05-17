@@ -29,7 +29,7 @@ class EmployeeResource extends JsonResource
             'is_active' => (bool) $this->is_active,
             'is_online' => (bool) $this->is_online,
             'is_blocked' => $this->blocked_until ? now()->lessThan($this->blocked_until) : false,
-            'blocked_until' => $this->blocked_until,
+            'blocked_until' => $this->blocked_until?->format('Y-m-d H:i:s'),
             'reason_of_block' => $this->reason_of_block,
             'profile_image' => $this->profile_image ? url($this->profile_image) : null,
             'facebook' => $this->facebook,
@@ -39,9 +39,17 @@ class EmployeeResource extends JsonResource
             'tiktok' => $this->tiktok,
             'twitter' => $this->twitter,
             'salaries_count' => $this->salaries_count ?? $this->salaries?->count() ?? 0,
+            'salaries' => SalaryResource::collection($this->whenLoaded('salaries')),
             'notes_count' => $this->notes_count ?? $this->notes?->count() ?? 0,
+            'notes' => EmployeeNoteResource::collection($this->whenLoaded('notes')),
             'received_contracts_count' => $this->received_contract_count ?? $this->receivedContract?->count() ?? 0,
+            'received_contracts' => ReceivedContractResource::collection(
+                $this->whenLoaded('receivedContract')
+            ),
             'refundable_contracts_count' => $this->refundable_contract_count ?? $this->refundableContract?->count() ?? 0,
+            'refundable_contracts' => RefundableContractResource::collection(
+                $this->whenLoaded('refundableContract')
+            ),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

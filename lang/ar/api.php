@@ -64,6 +64,9 @@ return [
     'employee_unblocked_successfully' => 'تم إلغاء حظر الموظف بنجاح',
     'employee_inactive' => 'حساب الموظف غير مفعّل',
     'employee_account_blocked' => 'حساب الموظف محظور',
+    'employee_salary_created_successfully' => 'تم إضافة الراتب بنجاح',
+    'employee_note_created_successfully' => 'تم إضافة الملاحظة بنجاح',
+    'salary_total_mismatch' => 'المجموع يجب أن يساوي الراتب الأساسي ناقص الخصم زائد المكافأة (المتوقع :expected)',
 
     'contract_updated_successfully' => 'تم تحديث العقد بنجاح',
     'contract_not_found' => 'العقد غير موجود',

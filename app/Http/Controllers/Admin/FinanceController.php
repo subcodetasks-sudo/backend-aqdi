@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\Responser;
+use App\Models\Employee;
 use App\Models\Expense;
 use Illuminate\Http\Request;
 
@@ -102,6 +103,7 @@ class FinanceController extends Controller
         );
     }
 
+  
     /**
      * Delete an expense.
      */
