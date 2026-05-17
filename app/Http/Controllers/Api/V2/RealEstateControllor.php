@@ -50,14 +50,20 @@ class RealEstateControllor extends ApiRealEstateControllor
     public function index()
     {
         $user = auth()->user();
-        $data = RealEstate::where('user_id', $user->id)->get();
+        $data = RealEstate::query()
+            ->where('user_id', $user->id)
+            ->with(['propertyType', 'propertyUsages'])
+            ->get();
         return $this->apiResponse(RealEstateResource::collection($data), trans('api.real_estate'));
     }
 
     public function all()
     {
         $user = auth()->user();
-        $realEstates = RealEstate::where('user_id', $user->id)->get();
+        $realEstates = RealEstate::query()
+            ->where('user_id', $user->id)
+            ->with(['propertyType', 'propertyUsages'])
+            ->get();
 
         if (! $realEstates) {
             return $this->errorMessage(trans('api.not_have_real'), 404);
@@ -69,7 +75,10 @@ class RealEstateControllor extends ApiRealEstateControllor
     public function show($id)
     {
         $user = auth()->user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($id);
+        $realEstate = RealEstate::query()
+            ->where('user_id', $user->id)
+            ->with(['propertyType', 'propertyUsages'])
+            ->findOrFail($id);
         return $this->apiResponse(new RealEstateResource($realEstate), trans('api.real_estate'), 200);
     }
 

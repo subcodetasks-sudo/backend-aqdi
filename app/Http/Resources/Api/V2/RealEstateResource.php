@@ -23,7 +23,11 @@ class RealEstateResource extends JsonResource
             'number_of_units_in_realestate' => $this->number_of_units_in_realestate,
             'number_of_floors' => $this->number_of_floors,
             'property_type_id' => $this->property_type_id,
+            'property_type_name' => optional($this->propertyType)->name_trans
+                ?? optional($this->propertyType)->name_ar,
             'property_usages_id' => $this->property_usages_id,
+            'property_usages_name' => optional($this->propertyUsages)->name_trans
+                ?? optional($this->propertyUsages)->name_ar,
             'property_city_id' => $this->property_city_id,
             'property_place_id' => $this->property_place_id,
             'property_city_name' => optional($this->tenantEntityCity)->name_trans,
