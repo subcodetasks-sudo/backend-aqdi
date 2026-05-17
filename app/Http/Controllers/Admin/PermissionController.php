@@ -7,7 +7,7 @@ use App\Http\Traits\Responser;
 use App\Models\Permission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
+use App\Models\Role;
 
 class PermissionController extends Controller
 {

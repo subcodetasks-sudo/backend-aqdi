@@ -3,292 +3,308 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\V2\StoreRoleRequest;
+use App\Http\Requests\Admin\V2\UpdateRoleRequest;
+use App\Http\Resources\Admin\V2\Api\RoleDetailResource;
+use App\Http\Resources\Admin\V2\Api\RoleResource;
 use App\Http\Traits\Responser;
+use App\Models\Employee;
 use App\Models\Role;
+use App\Services\Admin\RolePermissionResolver;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class RoleController extends Controller
 {
     use Responser;
 
-    /**
-     * Display a listing of roles
-     */
+    public function __construct(
+        protected RolePermissionResolver $permissionResolver
+    ) {}
+
     public function index(Request $request)
     {
         try {
-            $query = Role::with(['permissions', 'employees']);
+            $query = Role::query()
+                ->with(['employees:id,name,email,role_id'])
+                ->withCount('permissions');
 
-            // Filter by is_active if provided
             if ($request->has('is_active')) {
                 $query->where('is_active', $request->boolean('is_active'));
             }
 
-            // Search functionality
-            if ($request->has('search')) {
-                $search = $request->search;
+            if ($request->filled('search')) {
+                $search = $request->string('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('title_ar', 'like', "%{$search}%")
-                      ->orWhere('title_en', 'like', "%{$search}%");
+                        ->orWhere('title_ar', 'like', "%{$search}%")
+                        ->orWhere('title_en', 'like', "%{$search}%")
+                        ->orWhereHas('employees', function ($eq) use ($search) {
+                            $eq->where('name', 'like', "%{$search}%");
+                        });
                 });
             }
 
-            // Sorting
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
+            $sortBy = $request->get('sort_by', 'updated_at');
+            $sortOrder = strtolower((string) $request->get('sort_order', 'desc')) === 'asc' ? 'asc' : 'desc';
+            $allowedSort = ['created_at', 'updated_at', 'name', 'title_ar'];
+            if (! in_array($sortBy, $allowedSort, true)) {
+                $sortBy = 'updated_at';
+            }
             $query->orderBy($sortBy, $sortOrder);
 
-            $roles = $query->paginate($request->get('per_page', 20));
+            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+            $roles = $query->paginate($perPage);
 
-            return $this->apiResponse(
-                [
-                    'items' => $roles->items(),
-                    'pagination' => $this->paginate($roles),
-                ],
-                trans('api.success')
-            );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+            return $this->apiResponse([
+                'items' => RoleResource::collection($roles),
+                'pagination' => $this->paginate($roles),
+            ], trans('api.success'));
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Show the form for creating a new role
-     */
     public function create()
     {
         try {
-            $data = [
-                'validation_rules' => [
-                    'name' => 'required|string|max:255|unique:roles,name',
-                    'title_ar' => 'required|string|max:255',
-                    'title_en' => 'nullable|string|max:255',
-                    'description' => 'nullable|string',
-                    'is_active' => 'nullable|boolean',
-                    'permissions' => 'nullable|array',
-                    'permissions.*' => 'exists:permissions,id',
-                ],
-                'permission_actions' => [
-                    ['value' => 'view', 'label_ar' => 'عرض القسم', 'label_en' => 'View'],
-                    ['value' => 'create', 'label_ar' => 'إنشاء', 'label_en' => 'Create'],
-                    ['value' => 'edit', 'label_ar' => 'تعديل', 'label_en' => 'Edit'],
-                    ['value' => 'delete', 'label_ar' => 'حذف', 'label_en' => 'Delete'],
-                    ['value' => 'retrieve', 'label_ar' => 'استرجاع', 'label_en' => 'Retrieve'],
-                ],
-            ];
+            $employees = Employee::query()
+                ->select('id', 'name', 'email', 'role_id')
+                ->orderBy('name')
+                ->get()
+                ->map(fn ($e) => [
+                    'id' => $e->id,
+                    'name' => $e->name,
+                    'email' => $e->email,
+                    'role_id' => $e->role_id,
+                ]);
 
-            return $this->apiResponse(
-                $data,
-                trans('api.success')
-            );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+            $actions = collect(config('permissions.actions', []))->map(
+                fn ($labels, $value) => [
+                    'value' => $value,
+                    'label_ar' => $labels['ar'] ?? $value,
+                    'label_en' => $labels['en'] ?? $value,
+                ]
+            )->values();
+
+            $sections = collect(config('permissions.sections', []))->map(
+                fn ($labels, $key) => [
+                    'section_key' => $key,
+                    'section_label_ar' => $labels['ar'] ?? $key,
+                    'section_label_en' => $labels['en'] ?? $key,
+                ]
+            )->values();
+
+            return $this->apiResponse([
+                'employees' => $employees,
+                'permission_actions' => $actions,
+                'permission_sections' => $sections,
+                'permissions_grouped' => $this->permissionResolver->groupedPermissionsForForm(),
+                'validation_rules' => (new StoreRoleRequest)->rules(),
+            ], trans('api.success'));
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Store a newly created role
-     */
-    public function store(Request $request)
+    public function store(StoreRoleRequest $request)
     {
         try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255|unique:roles,name',
-                'title_ar' => 'required|string|max:255',
-                'title_en' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
-                'is_active' => 'nullable|boolean',
-                'permissions' => 'nullable|array',
-                'permissions.*' => 'exists:permissions,id',
-            ]);
+            $validated = $request->validated();
+            $permissionIds = $this->resolvePermissionIdsFromValidated($validated);
+            $employeeId = $validated['employee_id'] ?? null;
 
-            $permissions = $validated['permissions'] ?? [];
-            unset($validated['permissions']);
+            unset(
+                $validated['permissions'],
+                $validated['permission_ids'],
+                $validated['permission_matrix'],
+                $validated['activate_all_permissions'],
+                $validated['employee_id']
+            );
 
-            $role = Role::create($validated);
+            $role = Role::query()->create($validated);
 
-            // Attach permissions if provided
-            if (!empty($permissions)) {
-                $role->permissions()->attach($permissions);
+            if ($permissionIds !== null) {
+                $role->permissions()->sync($permissionIds);
             }
 
+            if ($employeeId) {
+                Employee::query()->whereKey($employeeId)->update(['role_id' => $role->id]);
+            }
+
+            $role->load(['permissions', 'employees'])->loadCount('permissions');
+
             return $this->apiResponse(
-                $role->load(['permissions']),
+                new RoleDetailResource($role),
                 trans('api.created_successfully'),
                 201
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return $this->errorResponse(
-                $e->errors(),
-                422
-            );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Display the specified role
-     */
     public function show($id)
     {
         try {
-            $role = Role::with(['permissions', 'employees'])->find($id);
+            $role = Role::query()
+                ->with(['permissions', 'employees'])
+                ->withCount('permissions')
+                ->find($id);
 
-            if (!$role) {
-                return $this->errorMessage(
-                    trans('api.not_found'),
-                    404
-                );
+            if (! $role) {
+                return $this->errorMessage(trans('api.not_found'), 404);
             }
 
             return $this->apiResponse(
-                $role,
+                new RoleDetailResource($role),
                 trans('api.success')
             );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Update the specified role
-     */
-    public function update(Request $request, $id)
+    public function update(UpdateRoleRequest $request, $id)
     {
         try {
-            $role = Role::find($id);
+            $role = Role::query()->find($id);
 
-            if (!$role) {
-                return $this->errorMessage(
-                    trans('api.not_found'),
-                    404
-                );
+            if (! $role) {
+                return $this->errorMessage(trans('api.not_found'), 404);
             }
 
-            $validated = $request->validate([
-                'name' => 'sometimes|required|string|max:255|unique:roles,name,' . $id,
-                'title_ar' => 'sometimes|required|string|max:255',
-                'title_en' => 'nullable|string|max:255',
-                'description' => 'nullable|string',
-                'is_active' => 'nullable|boolean',
-                'permissions' => 'nullable|array',
-                'permissions.*' => 'exists:permissions,id',
-            ]);
+            $validated = $request->validated();
+            $permissionIds = $this->resolvePermissionIdsFromValidated($validated, $request->hasAny([
+                'permissions',
+                'permission_ids',
+                'permission_matrix',
+                'activate_all_permissions',
+            ]));
+            $employeeId = array_key_exists('employee_id', $validated)
+                ? $validated['employee_id']
+                : null;
 
-            $permissions = $validated['permissions'] ?? null;
-            unset($validated['permissions']);
+            unset(
+                $validated['permissions'],
+                $validated['permission_ids'],
+                $validated['permission_matrix'],
+                $validated['activate_all_permissions'],
+                $validated['employee_id']
+            );
 
-            $role->update($validated);
-
-            // Sync permissions if provided
-            if ($permissions !== null) {
-                $role->permissions()->sync($permissions);
+            if ($validated !== []) {
+                $role->update($validated);
             }
+
+            if ($permissionIds !== null) {
+                $role->permissions()->sync($permissionIds);
+            }
+
+            if ($employeeId !== null) {
+                Employee::query()->whereKey($employeeId)->update(['role_id' => $role->id]);
+            }
+
+            $role->load(['permissions', 'employees'])->loadCount('permissions');
 
             return $this->apiResponse(
-                $role->fresh(['permissions']),
+                new RoleDetailResource($role->fresh()),
                 trans('api.updated_successfully')
             );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return $this->errorResponse(
-                $e->errors(),
-                422
-            );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
-    /**
-     * Remove the specified role
-     */
     public function destroy($id)
     {
         try {
-            $role = Role::find($id);
+            $role = Role::query()->find($id);
 
-            if (!$role) {
-                return $this->errorMessage(
-                    trans('api.not_found'),
-                    404
-                );
+            if (! $role) {
+                return $this->errorMessage(trans('api.not_found'), 404);
             }
 
-            // Check if role has employees assigned
-            if ($role->employees()->count() > 0) {
+            if ($role->employees()->exists()) {
                 return $this->errorMessage(
-                    trans('api.cannot_delete_role_with_employees'),
+                    trans('api.cannot_delete_role_with_employees') ?: 'Cannot delete role assigned to employees.',
                     400
                 );
             }
 
+            $role->permissions()->detach();
             $role->delete();
 
+            return $this->apiResponse([], trans('api.deleted_successfully'));
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function assignPermissions(Request $request, $id)
+    {
+        try {
+            $role = Role::query()->find($id);
+
+            if (! $role) {
+                return $this->errorMessage(trans('api.not_found'), 404);
+            }
+
+            $validated = $request->validate([
+                'permissions' => ['required_without:permission_ids', 'array'],
+                'permissions.*' => ['integer', 'exists:permissions,id'],
+                'permission_ids' => ['required_without:permissions', 'array'],
+                'permission_ids.*' => ['integer', 'exists:permissions,id'],
+                'permission_matrix' => ['nullable', 'array'],
+                'activate_all_permissions' => ['sometimes', 'boolean'],
+            ]);
+
+            $permissionIds = $this->permissionResolver->resolve(
+                $validated['permission_ids'] ?? $validated['permissions'] ?? [],
+                $validated['permission_matrix'] ?? null,
+                (bool) ($validated['activate_all_permissions'] ?? false)
+            );
+
+            $role->permissions()->sync($permissionIds);
+            $role->load(['permissions', 'employees'])->loadCount('permissions');
+
             return $this->apiResponse(
-                [],
-                trans('api.deleted_successfully')
+                new RoleDetailResource($role),
+                trans('api.permissions_assigned_successfully') ?: trans('api.updated_successfully')
             );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
 
     /**
-     * Assign permissions to role
+     * @param  array<string, mixed>  $validated
+     * @return array<int>|null
      */
-    public function assignPermissions(Request $request, $id)
+    protected function resolvePermissionIdsFromValidated(array $validated, bool $explicit = true): ?array
     {
-        try {
-            $role = Role::find($id);
+        $hasPermissionPayload = $explicit && (
+            array_key_exists('permissions', $validated)
+            || array_key_exists('permission_ids', $validated)
+            || array_key_exists('permission_matrix', $validated)
+            || ($validated['activate_all_permissions'] ?? false)
+        );
 
-            if (!$role) {
-                return $this->errorMessage(
-                    trans('api.not_found'),
-                    404
-                );
-            }
-
-            $validated = $request->validate([
-                'permissions' => 'required|array',
-                'permissions.*' => 'exists:permissions,id',
-            ]);
-
-            $role->permissions()->sync($validated['permissions']);
-
-            return $this->apiResponse(
-                $role->fresh(['permissions']),
-                trans('api.permissions_assigned_successfully')
-            );
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return $this->errorResponse(
-                $e->errors(),
-                422
-            );
-        } catch (\Exception $e) {
-            return $this->errorMessage(
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                500
-            );
+        if (! $hasPermissionPayload) {
+            return null;
         }
+
+        return $this->permissionResolver->resolve(
+            $validated['permission_ids'] ?? $validated['permissions'] ?? [],
+            $validated['permission_matrix'] ?? null,
+            (bool) ($validated['activate_all_permissions'] ?? false)
+        );
     }
 }

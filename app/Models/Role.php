@@ -44,6 +44,14 @@ class Role extends Model
      */
     public function getPermissionsCountAttribute()
     {
+        if (array_key_exists('permissions_count', $this->attributes)) {
+            return (int) $this->attributes['permissions_count'];
+        }
+
+        if ($this->relationLoaded('permissions')) {
+            return $this->permissions->count();
+        }
+
         return $this->permissions()->count();
     }
 
