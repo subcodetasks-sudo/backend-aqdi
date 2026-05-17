@@ -44,6 +44,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'real_id'            => 'nullable|exists:contracts,id',
             'instrument_type'    => ['nullable', Rule::in(Contract::instrumentTypes())],
             'number_of_floors'   => 'required',
+            'contract_type'   => 'required',
             'property_type_id'   => 'required|exists:rea_estat_types,id',
             'property_usages_id' => [
                 'nullable',
