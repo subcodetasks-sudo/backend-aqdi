@@ -6,12 +6,9 @@ use App\Http\Controllers\Api\RealEstateControllor as ApiRealEstateControllor;
 use App\Http\Requests\Api\V2\RealEstate\Step1RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\UpdateStep1RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\Step2RealEstateRequest;
-use App\Http\Requests\Api\V2\RealEstate\Step3RealEstateRequest;
 use App\Http\Resources\Api\V2\RealEstate\RealEstateResource;
 use App\Http\Resources\Api\V2\RealEstate\Step1RealEstateResource;
 use App\Http\Resources\Api\V2\RealEstate\Step2RealEstateResource;
-use App\Http\Resources\Api\V2\RealEstate\Step3RealEstateResource;
-use App\Models\City;
 use App\Models\RealEstate;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
@@ -22,6 +19,19 @@ use Illuminate\Support\Facades\Auth;
 
 class RealEstateControllor extends ApiRealEstateControllor
 {
+    /**
+     * @return array<int, string>
+     */
+    protected function realEstateEagerLoads(): array
+    {
+        return [
+            'propertyType',
+            'propertyUsages',
+            'tenantEntityCity',
+            'tenantEntityRegion',
+        ];
+    }
+
     protected function toStep1RealEstateRequest(Request $request): Step1RealEstateRequest
     {
         $form = Step1RealEstateRequest::createFrom($request);
@@ -34,14 +44,6 @@ class RealEstateControllor extends ApiRealEstateControllor
     protected function toStep2RealEstateRequest(Request $request): Step2RealEstateRequest
     {
         $form = Step2RealEstateRequest::createFrom($request);
-        $form->setContainer(app())->setRedirector(app(Redirector::class));
-        $form->validateResolved();
-        return $form;
-    }
-
-    protected function toStep3RealEstateRequest(Request $request): Step3RealEstateRequest
-    {
-        $form = Step3RealEstateRequest::createFrom($request);
         $form->setContainer(app())->setRedirector(app(Redirector::class));
         $form->validateResolved();
         return $form;
@@ -90,104 +92,75 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step1RealEstateResource($realEstate->fresh(['propertyType', 'propertyUsages'])),
+            'data' => new Step1RealEstateResource($realEstate->fresh($this->realEstateEagerLoads())),
         ]);
     }
 
     public function step2(Request $request)
     {
-        $request = $this->toStep2RealEstateRequest($request);
-        $user = Auth::user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($request->id);
-        $city = City::where('id', $request->property_city_id)
-            ->where('region_id', $request->property_place_id)
-            ->first();
+        return $this->saveOwnerStep($request, false);
+    }
 
-        if (! $city) {
-            return $this->errorMessage(trans('api.city_not_include_region'));
-        }
+    /** @deprecated Alias of step2 — location is now part of step1. */
+    public function step3(Request $request)
+    {
+        return $this->step2($request);
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse
+     */
+    protected function saveOwnerStep(Request $request, bool $isUpdate)
+    {
+        $form = $this->toStep2RealEstateRequest($request);
+
+        $user = Auth::user();
+        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($form->integer('id'));
 
         $data = [
-            'property_place_id' => $request->property_place_id,
-            'property_city_id' => $request->property_city_id,
-            'neighborhood' => $request->neighborhood,
-            'street' => $request->street,
-            'building_number' => $request->building_number,
-            'postal_code' => $request->postal_code,
-            'extra_figure' => $request->extra_figure,
-            'latitude' => $request->input('latitude'),
-            'longitude' => $request->input('longitude'),
+            'name_real_estate' => $form->input('name_real_estate'),
+            'name_owner' => $form->name_owner,
+            'property_owner_id_num' => $form->property_owner_id_num,
             'user_id' => $user->id,
+            'type_dob_property_owner' => $form->input('type_dob_property_owner', 'hijri'),
+            'property_owner_dob_hijri' => HijriDobParts::combine(
+                $form->property_owner_dob_day,
+                $form->property_owner_dob_month,
+                $form->property_owner_dob_year
+            ),
+            'property_owner_mobile' => $form->property_owner_mobile,
+            'property_owner_iban' => $form->property_owner_iban,
+            'add_legal_agent_of_owner' => $form->add_legal_agent_of_owner,
             'step' => 2,
         ];
 
-        if ($request->hasFile('image_address')) {
-            $data['image_address'] = $request->file('image_address')->store('images/real_estates', 'public');
-        }
-
-        $realEstate->update($data);
-
-        return response()->json([
-            'message' => trans('api.success'),
-            'code' => 200,
-            'success' => true,
-            'data' => new Step2RealEstateResource($realEstate->fresh([
-                'propertyType',
-                'propertyUsages',
-                'tenantEntityCity',
-                'tenantEntityRegion',
-            ])),
-        ]);
-    }
-
-    public function step3(Request $request)
-    {
-        $request = $this->toStep3RealEstateRequest($request);
-        $user = Auth::user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($request->id);
-        $data = [
-            'name_real_estate' => $request->input('name_real_estate'),
-            'name_owner' => $request->name_owner,
-            'user_id' => $user->id,
-            'type_dob_property_owner' => $request->input('type_dob_property_owner', 'hijri'),
-            'property_owner_dob_hijri' => HijriDobParts::combine(
-                $request->property_owner_dob_day,
-                $request->property_owner_dob_month,
-                $request->property_owner_dob_year
-            ),
-            'property_owner_mobile' => $request->property_owner_mobile,
-            'property_owner_iban' => $request->property_owner_iban,
-            'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
-            'step' => 3,
-        ];
-
-        $hasAgent = in_array((string) $request->add_legal_agent_of_owner, ['1', 'true'], true)
-            || $request->add_legal_agent_of_owner === 1
-            || $request->add_legal_agent_of_owner === true;
+        $hasAgent = in_array((string) $form->add_legal_agent_of_owner, ['1', 'true'], true)
+            || $form->add_legal_agent_of_owner === 1
+            || $form->add_legal_agent_of_owner === true;
 
         if ($hasAgent) {
-            $data['id_num_of_property_owner_agent'] = $request->id_num_of_property_owner_agent;
-            $data['type_dob_property_owner_agent'] = $request->input('type_dob_property_owner_agent', 'hijri');
+            $data['id_num_of_property_owner_agent'] = $form->id_num_of_property_owner_agent;
+            $data['type_dob_property_owner_agent'] = $form->input('type_dob_property_owner_agent', 'hijri');
             $data['dob_of_property_owner_agent'] = HijriDobParts::combine(
-                $request->input('dob_of_property_owner_agent_day'),
-                $request->input('dob_of_property_owner_agent_month'),
-                $request->input('dob_of_property_owner_agent_year')
+                $form->input('dob_of_property_owner_agent_day'),
+                $form->input('dob_of_property_owner_agent_month'),
+                $form->input('dob_of_property_owner_agent_year')
             );
-            $data['mobile_of_property_owner_agent'] = $request->mobile_of_property_owner_agent;
-            $data['agency_number_in_instrument_of_property_owner'] = $request->agency_number_in_instrument_of_property_owner;
-            $data['type_agency_instrument_date_of_property_owner'] = $request->input(
+            $data['mobile_of_property_owner_agent'] = $form->mobile_of_property_owner_agent;
+            $data['agency_number_in_instrument_of_property_owner'] = $form->agency_number_in_instrument_of_property_owner;
+            $data['type_agency_instrument_date_of_property_owner'] = $form->input(
                 'type_agency_instrument_date_of_property_owner',
                 'hijri'
             );
             $data['agency_instrument_date_of_property_owner'] = DateInputNormalizer::combineFromParts(
-                $request->input('agency_instrument_date_of_property_owner_day'),
-                $request->input('agency_instrument_date_of_property_owner_month'),
-                $request->input('agency_instrument_date_of_property_owner_year')
+                $form->input('agency_instrument_date_of_property_owner_day'),
+                $form->input('agency_instrument_date_of_property_owner_month'),
+                $form->input('agency_instrument_date_of_property_owner_year')
             );
             if ($request->hasFile('copy_of_the_authorization_or_agency')) {
                 $data['copy_of_the_authorization_or_agency'] = $request->file('copy_of_the_authorization_or_agency')
                     ->store('authorizations', 'public');
-            } else {
+            } elseif (! $isUpdate) {
                 $data['copy_of_the_authorization_or_agency'] = $realEstate->copy_of_the_authorization_or_agency;
             }
         } else {
@@ -204,15 +177,10 @@ class RealEstateControllor extends ApiRealEstateControllor
         $realEstate->update($data);
 
         return response()->json([
-            'message' => trans('api.success'),
+            'message' => $isUpdate ? trans('api.updated_success') : trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step3RealEstateResource($realEstate->fresh([
-                'propertyType',
-                'propertyUsages',
-                'tenantEntityCity',
-                'tenantEntityRegion',
-            ])),
+            'data' => new Step2RealEstateResource($realEstate->fresh($this->realEstateEagerLoads())),
         ]);
     }
 
@@ -225,7 +193,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $user = Auth::user();
         $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($form->input('id'));
 
-        $data = [
+        $data = array_merge([
             'name_real_estate' => $form->input('name_real_estate'),
             'contract_ownership' => $form->input('contract_ownership'),
             'contract_type' => $form->input('contract_type'),
@@ -241,10 +209,8 @@ class RealEstateControllor extends ApiRealEstateControllor
             'number_of_floors' => $form->input('number_of_floors'),
             'age_of_the_property' => $form->input('age_of_the_property'),
             'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
-            'latitude' => $form->input('latitude'),
-            'longitude' => $form->input('longitude'),
             'step' => 1,
-        ];
+        ], $form->locationAttributesForPayload());
 
         if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
             $data['is_multiple_trusteeship_deed_copy'] = $form->boolean('is_multiple_trusteeship_deed_copy');
@@ -285,129 +251,19 @@ class RealEstateControllor extends ApiRealEstateControllor
             'message' => trans('api.updated_success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step1RealEstateResource($realEstate->fresh(['propertyType', 'propertyUsages'])),
+            'data' => new Step1RealEstateResource($realEstate->fresh($this->realEstateEagerLoads())),
         ]);
     }
 
     public function updateStep2(Request $request)
     {
-        $request = $this->toStep2RealEstateRequest($request);
-        $user = Auth::user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($request->id);
-
-        $city = City::where('id', $request->property_city_id)
-            ->where('region_id', $request->property_place_id)
-            ->first();
-
-        if (! $city) {
-            return $this->errorMessage(trans('api.city_not_include_region'));
-        }
-
-        $data = [
-            'property_place_id' => $request->property_place_id,
-            'property_city_id' => $request->property_city_id,
-            'neighborhood' => $request->neighborhood,
-            'street' => $request->street,
-            'building_number' => $request->building_number,
-            'postal_code' => $request->postal_code,
-            'extra_figure' => $request->extra_figure,
-            'latitude' => $request->input('latitude'),
-            'longitude' => $request->input('longitude'),
-            'step' => 2,
-        ];
-
-        if ($request->hasFile('image_address')) {
-            $data['image_address'] = $request->file('image_address')->store('images/real_estates', 'public');
-        }
-
-        $realEstate->update($data);
-
-        return response()->json([
-            'message' => trans('api.updated_success'),
-            'code' => 200,
-            'success' => true,
-            'data' => new Step2RealEstateResource($realEstate->fresh([
-                'propertyType',
-                'propertyUsages',
-                'tenantEntityCity',
-                'tenantEntityRegion',
-            ])),
-        ]);
+        return $this->saveOwnerStep($request, true);
     }
 
+    /** @deprecated Alias of updateStep2 — location is now part of updateStep1. */
     public function updateStep3(Request $request)
     {
-        $request = $this->toStep3RealEstateRequest($request);
-        $user = Auth::user();
-        $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($request->id);
-
-        $data = [
-            'name_real_estate' => $request->input('name_real_estate'),
-            'name_owner' => $request->name_owner,
-            'type_dob_property_owner' => $request->input('type_dob_property_owner', 'hijri'),
-            //'property_owner_id_num' => $request->property_owner_id_num,
-            'property_owner_dob_hijri' => HijriDobParts::combine(
-                $request->property_owner_dob_day,
-                $request->property_owner_dob_month,
-                $request->property_owner_dob_year
-            ),
-            'property_owner_mobile' => $request->property_owner_mobile,
-            'property_owner_iban' => $request->property_owner_iban,
-            'add_legal_agent_of_owner' => $request->add_legal_agent_of_owner,
-            'step' => 3,
-        ];
-
-        $hasAgent = in_array((string) $request->add_legal_agent_of_owner, ['1', 'true'], true)
-            || $request->add_legal_agent_of_owner === 1
-            || $request->add_legal_agent_of_owner === true;
-
-        if ($hasAgent) {
-            $data['id_num_of_property_owner_agent'] = $request->id_num_of_property_owner_agent;
-            $data['type_dob_property_owner_agent'] = $request->input('type_dob_property_owner_agent', 'hijri');
-            $data['dob_of_property_owner_agent'] = HijriDobParts::combine(
-                $request->input('dob_of_property_owner_agent_day'),
-                $request->input('dob_of_property_owner_agent_month'),
-                $request->input('dob_of_property_owner_agent_year')
-            );
-            $data['mobile_of_property_owner_agent'] = $request->mobile_of_property_owner_agent;
-            $data['agency_number_in_instrument_of_property_owner'] = $request->agency_number_in_instrument_of_property_owner;
-            $data['type_agency_instrument_date_of_property_owner'] = $request->input(
-                'type_agency_instrument_date_of_property_owner',
-                'hijri'
-            );
-            $data['agency_instrument_date_of_property_owner'] = DateInputNormalizer::combineFromParts(
-                $request->input('agency_instrument_date_of_property_owner_day'),
-                $request->input('agency_instrument_date_of_property_owner_month'),
-                $request->input('agency_instrument_date_of_property_owner_year')
-            );
-            if ($request->hasFile('copy_of_the_authorization_or_agency')) {
-                $data['copy_of_the_authorization_or_agency'] = $request->file('copy_of_the_authorization_or_agency')
-                    ->store('authorizations', 'public');
-            }
-        } else {
-            $data['id_num_of_property_owner_agent'] = null;
-            $data['type_dob_property_owner_agent'] = null;
-            $data['dob_of_property_owner_agent'] = null;
-            $data['mobile_of_property_owner_agent'] = null;
-            $data['agency_number_in_instrument_of_property_owner'] = null;
-            $data['agency_instrument_date_of_property_owner'] = null;
-            $data['type_agency_instrument_date_of_property_owner'] = null;
-            $data['copy_of_the_authorization_or_agency'] = null;
-        }
-
-        $realEstate->update($data);
-
-        return response()->json([
-            'message' => trans('api.updated_success'),
-            'code' => 200,
-            'success' => true,
-            'data' => new Step3RealEstateResource($realEstate->fresh([
-                'propertyType',
-                'propertyUsages',
-                'tenantEntityCity',
-                'tenantEntityRegion',
-            ])),
-        ]);
+        return $this->updateStep2($request);
     }
 
     public function delete($id)

@@ -3,8 +3,11 @@
 namespace App\Http\Requests\Api\V2\RealEstate;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
+use App\Models\City;
 use App\Models\Contract;
 use App\Models\RealEstate;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
 /**
@@ -13,6 +16,8 @@ use Illuminate\Validation\Rule;
  */
 class Step1RealEstateRequest extends BaseApiV2Request
 {
+    use RealEstateLocationRules;
+
     protected function prepareForValidation(): void
     {
         $instrumentType = $this->input('instrument_type');
@@ -39,8 +44,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
         $instrumentType = $this->input('instrument_type');
         $ownerEndowment = RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT;
 
-        return [
-           
+        return array_merge([
             'real_id'            => 'nullable|exists:contracts,id',
             'instrument_type'    => ['nullable', Rule::in(Contract::instrumentTypes())],
             'number_of_floors'   => 'required',
@@ -96,12 +100,34 @@ class Step1RealEstateRequest extends BaseApiV2Request
                         && $this->boolean('is_multiple_trusteeship_deed_copy');
                 }),
             ],
-        ];
+        ], $this->locationRules());
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            if (! $this->filled('property_city_id') || ! $this->filled('property_place_id')) {
+                return;
+            }
+
+            $valid = City::query()
+                ->where('id', $this->input('property_city_id'))
+                ->where('region_id', $this->input('property_place_id'))
+                ->exists();
+
+            if (! $valid) {
+                $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
+            }
+        });
     }
 
     public function messages(): array
     {
-        return [
+        return array_merge([
             'property_type_id.required'               => 'نوع العقار مطلوب.',
             'property_type_id.exists'                 => 'نوع العقار غير موجود.',
             'contract_type.required'                  => 'نوع العقد مطلوب.',
@@ -118,7 +144,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك النظارة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_guardians_power_of_attorney_for_agent.mimes' => 'نسخة وكالة النظار يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-        ];
+        ], $this->locationMessages());
     }
 
     /**
@@ -126,7 +152,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
      */
     public function attributesForCreate(int $userId): array
     {
-        $payload = [
+        $payload = array_merge([
             'user_id'                        => $userId,
             'contract_type'                  => $this->input('contract_type'),
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
@@ -137,7 +163,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'age_of_the_property'            => $this->input('age_of_the_property'),
             'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
             'step'                           => 1,
-        ];
+        ], $this->locationAttributesForPayload());
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
             $payload['instrument_history'] = date('Y-m-d', strtotime((string) $this->input('instrument_history')));

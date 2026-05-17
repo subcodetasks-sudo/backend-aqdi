@@ -48,6 +48,17 @@ class Step1RealEstateResource extends JsonResource
                 : null,
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
+            'property_place_id' => $this->property_place_id,
+            'property_city_id' => $this->property_city_id,
+            'property_place_name' => optional($this->tenantEntityRegion)->name_trans
+                ?? optional($this->tenantEntityRegion)->name_ar,
+            'property_city_name' => optional($this->tenantEntityCity)->name_trans
+                ?? optional($this->tenantEntityCity)->name_ar,
+            'neighborhood' => $this->neighborhood,
+            'street' => $this->street,
+            'building_number' => $this->building_number,
+            'postal_code' => $this->postal_code,
+            'extra_figure' => $this->extra_figure,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'step' => $this->step,
