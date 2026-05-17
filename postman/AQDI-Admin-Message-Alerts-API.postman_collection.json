@@ -1,0 +1,382 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-message-alerts-api",
+        "name": "AQDI Admin — Message Alerts API",
+        "description": "Explanatory messages for **client** and **employee** dashboards.\n\n**Audience paths**\n- Client: `/api/admin/message-alerts/client/...`\n- Employee: `/api/admin/message-alerts/employee/...`\n\n**Add message modal (إضافة رسالة جديدة)**\n1. `GET .../message-alerts/{client|employee}/create` — sections + items\n2. Or: sections dropdown → `GET .../message-alert-sections/{audience}/options/list`\n3. Items dropdown → `GET .../message-alert-section-items/{audience}/options/list?message_alert_section_id=`\n4. `POST .../message-alerts/{client|employee}` — body below\n\n**Aliases accepted:** `section_id`, `section_item_id`, `text`",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "message_alert_section_id",
+            "value": "1"
+        },
+        {
+            "key": "message_alert_section_item_id",
+            "value": "1"
+        },
+        {
+            "key": "message_alert_id",
+            "value": "1"
+        }
+    ],
+    "item": [
+        {
+            "name": "Client messages",
+            "item": [
+                {
+                    "name": "Create form (sections + items)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/client/create"
+                    }
+                },
+                {
+                    "name": "Section options (dropdown)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alert-sections/client/options/list"
+                    }
+                },
+                {
+                    "name": "Section item options (dropdown)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/message-alert-section-items/client/options/list?message_alert_section_id={{message_alert_section_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "message-alert-section-items",
+                                "client",
+                                "options",
+                                "list"
+                            ],
+                            "query": [
+                                {
+                                    "key": "message_alert_section_id",
+                                    "value": "{{message_alert_section_id}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/message-alerts/client?message_alert_section_id=&message_alert_section_item_id=&search=&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "message-alerts",
+                                "client"
+                            ],
+                            "query": [
+                                {
+                                    "key": "message_alert_section_id",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "message_alert_section_item_id",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "search",
+                                    "value": ""
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"message_alert_section_id\": 1,\n    \"message_alert_section_item_id\": 1,\n    \"message\": \"test\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/message-alerts/client"
+                    }
+                },
+                {
+                    "name": "Show message",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/client/{{message_alert_id}}"
+                    }
+                },
+                {
+                    "name": "Update message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"message\": \"updated text\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/message-alerts/client/{{message_alert_id}}"
+                    }
+                },
+                {
+                    "name": "Delete message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/client/{{message_alert_id}}/delete"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Employee messages",
+            "item": [
+                {
+                    "name": "Create form (sections + items)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/employee/create"
+                    }
+                },
+                {
+                    "name": "Section options (dropdown)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alert-sections/employee/options/list"
+                    }
+                },
+                {
+                    "name": "Section item options (dropdown)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/message-alert-section-items/employee/options/list?message_alert_section_id={{message_alert_section_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "message-alert-section-items",
+                                "employee",
+                                "options",
+                                "list"
+                            ],
+                            "query": [
+                                {
+                                    "key": "message_alert_section_id",
+                                    "value": "{{message_alert_section_id}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List messages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/message-alerts/employee?per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "message-alerts",
+                                "employee"
+                            ],
+                            "query": [
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"message_alert_section_id\": 1,\n    \"message_alert_section_item_id\": 1,\n    \"message\": \"test\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/message-alerts/employee"
+                    }
+                },
+                {
+                    "name": "Show message",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/employee/{{message_alert_id}}"
+                    }
+                },
+                {
+                    "name": "Update message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"message\": \"updated text\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/message-alerts/employee/{{message_alert_id}}"
+                    }
+                },
+                {
+                    "name": "Delete message",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/employee/{{message_alert_id}}/delete"
+                    }
+                }
+            ]
+        }
+    ]
+}

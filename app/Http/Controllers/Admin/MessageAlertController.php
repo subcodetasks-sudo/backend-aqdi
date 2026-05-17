@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\MergesMessageAlertRequestAliases;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\V2\Api\MessageAlertCreateFormResource;
+use App\Http\Resources\Admin\V2\Api\MessageAlertResource;
 use App\Http\Traits\Responser;
 use App\Models\MessageAlert;
+use App\Models\MessageAlertSection;
 use App\Models\MessageAlertSectionItem;
 use App\Support\MessageAlertType;
 use Illuminate\Http\Request;
@@ -12,12 +16,39 @@ use Illuminate\Validation\ValidationException;
 
 class MessageAlertController extends Controller
 {
+    use MergesMessageAlertRequestAliases;
     use Responser;
 
-    public function index(Request $request)
+    /**
+     * Form data for "إضافة رسالة جديدة" (sections + items for dropdowns).
+     * GET /api/admin/message-alerts/client/create
+     * GET /api/admin/message-alerts/employee/create
+     */
+    public function create(Request $request, ?string $audience = null)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
+            $type = $this->resolveAudience($request, $audience);
+
+            $sections = MessageAlertSection::query()
+                ->where('type', $type)
+                ->with(['items' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            return $this->apiResponse(
+                MessageAlertCreateFormResource::forAudience($type, $sections),
+                trans('api.success')
+            );
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    public function index(Request $request, ?string $audience = null)
+    {
+        try {
+            $type = $this->resolveAudience($request, $audience);
 
             $query = MessageAlert::query()
                 ->whereHas('sectionItem.section', fn ($q) => $q->where('type', $type))
@@ -44,13 +75,11 @@ class MessageAlertController extends Controller
                 $query->where('message', 'like', "%{$search}%");
             }
 
-            $alerts = $query->paginate((int) $request->get('per_page', 20));
+            $alerts = $query->paginate(min(max((int) $request->get('per_page', 20), 1), 100));
 
             return $this->apiResponse([
-                'items' => array_map(
-                    fn (MessageAlert $m) => $this->formatAlert($m),
-                    $alerts->items()
-                ),
+                'type' => $type,
+                'items' => MessageAlertResource::collection($alerts),
                 'pagination' => $this->paginate($alerts),
             ], trans('api.success'));
         } catch (\Throwable $e) {
@@ -58,10 +87,11 @@ class MessageAlertController extends Controller
         }
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ?string $audience = null)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
+            $type = $this->resolveAudience($request, $audience);
+            $this->mergeMessageAlertAliases($request);
             $this->mergeMessageAlertSectionIdFromItem($request);
             $data = $request->validate($this->rules());
             $this->assertItemBelongsToSection(
@@ -69,6 +99,7 @@ class MessageAlertController extends Controller
                 (int) $data['message_alert_section_id']
             );
             $this->assertItemMatchesSectionType((int) $data['message_alert_section_item_id'], $type);
+
             $alert = MessageAlert::query()->create(
                 collect($data)->only(['message_alert_section_item_id', 'message'])->all()
             );
@@ -77,7 +108,11 @@ class MessageAlertController extends Controller
                 'sectionItem.section:id,name_ar,name_en,type',
             ]);
 
-            return $this->apiResponse($this->formatAlert($alert), trans('api.created_successfully'), 201);
+            return $this->apiResponse(
+                new MessageAlertResource($alert),
+                trans('api.created_successfully'),
+                201
+            );
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (\Throwable $e) {
@@ -85,22 +120,14 @@ class MessageAlertController extends Controller
         }
     }
 
-    public function show(Request $request, int $id)
+    public function show(Request $request, int|string $idOrAudience, ?int $id = null)
     {
         try {
-            $alert = MessageAlert::query()->with([
-                'sectionItem:id,message_alert_section_id,name_ar,name_en',
-                'sectionItem.section:id,name_ar,name_en,type',
-            ])->findOrFail($id);
+            [$audience, $alertId] = $this->resolveRouteAudienceAndId($idOrAudience, $id);
+            $type = $this->resolveAudience($request, $audience);
+            $alert = $this->findAlertForAudience($alertId, $type);
 
-            if ($request->filled('type')) {
-                $type = MessageAlertType::normalize($request->input('type'));
-                if (($alert->sectionItem?->section?->type ?? null) !== $type) {
-                    return $this->errorMessage(trans('api.not_found'), 404);
-                }
-            }
-
-            return $this->apiResponse($this->formatAlert($alert), trans('api.success'));
+            return $this->apiResponse(new MessageAlertResource($alert), trans('api.success'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
         } catch (\Throwable $e) {
@@ -108,12 +135,19 @@ class MessageAlertController extends Controller
         }
     }
 
-    public function update(Request $request, int $id)
+    public function update(Request $request, int|string $idOrAudience, ?int $id = null)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
-            $alert = MessageAlert::query()->findOrFail($id);
-            $alert->loadMissing('sectionItem');
+            [$audience, $alertId] = $this->resolveRouteAudienceAndId($idOrAudience, $id);
+            $type = $this->resolveAudience($request, $audience);
+            $alert = MessageAlert::query()->findOrFail($alertId);
+            $alert->loadMissing('sectionItem.section');
+
+            if (($alert->sectionItem?->section?->type ?? null) !== $type) {
+                return $this->errorMessage(trans('api.not_found'), 404);
+            }
+
+            $this->mergeMessageAlertAliases($request);
             $this->mergeMessageAlertSectionIdFromItem($request);
             $data = $request->validate($this->rules(true));
 
@@ -138,7 +172,7 @@ class MessageAlertController extends Controller
                 'sectionItem.section:id,name_ar,name_en,type',
             ]);
 
-            return $this->apiResponse($this->formatAlert($alert), trans('api.updated_successfully'));
+            return $this->apiResponse(new MessageAlertResource($alert), trans('api.updated_successfully'));
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
         } catch (ValidationException $e) {
@@ -148,12 +182,12 @@ class MessageAlertController extends Controller
         }
     }
 
-    public function destroy(Request $request, int $id)
+    public function destroy(Request $request, int|string $idOrAudience, ?int $id = null)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
-            $alert = MessageAlert::query()->with('sectionItem.section')->findOrFail($id);
-            $this->assertItemMatchesSectionType((int) $alert->message_alert_section_item_id, $type);
+            [$audience, $alertId] = $this->resolveRouteAudienceAndId($idOrAudience, $id);
+            $type = $this->resolveAudience($request, $audience);
+            $alert = $this->findAlertForAudience($alertId, $type);
             $alert->delete();
 
             return $this->apiResponse([], trans('api.deleted_successfully'));
@@ -164,6 +198,41 @@ class MessageAlertController extends Controller
         }
     }
 
+    private function findAlertForAudience(int $id, string $type): MessageAlert
+    {
+        return MessageAlert::query()
+            ->whereHas('sectionItem.section', fn ($q) => $q->where('type', $type))
+            ->with([
+                'sectionItem:id,message_alert_section_id,name_ar,name_en',
+                'sectionItem.section:id,name_ar,name_en,type',
+            ])
+            ->findOrFail($id);
+    }
+
+    private function resolveAudience(Request $request, ?string $routeAudience): string
+    {
+        if ($routeAudience !== null && $routeAudience !== '') {
+            return MessageAlertType::normalize($routeAudience);
+        }
+
+        return MessageAlertType::normalize($request->input('type'));
+    }
+
+    /**
+     * Legacy: /message-alerts/{id} — first arg is id.
+     * Audience: /message-alerts/{audience}/{id} — first arg is audience, second is id.
+     *
+     * @return array{0: ?string, 1: int}
+     */
+    private function resolveRouteAudienceAndId(int|string $idOrAudience, ?int $id): array
+    {
+        if ($id !== null) {
+            return [(string) $idOrAudience, $id];
+        }
+
+        return [null, (int) $idOrAudience];
+    }
+
     private function rules(bool $isUpdate = false): array
     {
         $required = $isUpdate ? 'sometimes|required' : 'required';
@@ -172,36 +241,6 @@ class MessageAlertController extends Controller
             'message_alert_section_id' => "{$required}|exists:message_alert_sections,id",
             'message_alert_section_item_id' => "{$required}|exists:message_alert_section_items,id",
             'message' => "{$required}|string|max:10000",
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function formatAlert(MessageAlert $alert): array
-    {
-        $item = $alert->sectionItem;
-        $section = $item?->section;
-
-        return [
-            'id' => $alert->id,
-            'type' => $section?->type ?? MessageAlertType::CLIENT,
-            'message' => $alert->message,
-            'message_alert_section_id' => $item?->message_alert_section_id,
-            'message_alert_section_item_id' => $alert->message_alert_section_item_id,
-            'section' => $section ? [
-                'id' => $section->id,
-                'name_ar' => $section->name_ar,
-                'name_en' => $section->name_en,
-                'type' => $section->type,
-            ] : null,
-            'section_item' => $item ? [
-                'id' => $item->id,
-                'name_ar' => $item->name_ar,
-                'name_en' => $item->name_en,
-            ] : null,
-            'created_at' => $alert->created_at,
-            'updated_at' => $alert->updated_at,
         ];
     }
 
@@ -233,9 +272,6 @@ class MessageAlertController extends Controller
         }
     }
 
-    /**
-     * Older dashboards send only message_alert_section_item_id; derive section id so validation passes.
-     */
     private function mergeMessageAlertSectionIdFromItem(Request $request): void
     {
         if ($request->filled('message_alert_section_id')) {

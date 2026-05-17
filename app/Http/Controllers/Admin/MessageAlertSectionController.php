@@ -48,10 +48,12 @@ class MessageAlertSectionController extends Controller
      * Compact list for dropdowns (no pagination).
      * Query: type = client | employee (default client).
      */
-    public function options(Request $request)
+    public function options(Request $request, ?string $audience = null)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
+            $type = $audience !== null && $audience !== ''
+                ? MessageAlertType::normalize($audience)
+                : MessageAlertType::normalize($request->input('type'));
 
             $items = MessageAlertSection::query()
                 ->where('type', $type)
