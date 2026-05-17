@@ -84,7 +84,7 @@ class EmployeeController extends Controller
                 'message' => trans('api.login_success'),
                 'success' => true,
                 'data' => [
-                    'employee' => new EmployeeResource($employee->load($this->employeeBaseRelations())),
+                    'employee' => new EmployeeResource($employee),
                     'token' => $token,
                     'token_type' => 'Bearer',
                 ],
