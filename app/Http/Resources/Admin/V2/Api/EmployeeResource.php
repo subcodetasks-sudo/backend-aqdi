@@ -20,12 +20,13 @@ class EmployeeResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'base_salary' => $this->base_salary,
-            'role' => $this->role,
             'role_id' => $this->role_id,
-            'role_relation' => $this->whenLoaded('roleRelation', fn () => [
-                'id' => $this->roleRelation?->id,
-                'name' => $this->roleRelation?->name,
-            ]),
+            'role' => $this->resolvedRoleName(),
+            'role_title' => $this->resolvedRoleTitle(),
+            'role_data' => $this->when(
+                $this->roleRelation,
+                fn () => new RoleBriefResource($this->roleRelation)
+            ),
             'is_active' => (bool) $this->is_active,
             'is_online' => (bool) $this->is_online,
             'is_blocked' => $this->blocked_until ? now()->lessThan($this->blocked_until) : false,

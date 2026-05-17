@@ -30,7 +30,7 @@
                             }
                         ],
                         "url": "{{baseUrl}}/api/admin/roles/create",
-                        "description": "Returns employees dropdown, permission sections/actions, and `permissions_grouped` for the add-role UI."
+                        "description": "Returns `permission_modules` (all sections × actions with `permission_id`), `permission_matrix_template`, `permission_matrix_example`, and `employees`. Syncs missing permissions from config on each call."
                     }
                 },
                 {

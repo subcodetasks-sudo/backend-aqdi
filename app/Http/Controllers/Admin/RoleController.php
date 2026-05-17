@@ -96,11 +96,21 @@ class RoleController extends Controller
                 ]
             )->values();
 
+            $this->permissionResolver->syncAllPermissionsFromConfig();
+            $modules = $this->permissionResolver->allModulesForForm();
+
             return $this->apiResponse([
                 'employees' => $employees,
                 'permission_actions' => $actions,
                 'permission_sections' => $sections,
-                'permissions_grouped' => $this->permissionResolver->groupedPermissionsForForm(),
+                'permission_modules' => $modules,
+                'permissions_grouped' => $modules,
+                'permission_matrix_template' => $this->permissionResolver->permissionMatrixTemplate(),
+                'permission_matrix_example' => [
+                    'employees' => ['view', 'create'],
+                    'roles' => ['view'],
+                    'settings' => ['view'],
+                ],
                 'validation_rules' => (new StoreRoleRequest)->rules(),
             ], trans('api.success'));
         } catch (Throwable $e) {

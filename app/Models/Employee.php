@@ -82,5 +82,31 @@ class Employee extends Authenticatable
         return $this->belongsTo(Role::class, 'role_id');
     }
 
-   
+    /**
+     * Role slug from `roles.name` (falls back to legacy `employees.role` text).
+     */
+    public function resolvedRoleName(): ?string
+    {
+        if ($this->roleRelation) {
+            return $this->roleRelation->name;
+        }
+
+        $legacy = $this->getRawOriginal('role');
+
+        return is_string($legacy) && $legacy !== '' ? $legacy : null;
+    }
+
+    /**
+     * Role display title from `roles` (falls back to legacy text column).
+     */
+    public function resolvedRoleTitle(): ?string
+    {
+        if ($this->roleRelation) {
+            return $this->roleRelation->title_trans
+                ?? $this->roleRelation->title_ar
+                ?? $this->roleRelation->name;
+        }
+
+        return $this->resolvedRoleName();
+    }
 }
