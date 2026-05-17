@@ -8,8 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class NotesEmployee extends Model
 {
     use HasFactory;
-    protected $fillable=[
-        'employee_id','notes_by_manger'
+    protected $fillable = [
+        'employee_id',
+        'addition_date',
+        'notes_by_manger',
+    ];
+
+    protected $casts = [
+        'addition_date' => 'date',
     ];
 
     public function employee()

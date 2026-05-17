@@ -53,6 +53,9 @@ return [
     'employee_unblocked_successfully' => 'Employee unblocked successfully',
     'employee_inactive' => 'This employee account is inactive',
     'employee_account_blocked' => 'This employee account is blocked',
+    'employee_salary_created_successfully' => 'Employee salary added successfully',
+    'employee_note_created_successfully' => 'Employee note added successfully',
+    'salary_total_mismatch' => 'Total must equal basic salary minus deduction plus bonus (expected :expected)',
 
     'contract_updated_successfully' => 'Contract updated successfully',
     'contract_not_found' => 'Contract not found',

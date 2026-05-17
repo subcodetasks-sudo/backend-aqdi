@@ -4,8 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\V2\StoreEmployeeRequest;
+use App\Http\Requests\Admin\V2\StoreEmployeeNoteRequest;
+use App\Http\Requests\Admin\V2\StoreEmployeeSalaryRequest;
 use App\Http\Requests\Admin\V2\UpdateEmployeeRequest;
+use App\Http\Resources\Admin\V2\Api\EmployeeNoteResource;
+use App\Http\Resources\Admin\V2\Api\EmployeeNotesListResource;
 use App\Http\Resources\Admin\V2\Api\EmployeeResource;
+use App\Http\Resources\Admin\V2\Api\EmployeeSalaryResource;
+use App\Http\Resources\Admin\V2\Api\SalaryResource;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -22,7 +28,21 @@ class EmployeeController extends Controller
 
     protected function employeeBaseRelations(): array
     {
-        return ['roleRelation', 'salaries', 'notes', 'receivedContract', 'refundableContract'];
+        return [
+            'roleRelation',
+            'salaries' => fn ($q) => $q->orderByDesc('created_at'),
+            'notes' => fn ($q) => $q->orderByDesc('addition_date')->orderByDesc('created_at'),
+            'receivedContract' => fn ($q) => $q->with('contract')->orderByDesc('created_at'),
+            'refundableContract' => fn ($q) => $q->with('contract')->orderByDesc('created_at'),
+        ];
+    }
+
+    protected function loadEmployeeWithFullDetails(Employee $employee): Employee
+    {
+        $employee->load($this->employeeBaseRelations());
+        $employee->loadCount(['salaries', 'notes', 'receivedContract', 'refundableContract']);
+
+        return $employee;
     }
 
     public function login_check(Request $request)
@@ -145,7 +165,7 @@ class EmployeeController extends Controller
             }
 
             $employee = Employee::create($data);
-            $employee->load($this->employeeBaseRelations());
+            $this->loadEmployeeWithFullDetails($employee);
 
             return $this->apiResponse(
                 new EmployeeResource($employee),
@@ -162,13 +182,8 @@ class EmployeeController extends Controller
     public function show(int $id)
     {
         try {
-            $employee = Employee::with([
-                'roleRelation',
-                'salaries',
-                'notes',
-                'receivedContract',
-                'refundableContract',
-            ])->findOrFail($id);
+            $employee = Employee::findOrFail($id);
+            $this->loadEmployeeWithFullDetails($employee);
 
             return $this->apiResponse(
                 new EmployeeResource($employee),
@@ -204,7 +219,7 @@ class EmployeeController extends Controller
             }
 
             $employee->update($data);
-            $employee->load($this->employeeBaseRelations());
+            $this->loadEmployeeWithFullDetails($employee);
 
             return $this->apiResponse(
                 new EmployeeResource($employee),
@@ -307,4 +322,121 @@ class EmployeeController extends Controller
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
     }
+    public function storeNote(StoreEmployeeNoteRequest $request, int $id)
+    {
+        try {
+            $employee = Employee::findOrFail($id);
+
+            $note = $employee->notes()->create([
+                'addition_date' => $request->date('addition_date'),
+                'notes_by_manger' => $request->input('note'),
+            ]);
+
+            return $this->apiResponse(
+                new EmployeeNoteResource($note),
+                trans('api.employee_note_created_successfully'),
+                201
+            );
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.employee_not_found'), 404);
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function employeeNotes(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'employee_id' => ['sometimes', 'integer', 'exists:employees,id'],
+                'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            ]);
+
+            $query = Employee::query()
+                ->select(['id', 'name', 'email', 'phone'])
+                ->with(['notes' => fn ($q) => $q->orderByDesc('addition_date')->orderByDesc('created_at')]);
+
+            if (! empty($validated['employee_id'])) {
+                $query->where('id', $validated['employee_id']);
+            }
+
+            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+            $employees = $query->latest()->paginate($perPage);
+
+            return $this->apiResponse(
+                [
+                    'items' => EmployeeNotesListResource::collection($employees),
+                    'pagination' => $this->paginate($employees),
+                ],
+                trans('api.success')
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function storeSalary(StoreEmployeeSalaryRequest $request, int $id)
+    {
+        try {
+            $employee = Employee::findOrFail($id);
+
+            $data = $request->validated();
+            $data['month'] = $request->date('due_date')->format('Y-m');
+
+            $salary = $employee->salaries()->create($data);
+
+            return $this->apiResponse(
+                new SalaryResource($salary),
+                trans('api.employee_salary_created_successfully'),
+                201
+            );
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.employee_not_found'), 404);
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function employeeSalary(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'employee_id' => ['sometimes', 'integer', 'exists:employees,id'],
+                'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            ]);
+
+            $query = Employee::query()
+                ->select(['id', 'name', 'email', 'phone', 'base_salary'])
+                ->with(['salaries' => fn ($q) => $q->orderByDesc('created_at')]);
+
+            if (! empty($validated['employee_id'])) {
+                $query->where('id', $validated['employee_id']);
+            }
+
+            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+            $query->latest();
+            $totalBaseSalary = (clone $query)->sum('base_salary');
+            $employees = $query->paginate($perPage);
+
+            return $this->apiResponse(
+                [
+                    'items' => EmployeeSalaryResource::collection($employees),
+                    'total_base_salary' => $totalBaseSalary,
+                    'pagination' => $this->paginate($employees),
+                ],
+                trans('api.success')
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
 }
