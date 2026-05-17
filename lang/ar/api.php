@@ -66,6 +66,12 @@ return [
     'employee_account_blocked' => 'حساب الموظف محظور',
     'employee_salary_created_successfully' => 'تم إضافة الراتب بنجاح',
     'employee_note_created_successfully' => 'تم إضافة الملاحظة بنجاح',
+    'coupon_created_successfully' => 'تم إنشاء الكوبون بنجاح',
+    'coupon_updated_successfully' => 'تم تحديث الكوبون بنجاح',
+    'coupon_deleted_successfully' => 'تم حذف الكوبون بنجاح',
+    'coupon_inactivated_successfully' => 'تم إيقاف الكوبون بنجاح',
+    'coupon_activated_successfully' => 'تم تفعيل الكوبون بنجاح',
+    'coupon_already_deleted' => 'الكوبون محذوف مسبقاً',
     'salary_total_mismatch' => 'المجموع يجب أن يساوي الراتب الأساسي ناقص الخصم زائد المكافأة (المتوقع :expected)',
 
     'contract_updated_successfully' => 'تم تحديث العقد بنجاح',

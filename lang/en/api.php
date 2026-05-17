@@ -55,6 +55,12 @@ return [
     'employee_account_blocked' => 'This employee account is blocked',
     'employee_salary_created_successfully' => 'Employee salary added successfully',
     'employee_note_created_successfully' => 'Employee note added successfully',
+    'coupon_created_successfully' => 'Coupon created successfully',
+    'coupon_updated_successfully' => 'Coupon updated successfully',
+    'coupon_deleted_successfully' => 'Coupon deleted successfully',
+    'coupon_inactivated_successfully' => 'Coupon deactivated successfully',
+    'coupon_activated_successfully' => 'Coupon activated successfully',
+    'coupon_already_deleted' => 'Coupon is already deleted',
     'salary_total_mismatch' => 'Total must equal basic salary minus deduction plus bonus (expected :expected)',
 
     'contract_updated_successfully' => 'Contract updated successfully',
