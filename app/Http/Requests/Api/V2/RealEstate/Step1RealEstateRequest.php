@@ -136,7 +136,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'number_of_floors'               => $this->input('number_of_floors'),
             'age_of_the_property'            => $this->input('age_of_the_property'),
             'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
-            'step'                           => 2,
+            'step'                           => 1,
         ];
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {

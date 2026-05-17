@@ -15,8 +15,9 @@ class Step3RealEstateResource extends JsonResource
         $agentDob = HijriDobParts::split($this->dob_of_property_owner_agent);
         $agencyDate = DateInputNormalizer::splitMysqlDate($this->agency_instrument_date_of_property_owner);
 
-        return [
-            'id' => $this->id,
+        return array_merge(
+            (new Step2RealEstateResource($this))->toArray($request),
+            [
             'name_real_estate' => $this->name_real_estate,
             'name_owner' => $this->name_owner,
             'property_owner_id_num' => $this->property_owner_id_num,
@@ -45,6 +46,7 @@ class Step3RealEstateResource extends JsonResource
                 ? asset('storage/'.$this->copy_of_the_authorization_or_agency)
                 : null,
             'step' => $this->step,
-        ];
+            ]
+        );
     }
 }
