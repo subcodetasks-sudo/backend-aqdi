@@ -1,0 +1,271 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-roles-api",
+        "name": "AQDI Admin — Roles API",
+        "description": "Role management under `/api/admin/roles`.\n\n**Variables**\n- `baseUrl` — e.g. `http://localhost:8000`\n- `role_id` — role id for show/update/delete\n\n**Permissions** (create / update / assign) — use any of:\n- `permission_ids` or `permissions`: `[1, 2, 3]`\n- `permission_matrix`: `{ \"employees\": [\"view\", \"create\"], \"roles\": [\"view\"] }`\n- `activate_all_permissions`: `true` — grant every active permission\n\n**Actions:** `view`, `create`, `edit`, `delete`, `retrieve`\n\n**Optional:** `employee_id` — assigns that employee to the role.\n\n**List response:** `title`, `primary_employee_name`, `permissions_count`, `updated_at_label`",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "role_id",
+            "value": "1"
+        }
+    ],
+    "item": [
+        {
+            "name": "Roles",
+            "item": [
+                {
+                    "name": "Create form data",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/roles/create",
+                        "description": "Returns employees dropdown, permission sections/actions, and `permissions_grouped` for the add-role UI."
+                    }
+                },
+                {
+                    "name": "List roles",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/roles?search=&is_active=&per_page=20&sort_by=updated_at&sort_order=desc",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "roles"
+                            ],
+                            "query": [
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "description": "title_ar, name, or employee name"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "",
+                                    "description": "1 | 0"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "sort_by",
+                                    "value": "updated_at",
+                                    "description": "created_at | updated_at | name | title_ar"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "desc",
+                                    "description": "asc | desc"
+                                }
+                            ]
+                        },
+                        "description": "Paginated list. Each item includes `permissions_count`, `primary_employee_name`, `updated_at_label`."
+                    }
+                },
+                {
+                    "name": "Create role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"customer_service\",\n    \"title_ar\": \"موظفة خدمة العملاء\",\n    \"title_en\": \"Customer Service\",\n    \"description\": null,\n    \"is_active\": true,\n    \"employee_id\": null,\n    \"activate_all_permissions\": false,\n    \"permission_matrix\": {\n        \"employees\": [\"view\", \"create\"],\n        \"roles\": [\"view\"],\n        \"settings\": [\"view\"]\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/roles",
+                        "description": "Creates role and syncs permissions from `permission_matrix` or `permission_ids`."
+                    }
+                },
+                {
+                    "name": "Create role (all permissions)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"admin\",\n    \"title_ar\": \"المسؤول\",\n    \"title_en\": \"Admin\",\n    \"is_active\": true,\n    \"activate_all_permissions\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/roles",
+                        "description": "Matches UI toggle: تفعيل كافة الصلاحيات لهذا الدور"
+                    }
+                },
+                {
+                    "name": "Show role",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/roles/{{role_id}}",
+                        "description": "Full role with `permissions`, `permission_ids`, and `employees`."
+                    }
+                },
+                {
+                    "name": "Update role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title_ar\": \"موظف\",\n    \"title_en\": \"Employee\",\n    \"is_active\": true,\n    \"employee_id\": 1,\n    \"permission_ids\": [1, 2, 3, 4]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/roles/{{role_id}}",
+                        "description": "Partial update. Send `permission_ids` or `permission_matrix` only when changing permissions."
+                    }
+                },
+                {
+                    "name": "Assign permissions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"permission_matrix\": {\n        \"analytics\": [\"view\", \"create\", \"edit\", \"delete\", \"retrieve\"],\n        \"employees\": [\"view\", \"create\"]\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/roles/{{role_id}}/assign-permissions",
+                        "description": "Replaces role permissions (sync). Also accepts `permission_ids` or `activate_all_permissions: true`."
+                    }
+                },
+                {
+                    "name": "Delete role",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/roles/{{role_id}}/delete",
+                        "description": "Fails with 400 if any employee is still assigned to this role."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Permissions (helper)",
+            "item": [
+                {
+                    "name": "Permissions by section",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/permissions/by-section",
+                        "description": "All permissions grouped by section — use ids in `permission_ids` or section keys in `permission_matrix`."
+                    }
+                },
+                {
+                    "name": "Create section permissions",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"section\": \"analytics\",\n    \"actions\": [\"view\", \"create\", \"edit\", \"delete\", \"retrieve\"],\n    \"role_id\": null\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": "{{baseUrl}}/api/admin/permissions",
+                        "description": "Creates `section.action` permission rows if missing (e.g. `analytics.view`)."
+                    }
+                }
+            ]
+        }
+    ]
+}
