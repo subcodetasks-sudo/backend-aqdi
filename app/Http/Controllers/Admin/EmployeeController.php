@@ -14,6 +14,7 @@ use App\Http\Resources\Admin\V2\Api\EmployeeSalaryResource;
 use App\Http\Resources\Admin\V2\Api\SalaryResource;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -43,6 +44,22 @@ class EmployeeController extends Controller
         $employee->loadCount(['salaries', 'notes', 'receivedContract', 'refundableContract']);
 
         return $employee;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function syncRoleNameFromRoleId(array $data): array
+    {
+        if (! empty($data['role_id'])) {
+            $role = Role::query()->find($data['role_id']);
+            if ($role) {
+                $data['role'] = $role->name;
+            }
+        }
+
+        return $data;
     }
 
   public function login_check(Request $request)
@@ -93,8 +110,9 @@ class EmployeeController extends Controller
                 'email' => $employee->email,
                 'phone' => $employee->phone,
                 'base_salary' => $employee->base_salary,
-                'role' => $employee->role,
                 'role_id' => $employee->role_id,
+                'role' => $employee->resolvedRoleName(),
+                'role_title' => $employee->resolvedRoleTitle(),
 
                 'is_active' => (bool) $employee->is_active,
                 'is_online' => (bool) $employee->is_online,
@@ -200,7 +218,7 @@ class EmployeeController extends Controller
                 $data['profile_image'] = 'storage/' . $imagePath;
             }
 
-            $employee = Employee::create($data);
+            $employee = Employee::create($this->syncRoleNameFromRoleId($data));
             $this->loadEmployeeWithFullDetails($employee);
 
             return $this->apiResponse(
@@ -254,7 +272,7 @@ class EmployeeController extends Controller
                 $data['profile_image'] = 'storage/' . $imagePath;
             }
 
-            $employee->update($data);
+            $employee->update($this->syncRoleNameFromRoleId($data));
             $this->loadEmployeeWithFullDetails($employee);
 
             return $this->apiResponse(

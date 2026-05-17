@@ -50,10 +50,7 @@ class RolePermissionResolver
                     continue;
                 }
 
-                $permission = Permission::query()
-                    ->where('section', $sectionKey)
-                    ->where('action', $action)
-                    ->first();
+                $permission = $this->findOrCreatePermission($sectionKey, $action);
 
                 if ($permission) {
                     $ids->push($permission->id);
@@ -78,24 +75,116 @@ class RolePermissionResolver
      */
     public function groupedPermissionsForForm(): array
     {
-        $permissions = Permission::query()
+        return $this->allModulesForForm();
+    }
+
+    /**
+     * Full permission grid: every section × every action (for add/edit role UI).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function allModulesForForm(): array
+    {
+        $sections = config('permissions.sections', []);
+        $actions = config('permissions.actions', []);
+        $existing = Permission::query()
             ->where('is_active', true)
-            ->orderBy('section')
-            ->orderBy('action')
             ->get()
             ->groupBy('section');
 
-        return $permissions->map(function ($items, $section) {
-            return [
-                'section_key' => $section,
-                'section_label' => config("permissions.sections.{$section}.ar", $items->first()?->section_trans ?? $section),
-                'permissions' => $items->map(fn ($p) => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'action' => $p->action,
-                    'action_label' => $p->action_label_trans ?? config("permissions.actions.{$p->action}.ar", $p->action),
-                ])->values()->all(),
+        $modules = [];
+
+        foreach ($sections as $sectionKey => $sectionLabels) {
+            $sectionPermissions = $existing->get($sectionKey, collect());
+            $actionRows = [];
+
+            foreach ($actions as $actionKey => $actionLabels) {
+                $permission = $sectionPermissions->firstWhere('action', $actionKey);
+
+                $actionRows[] = [
+                    'action' => $actionKey,
+                    'action_label_ar' => $actionLabels['ar'] ?? $actionKey,
+                    'action_label_en' => $actionLabels['en'] ?? $actionKey,
+                    'permission_id' => $permission?->id,
+                    'permission_name' => $permission?->name ?? "{$sectionKey}.{$actionKey}",
+                ];
+            }
+
+            $modules[] = [
+                'section_key' => $sectionKey,
+                'section_label_ar' => $sectionLabels['ar'] ?? $sectionKey,
+                'section_label_en' => $sectionLabels['en'] ?? $sectionKey,
+                'actions' => $actionRows,
             ];
-        })->values()->all();
+        }
+
+        return $modules;
+    }
+
+    /**
+     * Empty permission_matrix keyed by every section (for POST body shape).
+     *
+     * @return array<string, array<int, string>>
+     */
+    public function permissionMatrixTemplate(): array
+    {
+        $template = [];
+
+        foreach (array_keys(config('permissions.sections', [])) as $sectionKey) {
+            $template[$sectionKey] = [];
+        }
+
+        return $template;
+    }
+
+    public function findOrCreatePermission(string $sectionKey, string $action): ?Permission
+    {
+        $sectionKey = $this->normalizeSectionKey($sectionKey);
+        $action = strtolower(trim($action));
+
+        if ($action === '') {
+            return null;
+        }
+
+        $name = "{$sectionKey}.{$action}";
+        $sectionLabels = config("permissions.sections.{$sectionKey}", []);
+        $actionLabels = config("permissions.actions.{$action}", []);
+
+        return Permission::query()->firstOrCreate(
+            ['name' => $name],
+            [
+                'section' => $sectionKey,
+                'section_en' => $sectionLabels['en'] ?? $sectionKey,
+                'action' => $action,
+                'action_label_ar' => $actionLabels['ar'] ?? $action,
+                'action_label_en' => $actionLabels['en'] ?? $action,
+                'is_active' => true,
+            ]
+        );
+    }
+
+    /**
+     * Ensure every section × action exists in DB (run once via seeder or create form).
+     *
+     * @return int Number of permissions created
+     */
+    public function syncAllPermissionsFromConfig(): int
+    {
+        $created = 0;
+
+        foreach (array_keys(config('permissions.sections', [])) as $sectionKey) {
+            foreach (array_keys(config('permissions.actions', [])) as $actionKey) {
+                $permission = Permission::query()
+                    ->where('name', "{$sectionKey}.{$actionKey}")
+                    ->first();
+
+                if (! $permission) {
+                    $this->findOrCreatePermission($sectionKey, $actionKey);
+                    $created++;
+                }
+            }
+        }
+
+        return $created;
     }
 }
