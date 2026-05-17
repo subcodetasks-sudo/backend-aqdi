@@ -45,63 +45,99 @@ class EmployeeController extends Controller
         return $employee;
     }
 
-    public function login_check(Request $request)
-    {
-        try {
-            $validated = $request->validate([
-                'email' => ['required', 'email'],
-                'password' => ['required', 'string'],
-            ]);
+  public function login_check(Request $request)
+{
+    try {
 
-            $employee = Employee::where('email', $validated['email'])->first();
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
 
-            if (! $employee || ! Hash::check($validated['password'], $employee->password)) {
-                return response()->json([
-                    'message' => trans('api.credentials_error'),
-                    'success' => false,
-                ], Response::HTTP_UNAUTHORIZED);
-            }
+        $employee = Employee::with('roleRelation')
+            ->where('email', $validated['email'])
+            ->first();
 
-            if (! $employee->is_active) {
-                return response()->json([
-                    'message' => trans('api.employee_inactive'),
-                    'success' => false,
-                ], Response::HTTP_FORBIDDEN);
-            }
-
-            if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
-                return response()->json([
-                    'message' => trans('api.employee_account_blocked'),
-                    'success' => false,
-                ], Response::HTTP_FORBIDDEN);
-            }
-
-            $employee->tokens()->delete();
-
-            $token = $employee->createToken('admin-employee')->plainTextToken;
-
+        if (!$employee || !Hash::check($validated['password'], $employee->password)) {
             return response()->json([
-                'message' => trans('api.login_success'),
-                'success' => true,
-                'data' => [
-                    'employee' => new EmployeeResource($employee),
-                    'token' => $token,
-                    'token_type' => 'Bearer',
-                ],
-            ], Response::HTTP_OK);
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => __('The given data was invalid.'),
+                'message' => trans('api.credentials_error'),
                 'success' => false,
-                'errors' => $e->errors(),
-            ], Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (Throwable $e) {
-            return response()->json([
-                'message' => trans('api.error_occurred').': '.$e->getMessage(),
-                'success' => false,
-            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+            ], Response::HTTP_UNAUTHORIZED);
         }
+
+        if (!$employee->is_active) {
+            return response()->json([
+                'message' => trans('api.employee_inactive'),
+                'success' => false,
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
+            return response()->json([
+                'message' => trans('api.employee_account_blocked'),
+                'success' => false,
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $employee->tokens()->delete();
+
+        $token = $employee->createToken('admin-employee')->plainTextToken;
+
+        return response()->json([
+            'message' => trans('api.login_success'),
+            'success' => true,
+            'data' => [
+
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'email' => $employee->email,
+                'phone' => $employee->phone,
+                'base_salary' => $employee->base_salary,
+                'role' => $employee->role,
+                'role_id' => $employee->role_id,
+
+                'is_active' => (bool) $employee->is_active,
+                'is_online' => (bool) $employee->is_online,
+
+                'is_blocked' => $employee->blocked_until
+                    ? now()->lessThan($employee->blocked_until)
+                    : false,
+
+                'blocked_until' => $employee->blocked_until?->format('Y-m-d H:i:s'),
+                'reason_of_block' => $employee->reason_of_block,
+
+                'profile_image' => $employee->profile_image
+                    ? url($employee->profile_image)
+                    : null,
+
+                'facebook' => $employee->facebook,
+                'instagram' => $employee->instagram,
+                'whatsapp' => $employee->whatsapp,
+                'snapchat' => $employee->snapchat,
+                'tiktok' => $employee->tiktok,
+                'twitter' => $employee->twitter,
+
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ], Response::HTTP_OK);
+
+    } catch (ValidationException $e) {
+
+        return response()->json([
+            'message' => __('The given data was invalid.'),
+            'success' => false,
+            'errors' => $e->errors(),
+        ], Response::HTTP_UNPROCESSABLE_ENTITY);
+
+    } catch (Throwable $e) {
+
+        return response()->json([
+            'message' => trans('api.error_occurred') . ': ' . $e->getMessage(),
+            'success' => false,
+        ], Response::HTTP_INTERNAL_SERVER_ERROR);
     }
+}
 
     public function logout(Request $request)
     {
