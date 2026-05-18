@@ -5,6 +5,7 @@ namespace App\Services\Admin\Analytics;
 use App\Models\Contract;
 use App\Models\ContractStatus;
 use Carbon\Carbon;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ContractStatusAnalyticsService
@@ -124,5 +125,42 @@ class ContractStatusAnalyticsService
         return Contract::query()
             ->where('contract_status_id', $contractStatusId)
             ->where('is_delete', 0);
+    }
+
+    public function paginateContracts(
+        int $contractStatusId,
+        ?string $period = null,
+        int $perPage = 20
+    ): LengthAwarePaginator {
+        $this->resolveStatus($contractStatusId);
+
+        $query = $this->baseQuery($contractStatusId)
+            ->with([
+                'user',
+                'receivedContract.employee',
+                'contractStatus',
+            ]);
+
+        if ($period) {
+            match ($period) {
+                'today' => $query->whereDate('created_at', Carbon::today()),
+                'week' => $query->whereBetween('created_at', [
+                    Carbon::now()->startOfWeek(),
+                    Carbon::now()->endOfWeek(),
+                ]),
+                'month' => $query->whereBetween('created_at', [
+                    Carbon::now()->startOfMonth(),
+                    Carbon::now()->endOfMonth(),
+                ]),
+                'year' => $query->whereBetween('created_at', [
+                    Carbon::now()->startOfYear(),
+                    Carbon::now()->endOfYear(),
+                ]),
+                'total' => null,
+                default => throw new \InvalidArgumentException("Unknown period: {$period}"),
+            };
+        }
+
+        return $query->latest()->paginate($perPage);
     }
 }

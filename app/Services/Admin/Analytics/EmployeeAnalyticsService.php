@@ -6,6 +6,8 @@ use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\ReceivedContract;
 use App\Models\RefundableContract;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class EmployeeAnalyticsService
@@ -49,64 +51,81 @@ class EmployeeAnalyticsService
             ->count();
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopEmployeesByReceivedContracts(int $limit = 10): array
     {
-        return Employee::query()
-            ->withCount('receivedContract')
-            ->having('received_contract_count', '>', 0)
-            ->orderByDesc('received_contract_count')
-            ->limit($limit)
-            ->get(['id', 'name'])
-            ->map(fn ($e) => [
-                'id' => $e->id,
-                'name' => $e->name,
-                'count' => $e->received_contract_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsEmployees(
+            fn (Builder $q) => $q->withCount('receivedContract')
+                ->having('received_contract_count', '>', 0)
+                ->orderByDesc('received_contract_count'),
+            'received_contract_count',
+            'عدد العقود المستلمة',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopEmployeesByConfirmedContracts(int $limit = 10): array
     {
-        return Employee::query()
-            ->withCount(['receivedContract as confirmed_count' => function ($q) {
-                $q->whereHas('contract', fn ($c) => $c->where('is_completed', 1)->where('is_delete', 0));
+        return $this->fetchTopAnalyticsEmployees(
+            fn (Builder $q) => $q->withCount(['receivedContract as confirmed_count' => function ($query) {
+                $query->whereHas('contract', fn ($c) => $c->where('is_completed', 1)->where('is_delete', 0));
             }])
-            ->having('confirmed_count', '>', 0)
-            ->orderByDesc('confirmed_count')
-            ->limit($limit)
-            ->get(['id', 'name'])
-            ->map(fn ($e) => [
-                'id' => $e->id,
-                'name' => $e->name,
-                'count' => $e->confirmed_count,
-            ])
-            ->values()
-            ->all();
+                ->having('confirmed_count', '>', 0)
+                ->orderByDesc('confirmed_count'),
+            'confirmed_count',
+            'عدد العقود الموثقة',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopEmployeesByRefundSubmissions(int $limit = 10): array
     {
-        return Employee::query()
-            ->select('employees.id', 'employees.name')
+        $ids = Employee::query()
+            ->select('employees.id')
             ->selectRaw('COUNT(refundable_contracts.id) as refunds_count')
             ->selectRaw('COALESCE(SUM(refundable_contracts.refund_amount), 0) as total_refunds')
             ->join('refundable_contracts', 'employees.id', '=', 'refundable_contracts.employee_id')
-            ->groupBy('employees.id', 'employees.name')
+            ->groupBy('employees.id')
             ->orderByDesc('refunds_count')
             ->orderByDesc('total_refunds')
             ->limit($limit)
+            ->get();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $employees = Employee::query()
+            ->with('roleRelation')
+            ->whereIn('id', $ids->pluck('id'))
             ->get()
-            ->map(fn ($e) => [
-                'id' => $e->id,
-                'name' => $e->name,
-                'count' => (int) $e->refunds_count,
-                'total_refunds' => (float) $e->total_refunds,
-            ])
-            ->values()
-            ->all();
+            ->keyBy('id');
+
+        $ordered = $ids->map(function ($row) use ($employees) {
+            $employee = $employees->get($row->id);
+            if (! $employee) {
+                return null;
+            }
+            $employee->refunds_count = (int) $row->refunds_count;
+            $employee->total_refunds = (float) $row->total_refunds;
+
+            return $employee;
+        })->filter();
+
+        return $this->mapAnalyticsEmployees($ordered, 'refunds_count', 'عدد العقود المسترجعة');
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopEmployeesByUnpaidOrders(int $limit = 10): array
     {
         $paidUuids = Payment::query()->where('status', 'success')->pluck('contract_uuid')->all();
@@ -127,16 +146,68 @@ class EmployeeAnalyticsService
             return [];
         }
 
-        $employees = Employee::query()->whereIn('id', $rows->pluck('employee_id'))->get()->keyBy('id');
+        $employees = Employee::query()
+            ->with('roleRelation')
+            ->whereIn('id', $rows->pluck('employee_id'))
+            ->get()
+            ->keyBy('id');
 
-        return $rows->map(function ($row) use ($employees) {
+        $ordered = $rows->map(function ($row) use ($employees) {
             $employee = $employees->get($row->employee_id);
+            if (! $employee) {
+                return null;
+            }
+            $employee->unpaid_count = (int) $row->unpaid_count;
+
+            return $employee;
+        })->filter();
+
+        return $this->mapAnalyticsEmployees($ordered, 'unpaid_count', 'عدد الطلبات غير المدفوعة');
+    }
+
+    /**
+     * @param  callable(Builder): void  $applySortAndFilter
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fetchTopAnalyticsEmployees(
+        callable $applySortAndFilter,
+        string $metricField,
+        string $metricLabelAr,
+        int $limit
+    ): array {
+        $query = Employee::query()->with('roleRelation');
+        $applySortAndFilter($query);
+
+        return $this->mapAnalyticsEmployees($query->limit($limit)->get(), $metricField, $metricLabelAr);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function mapAnalyticsEmployees(
+        Collection $employees,
+        string $metricField,
+        string $metricLabelAr
+    ): array {
+        return $employees->values()->map(function (Employee $employee, int $index) use ($metricField, $metricLabelAr) {
+            $metricValue = (int) ($employee->{$metricField} ?? 0);
 
             return [
-                'id' => $row->employee_id,
-                'name' => $employee?->name,
-                'count' => (int) $row->unpaid_count,
+                'rank' => $index + 1,
+                'id' => $employee->id,
+                'name' => $employee->name,
+                'role' => $employee->resolvedRoleName(),
+                'role_title' => $employee->resolvedRoleTitle(),
+                'profile_image' => $employee->profile_image ? url($employee->profile_image) : null,
+                'is_active' => (bool) $employee->is_active,
+                'metric_value' => $metricValue,
+                'metric_count' => $metricValue,
+                'metric_label_ar' => $metricLabelAr,
+                'count' => $metricValue,
+                'total_refunds' => isset($employee->total_refunds)
+                    ? round((float) $employee->total_refunds, 2)
+                    : null,
             ];
-        })->filter(fn ($item) => $item['name'] !== null)->values()->all();
+        })->all();
     }
 }

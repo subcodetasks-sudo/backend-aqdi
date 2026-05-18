@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\UnitUsageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MessageAlertController;
 use App\Http\Controllers\Admin\ContractStatusAnalyticsController;
+use App\Http\Controllers\Admin\RefundableContractController;
 use App\Http\Controllers\Admin\EmployeeDashboardAnalyticsController;
 use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
 use App\Http\Controllers\Admin\MessageAlertSectionController;
@@ -85,7 +86,23 @@ use Illuminate\Support\Facades\Route;
         Route::get('/top-customers/units', 'topCustomersUnits')->name('top-customers.units');
     });
 
+    // Alias: analytics-clients (same handlers, clients-rich response)
+    Route::prefix('analytics/clients')->name('analytics.clients.')->controller(UserDashboardAnalyticsController::class)->group(function () {
+        Route::get('/completed-orders', 'topCustomersCompletedOrders')->name('completed-orders');
+        Route::get('/incomplete-orders', 'topCustomersIncompleteOrders')->name('incomplete-orders');
+        Route::get('/orders', 'topCustomersOrders')->name('orders');
+        Route::get('/returns', 'topCustomersReturns')->name('returns');
+        Route::get('/real-estates', 'topCustomersRealEstates')->name('real-estates');
+        Route::get('/units', 'topCustomersUnits')->name('units');
+    });
+
+    Route::prefix('analytics/refunds')->name('analytics.refunds.')->controller(RefundableContractController::class)->group(function () {
+        Route::get('/contracts', 'index')->name('contracts.index');
+        Route::get('/contracts/{id}', 'show')->whereNumber('id')->name('contracts.show');
+    });
+
     Route::prefix('analytics/contract-status')->name('analytics.contract-status.')->controller(ContractStatusAnalyticsController::class)->group(function () {
+        Route::get('/{contractStatusId}/contracts', 'contracts')->whereNumber('contractStatusId')->name('contracts');
         Route::get('/{contractStatusId}', 'summary')->whereNumber('contractStatusId')->name('summary');
         Route::get('/{contractStatusId}/daily', 'daily')->whereNumber('contractStatusId')->name('daily');
         Route::get('/{contractStatusId}/weekly', 'weekly')->whereNumber('contractStatusId')->name('weekly');

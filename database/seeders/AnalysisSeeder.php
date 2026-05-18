@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Payment;
 use App\Models\RealEstate;
+use App\Enums\ReceivedContractStatus;
 use App\Models\ReceivedContract;
 use App\Models\RefundableContract;
 use App\Models\Region;
@@ -385,7 +386,16 @@ class AnalysisSeeder extends Seeder
             $weights[$employee->id] = $employee->id === $topEmployee?->id ? 12 : 4;
         }
 
-        $sample = $contracts;
+        $alreadyReceivedIds = ReceivedContract::query()->pluck('contract_id')->all();
+        $eligible = [];
+        foreach ($contracts as $contract) {
+            if (in_array($contract->id, $alreadyReceivedIds, true)) {
+                continue;
+            }
+            $eligible[$contract->id] = $contract;
+        }
+
+        $sample = array_values($eligible);
         shuffle($sample);
         $sample = array_slice($sample, 0, min(45, count($sample)));
 
@@ -393,14 +403,31 @@ class AnalysisSeeder extends Seeder
             $employeeId = $this->weightedEmployeeId($weights);
             $isCompleted = (bool) $contract->is_completed;
 
-            ReceivedContract::create([
-                'contract_id' => $contract->id,
-                'employee_id' => $employeeId,
-                'status' => $isCompleted ? 'finish' : 'pending',
-                'date_of_received' => ($contract->created_at ?? Carbon::today())->toDateString(),
-                'created_at' => $contract->created_at ?? Carbon::now(),
-            ]);
+            $this->upsertReceivedContract(
+                $contract,
+                $employeeId,
+                $isCompleted ? ReceivedContractStatus::Finish : ReceivedContractStatus::Pending
+            );
         }
+    }
+
+    private function upsertReceivedContract(
+        Contract $contract,
+        int $employeeId,
+        ReceivedContractStatus $status
+    ): void {
+        $receivedAt = $contract->created_at ?? Carbon::now();
+
+        ReceivedContract::updateOrCreate(
+            ['contract_id' => $contract->id],
+            [
+                'employee_id' => $employeeId,
+                'status' => $status,
+                'date_of_received' => $receivedAt->toDateString(),
+                'created_at' => $receivedAt,
+                'updated_at' => Carbon::now(),
+            ]
+        );
     }
 
     /**
@@ -514,12 +541,11 @@ class AnalysisSeeder extends Seeder
                 'updated_at' => $createdAt,
             ]);
 
-            ReceivedContract::create([
-                'contract_id' => $contract->id,
-                'employee_id' => $employeeIds[array_rand($employeeIds)],
-                'status' => 'pending',
-                'date_of_received' => $createdAt->toDateString(),
-            ]);
+            $this->upsertReceivedContract(
+                $contract,
+                $employeeIds[array_rand($employeeIds)],
+                ReceivedContractStatus::Pending
+            );
 
             if (! in_array($contract->uuid, $paidUuids, true) && rand(0, 1)) {
                 Payment::create([
