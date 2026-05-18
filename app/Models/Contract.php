@@ -31,6 +31,28 @@ class Contract extends Model
         return in_array((string) $instrumentType, self::SKIP_INITIAL_STEPS_INSTRUMENT_TYPES, true);
     }
 
+    /**
+     * Map API / UI aliases to canonical enum values stored on contracts.instrument_type.
+     */
+    public static function normalizeInstrumentType(?string $value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        $normalized = strtolower(trim($value));
+
+        $aliases = [
+            'electronic_deed_from_the_ministry_of_justice' => 'electronic',
+            'electronic_deed' => 'electronic',
+            'electronic_deed_from_ministry_of_justice' => 'electronic',
+        ];
+
+        $canonical = $aliases[$normalized] ?? $normalized;
+
+        return in_array($canonical, self::instrumentTypes(), true) ? $canonical : $value;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | GLOBAL VARIABLES

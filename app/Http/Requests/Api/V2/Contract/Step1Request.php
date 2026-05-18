@@ -12,16 +12,9 @@ class Step1Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
-        $instrumentType = $this->input('instrument_type');
-
-        $aliases = [
-            'electronic_deed_from_the_ministry_of_justice' => 'electronic',
-            'electronic_deed' => 'electronic',
-        ];
-
-        if (is_string($instrumentType) && isset($aliases[$instrumentType])) {
+        if ($this->has('instrument_type')) {
             $this->merge([
-                'instrument_type' => $aliases[$instrumentType],
+                'instrument_type' => Contract::normalizeInstrumentType($this->input('instrument_type')),
             ]);
         }
     }

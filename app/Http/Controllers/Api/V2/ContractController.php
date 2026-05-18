@@ -28,6 +28,7 @@ use App\Models\Setting;
 use App\Support\ContractStartingDateInput;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
+use Illuminate\Http\Request;
 
 class ContractController extends Controller
 {
@@ -65,14 +66,24 @@ class ContractController extends Controller
         $validated = $request->validated();
         $user = auth()->user();
 
+        $instrumentType = $request->filled('instrument_type')
+            ? ($validated['instrument_type'] ?? null)
+            : null;
+
+        if (! $instrumentType && ! empty($validated['real_id'])) {
+            $instrumentType = RealEstate::query()
+                ->whereKey($validated['real_id'])
+                ->value('instrument_type');
+        }
+
         $contract = Contract::create([
             'contract_type' => $validated['contract_type'],
-            'instrument_type' => $validated['instrument_type'] ?? null,
+            'instrument_type' => $instrumentType,
             'is_real' => (bool) ($validated['is_real'] ?? false),
             'real_id' => $validated['real_id'] ?? null,
             'real_units_id' => $validated['real_units_id'] ?? null,
             'user_id' => $user->id,
-            'step' => Contract::shouldSkipInitialSteps($validated['instrument_type'] ?? null) ? 3 : 1,
+            'step' => Contract::shouldSkipInitialSteps($instrumentType) ? 3 : 1,
         ]);
 
         return $this->apiResponse(
@@ -93,13 +104,11 @@ class ContractController extends Controller
         $contract = Contract::where('user_id', $user->id)->findOrFail($validated['id']);
 
         $step1Data = [
-            'instrument_type' => $validated['instrument_type'] ?? null,
             'app_or_web' => 'app',
-            'image_instrument_from_the_back'=>$validated['image_instrument_from_the_back']??null,
-            'image_instrument_from_the_front'=>$validated['image_instrument_from_the_front']??null,
+            'image_instrument_from_the_back' => $validated['image_instrument_from_the_back'] ?? null,
+            'image_instrument_from_the_front' => $validated['image_instrument_from_the_front'] ?? null,
             'property_type_id' => $validated['property_type_id'] ?? null,
             'property_usages_id' => $validated['property_usages_id'] ?? null,
-
             'age_of_the_property' => $validated['age_of_the_property'] ?? null,
             'number_of_floors' => $validated['number_of_floors'] ?? null,
             'number_of_units_per_floor' => $validated['number_of_units_per_floor'] ?? null,
@@ -107,8 +116,16 @@ class ContractController extends Controller
             'is_multiple_trusteeship_deed_copy' => array_key_exists('is_multiple_trusteeship_deed_copy', $validated)
                 ? (bool) $validated['is_multiple_trusteeship_deed_copy']
                 : (bool) $contract->is_multiple_trusteeship_deed_copy,
-            'step' => Contract::shouldSkipInitialSteps($validated['instrument_type'] ?? $contract->instrument_type) ? 3 : 2,
         ];
+
+        if ($request->filled('instrument_type')) {
+            $step1Data['instrument_type'] = $validated['instrument_type'];
+        }
+
+        $this->applyCoordinatesIfPresent($step1Data, $request, $validated);
+
+        $effectiveInstrumentType = $step1Data['instrument_type'] ?? $contract->instrument_type;
+        $step1Data['step'] = Contract::shouldSkipInitialSteps($effectiveInstrumentType) ? 3 : 2;
 
         $contract->update($step1Data);
 
@@ -159,10 +176,13 @@ class ContractController extends Controller
 
     public function step2(Step2Request $request)
     {
-        $contract = Contract::findOrFail($request->id);
+        $validated = $request->validated();
+        $contract = Contract::findOrFail($validated['id']);
 
         if (Contract::shouldSkipInitialSteps($contract->instrument_type)) {
-            $contract->update(['step' => 3]);
+            $skipData = ['step' => 3];
+            $this->applyCoordinatesIfPresent($skipData, $request, $validated);
+            $contract->update($skipData);
 
             return response()->json([
                 'message' => trans('api.success'),
@@ -176,8 +196,8 @@ class ContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
-        $city = City::where('id', $request->property_city_id)
-            ->where('region_id', $request->property_place_id)
+        $city = City::where('id', $validated['property_city_id'])
+            ->where('region_id', $validated['property_place_id'])
             ->first();
 
         if (! $city) {
@@ -185,18 +205,17 @@ class ContractController extends Controller
         }
 
         $data = [
-            'property_place_id' => $request->property_place_id,
-            'property_city_id' => $request->property_city_id,
-            'neighborhood' => $request->neighborhood,
-            'street' => $request->street,
-            'building_number' => $request->building_number,
-            'image_address'=>$request->image_address,
-            'postal_code' => $request->postal_code,
-            'extra_figure' => $request->extra_figure,
-            'latitude' => $request->input('latitude'),
-            'longitude' => $request->input('longitude'),
+            'property_place_id' => $validated['property_place_id'],
+            'property_city_id' => $validated['property_city_id'],
+            'neighborhood' => $validated['neighborhood'] ?? null,
+            'street' => $validated['street'] ?? null,
+            'building_number' => $validated['building_number'] ?? null,
+            'postal_code' => $validated['postal_code'] ?? null,
+            'extra_figure' => $validated['extra_figure'] ?? null,
             'step' => 3,
         ];
+
+        $this->applyCoordinatesIfPresent($data, $request, $validated);
 
         if ($request->hasFile('image_address')) {
             $data['image_address'] = $request->file('image_address')->store('images/contracts', 'public');
@@ -623,6 +642,23 @@ class ContractController extends Controller
             'message' => 'التفاصيل الماليه',
             'data' => $responseData,
         ], 200);
+    }
+
+    /**
+     * Persist latitude/longitude only when the client sends them (avoid wiping with null).
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $validated
+     */
+    private function applyCoordinatesIfPresent(array &$payload, Request $request, array $validated = []): void
+    {
+        if ($request->filled('latitude')) {
+            $payload['latitude'] = $validated['latitude'] ?? $request->input('latitude');
+        }
+
+        if ($request->filled('longitude')) {
+            $payload['longitude'] = $validated['longitude'] ?? $request->input('longitude');
+        }
     }
 }
 

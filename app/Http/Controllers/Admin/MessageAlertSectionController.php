@@ -18,7 +18,7 @@ class MessageAlertSectionController extends Controller
     public function index(Request $request)
     {
         try {
-            $type = MessageAlertType::normalize($request->input('type'));
+            $type = MessageAlertType::tryNormalize($request->input('type'));
 
             $query = MessageAlertSection::query()
                 ->where('type', $type)
@@ -139,7 +139,7 @@ class MessageAlertSectionController extends Controller
             'name_ar' => "{$required}|string|max:255",
             'name_en' => 'nullable|string|max:255',
             'sort_order' => 'nullable|integer|min:0',
-            'type' => 'nullable|in:client,employee',
+            'type' => 'nullable|'.MessageAlertType::validationRule(),
         ];
     }
 }

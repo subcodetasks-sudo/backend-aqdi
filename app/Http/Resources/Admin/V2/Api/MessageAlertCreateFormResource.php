@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\V2\Api;
 
+use App\Support\MessageAlertType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
@@ -32,6 +33,8 @@ class MessageAlertCreateFormResource extends JsonResource
 
         return [
             'type' => $type,
+            'type_label_ar' => MessageAlertType::labelAr($type),
+            'type_label_en' => MessageAlertType::labelEn($type),
             'sections' => MessageAlertSectionWithItemsResource::collection($sections),
             'example_body' => [
                 'message_alert_section_id' => $firstSection?->id,

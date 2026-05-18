@@ -332,7 +332,7 @@ use Illuminate\Support\Facades\Route;
         Route::controller(MessageAlertSectionController::class)->group(function () {
             Route::get('/options/list', 'options')->name('options');
             Route::get('/{audience}/options/list', 'options')
-                ->where('audience', 'client|employee')
+                ->where('audience', 'client|property|employee')
                 ->name('options.audience');
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
@@ -345,7 +345,7 @@ use Illuminate\Support\Facades\Route;
     Route::prefix('message-alert-section-items')->name('message-alert-section-items.')->controller(MessageAlertSectionItemController::class)->group(function () {
         Route::get('/options/list', 'options')->name('options');
         Route::get('/{audience}/options/list', 'options')
-            ->where('audience', 'client|employee')
+            ->where('audience', 'client|property|employee')
             ->name('options.audience');
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
@@ -355,7 +355,9 @@ use Illuminate\Support\Facades\Route;
     });
 
     Route::prefix('message-alerts')->name('message-alerts.')->controller(MessageAlertController::class)->group(function () {
-        Route::prefix('{audience}')->where(['audience' => 'client|employee'])->group(function () {
+        Route::get('/types', 'types')->name('types');
+
+        Route::prefix('{audience}')->where(['audience' => 'client|property|employee'])->group(function () {
             Route::get('/create', 'create')->name('create.audience');
             Route::get('/', 'index')->name('index.audience');
             Route::post('/', 'store')->name('store.audience');

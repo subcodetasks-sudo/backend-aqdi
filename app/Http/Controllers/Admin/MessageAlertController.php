@@ -20,6 +20,34 @@ class MessageAlertController extends Controller
     use Responser;
 
     /**
+     * Dashboard cards: client + property message types with counts.
+     * GET /api/admin/message-alerts/types
+     */
+    public function types()
+    {
+        try {
+            $types = [];
+            foreach (MessageAlertType::overviewDefinitions() as $key => $definition) {
+                $types[] = [
+                    'key' => $key,
+                    'label_ar' => $definition['label_ar'],
+                    'label_en' => $definition['label_en'],
+                    'sections_count' => MessageAlertSection::query()->where('type', $key)->count(),
+                    'messages_count' => MessageAlert::query()
+                        ->whereHas('sectionItem.section', fn ($q) => $q->where('type', $key))
+                        ->count(),
+                ];
+            }
+
+            return $this->apiResponse([
+                'types' => $types,
+            ], trans('api.success'));
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Form data for "إضافة رسالة جديدة" (sections + items for dropdowns).
      * GET /api/admin/message-alerts/client/create
      * GET /api/admin/message-alerts/employee/create
@@ -79,6 +107,8 @@ class MessageAlertController extends Controller
 
             return $this->apiResponse([
                 'type' => $type,
+                'type_label_ar' => MessageAlertType::labelAr($type),
+                'type_label_en' => MessageAlertType::labelEn($type),
                 'items' => MessageAlertResource::collection($alerts),
                 'pagination' => $this->paginate($alerts),
             ], trans('api.success'));
@@ -215,7 +245,11 @@ class MessageAlertController extends Controller
             return MessageAlertType::normalize($routeAudience);
         }
 
-        return MessageAlertType::normalize($request->input('type'));
+        if ($request->filled('type')) {
+            return MessageAlertType::normalize($request->input('type'));
+        }
+
+        return MessageAlertType::CLIENT;
     }
 
     /**
