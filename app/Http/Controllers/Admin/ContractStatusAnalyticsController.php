@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\V2\Api\AnalyticsPeriodMetricResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
-use App\Services\Admin\RefundableContractService;
 use App\Services\Admin\Analytics\ContractStatusAnalyticsService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -24,38 +23,24 @@ class ContractStatusAnalyticsController extends Controller
     ) {}
 
     /**
-     * All period cards (today, week, month, year, total) for one status.
+     * Without filter: all period cards.
+     * With ?created_at=day|week|month|year|total: single period + OrderResource list.
+     *
      * GET /api/admin/analytics/contract-status/2
+     * GET /api/admin/analytics/contract-status/2?created_at=month
      */
-    public function summary(Request $request, int $contractStatusId)
+    public function show(Request $request, int $contractStatusId)
     {
         try {
-            $status = $this->statusAnalytics->resolveStatus($contractStatusId);
-            $metrics = $this->statusAnalytics->getPeriodMetrics($contractStatusId);
-            $limit = min(max((int) $request->input('limit', 10), 1), 100);
+            $period = $this->statusAnalytics->resolveCreatedAtPeriod($request->query('created_at'));
 
-            $cards = [];
-            foreach (config(self::METRICS_CONFIG, []) as $key => $definition) {
-                $period = $definition['period'];
-                $periodData = $metrics[$period];
-
-                $cards[] = $this->buildCardPayload(
-                    $key,
-                    $definition,
-                    $status,
-                    $periodData['value'],
-                    $periodData['percentage_change'],
-                    $this->statusAnalytics->getContractsForPeriod($contractStatusId, $period, $limit)
-                );
+            if ($period !== null) {
+                return $this->periodMetric($request, $contractStatusId, $period);
             }
 
-            return $this->apiResponse([
-                'contract_status_id' => $status->id,
-                'contract_status_name' => $status->name,
-                'cards' => collect($cards)->map(
-                    fn ($card) => (new AnalyticsPeriodMetricResource($card))->resolve()
-                )->values(),
-            ], trans('api.success'));
+            return $this->summary($request, $contractStatusId);
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
         } catch (Throwable $e) {
@@ -63,58 +48,32 @@ class ContractStatusAnalyticsController extends Controller
         }
     }
 
-    public function daily(Request $request, int $contractStatusId)
-    {
-        return $this->periodMetric($request, $contractStatusId, 'contract_status_daily');
-    }
-
-    public function weekly(Request $request, int $contractStatusId)
-    {
-        return $this->periodMetric($request, $contractStatusId, 'contract_status_weekly');
-    }
-
-    public function monthly(Request $request, int $contractStatusId)
-    {
-        return $this->periodMetric($request, $contractStatusId, 'contract_status_monthly');
-    }
-
-    public function yearly(Request $request, int $contractStatusId)
-    {
-        return $this->periodMetric($request, $contractStatusId, 'contract_status_yearly');
-    }
-
-    public function total(Request $request, int $contractStatusId)
-    {
-        return $this->periodMetric($request, $contractStatusId, 'contract_status_total');
-    }
-
     /**
-     * Paginated contracts for a status (e.g. status 3 = مكتمل).
-     * GET /api/admin/analytics/contract-status/3/contracts?period=today
+     * Paginated contracts for a status.
+     * GET /api/admin/analytics/contract-status/3/contracts?created_at=month
      */
     public function contracts(Request $request, int $contractStatusId)
     {
         try {
             $status = $this->statusAnalytics->resolveStatus($contractStatusId);
-            $period = $request->query('period');
-            if ($period !== null && $period !== '' && ! in_array($period, RefundableContractService::PERIODS, true)) {
-                return $this->errorMessage(
-                    'period must be one of: '.implode(', ', RefundableContractService::PERIODS),
-                    422
-                );
-            }
+            $rawFilter = $request->query('created_at', $request->query('period'));
+            $period = $rawFilter !== null && $rawFilter !== ''
+                ? $this->statusAnalytics->resolveCreatedAtPeriod((string) $rawFilter)
+                : null;
 
             $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
             $contracts = $this->statusAnalytics->paginateContracts(
                 $contractStatusId,
-                $period ?: null,
+                $period,
                 $perPage
             );
 
             return $this->apiResponse([
                 'contract_status_id' => $status->id,
                 'contract_status_name' => $status->name,
-                'period' => $period,
+                'created_at' => $period
+                    ? $this->statusAnalytics->createdAtLabelForPeriod($period)
+                    : null,
                 'contracts' => OrderResource::collection($contracts),
                 'pagination' => [
                     'current_page' => $contracts->currentPage(),
@@ -125,49 +84,81 @@ class ContractStatusAnalyticsController extends Controller
             ], trans('api.success'));
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
-    private function periodMetric(Request $request, int $contractStatusId, string $metricKey)
+    /**
+     * All period cards (today, week, month, year, total).
+     */
+    protected function summary(Request $request, int $contractStatusId)
     {
-        try {
-            $definition = config(self::METRICS_CONFIG.'.'.$metricKey);
-            if (! is_array($definition)) {
-                throw new InvalidArgumentException("Unknown metric key: {$metricKey}");
-            }
+        $status = $this->statusAnalytics->resolveStatus($contractStatusId);
+        $metrics = $this->statusAnalytics->getPeriodMetrics($contractStatusId);
+        $limit = min(max((int) $request->input('limit', 10), 1), 100);
 
-            $status = $this->statusAnalytics->resolveStatus($contractStatusId);
-            $metrics = $this->statusAnalytics->getPeriodMetrics($contractStatusId);
+        $cards = [];
+        foreach (config(self::METRICS_CONFIG, []) as $key => $definition) {
             $period = $definition['period'];
             $periodData = $metrics[$period];
-            $limit = min(max((int) $request->input('limit', 10), 1), 100);
 
-            $payload = $this->buildCardPayload(
-                $metricKey,
+            $cards[] = $this->buildCardPayload(
+                $key,
                 $definition,
                 $status,
                 $periodData['value'],
                 $periodData['percentage_change'],
-                $this->statusAnalytics->getContractsForPeriod($contractStatusId, $period, $limit)
+                $this->statusAnalytics->getContractsForPeriod($contractStatusId, $period, $limit),
+                $period
             );
-
-            return $this->apiResponse(
-                (new AnalyticsPeriodMetricResource($payload))->resolve(),
-                trans('api.success')
-            );
-        } catch (ModelNotFoundException) {
-            return $this->errorMessage(trans('api.not_found'), 404);
-        } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
+
+        return $this->apiResponse([
+            'contract_status_id' => $status->id,
+            'contract_status_name' => $status->name,
+            'created_at_filters' => ContractStatusAnalyticsService::CREATED_AT_FILTERS,
+            'cards' => collect($cards)->map(
+                fn ($card) => (new AnalyticsPeriodMetricResource($card))->resolve()
+            )->values(),
+        ], trans('api.success'));
+    }
+
+    protected function periodMetric(Request $request, int $contractStatusId, string $period)
+    {
+        $metricKey = $this->statusAnalytics->metricKeyForPeriod($period);
+        $definition = config(self::METRICS_CONFIG.'.'.$metricKey);
+
+        if (! is_array($definition)) {
+            throw new InvalidArgumentException("Unknown metric key: {$metricKey}");
+        }
+
+        $status = $this->statusAnalytics->resolveStatus($contractStatusId);
+        $metrics = $this->statusAnalytics->getPeriodMetrics($contractStatusId);
+        $periodData = $metrics[$period];
+        $limit = min(max((int) $request->input('limit', 10), 1), 100);
+
+        $payload = $this->buildCardPayload(
+            $metricKey,
+            $definition,
+            $status,
+            $periodData['value'],
+            $periodData['percentage_change'],
+            $this->statusAnalytics->getContractsForPeriod($contractStatusId, $period, $limit),
+            $period
+        );
+
+        $payload['created_at'] = $this->statusAnalytics->createdAtLabelForPeriod($period);
+
+        return $this->apiResponse(
+            (new AnalyticsPeriodMetricResource($payload))->resolve(),
+            trans('api.success')
+        );
     }
 
     /**
-     * @param  array<string, mixed>  $definition
      * @param  \Illuminate\Support\Collection<int, \App\Models\Contract>|\Illuminate\Contracts\Pagination\LengthAwarePaginator  $contracts
      * @return array<string, mixed>
      */
@@ -177,7 +168,8 @@ class ContractStatusAnalyticsController extends Controller
         $status,
         int $value,
         ?float $percentageChange,
-        $contracts
+        $contracts,
+        string $period
     ): array {
         $statusName = $status->name;
         $orders = OrderResource::collection($contracts)->resolve();
@@ -189,12 +181,14 @@ class ContractStatusAnalyticsController extends Controller
             'value' => $value,
             'type' => $definition['type'],
             'percentage_change' => $percentageChange,
+            'created_at' => $this->statusAnalytics->createdAtLabelForPeriod($period),
             'contracts' => $orders,
             'items' => $orders,
             'meta' => [
                 'contract_status_id' => $status->id,
                 'contract_status_name' => $statusName,
-                'period' => $definition['period'],
+                'period' => $period,
+                'created_at' => $this->statusAnalytics->createdAtLabelForPeriod($period),
             ],
         ];
     }
