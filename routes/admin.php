@@ -29,6 +29,9 @@ use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UnitUsageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MessageAlertController;
+use App\Http\Controllers\Admin\ContractStatusAnalyticsController;
+use App\Http\Controllers\Admin\EmployeeDashboardAnalyticsController;
+use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
 use App\Http\Controllers\Admin\MessageAlertSectionController;
 use App\Http\Controllers\Admin\MessageAlertSectionItemController;
 use Illuminate\Support\Facades\Route;
@@ -68,7 +71,35 @@ use Illuminate\Support\Facades\Route;
     // Analytics & Dashboard
     Route::controller(HomeAdminController::class)->group(function () {
         Route::get('/analytics', 'analysis')->name('analytics');
+        Route::get('/analytics/all', 'analysis')->name('analytics.all');
         Route::get('/dashboard-analytics', 'analysis')->name('dashboard-analytics');
+    });
+
+    Route::prefix('analytics')->name('analytics.')->controller(UserDashboardAnalyticsController::class)->group(function () {
+        Route::get('/user-activity-rate', 'userActivityRate')->name('user-activity-rate');
+        Route::get('/top-customers/completed-orders', 'topCustomersCompletedOrders')->name('top-customers.completed-orders');
+        Route::get('/top-customers/incomplete-orders', 'topCustomersIncompleteOrders')->name('top-customers.incomplete-orders');
+        Route::get('/top-customers/orders', 'topCustomersOrders')->name('top-customers.orders');
+        Route::get('/top-customers/returns', 'topCustomersReturns')->name('top-customers.returns');
+        Route::get('/top-customers/real-estates', 'topCustomersRealEstates')->name('top-customers.real-estates');
+        Route::get('/top-customers/units', 'topCustomersUnits')->name('top-customers.units');
+    });
+
+    Route::prefix('analytics/contract-status')->name('analytics.contract-status.')->controller(ContractStatusAnalyticsController::class)->group(function () {
+        Route::get('/{contractStatusId}', 'summary')->whereNumber('contractStatusId')->name('summary');
+        Route::get('/{contractStatusId}/daily', 'daily')->whereNumber('contractStatusId')->name('daily');
+        Route::get('/{contractStatusId}/weekly', 'weekly')->whereNumber('contractStatusId')->name('weekly');
+        Route::get('/{contractStatusId}/monthly', 'monthly')->whereNumber('contractStatusId')->name('monthly');
+        Route::get('/{contractStatusId}/yearly', 'yearly')->whereNumber('contractStatusId')->name('yearly');
+        Route::get('/{contractStatusId}/total', 'total')->whereNumber('contractStatusId')->name('total');
+    });
+
+    Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {
+        Route::get('/most-received-orders', 'mostReceivedOrders')->name('most-received-orders');
+        Route::get('/most-returns', 'mostReturns')->name('most-returns');
+        Route::get('/most-documented-orders', 'mostDocumentedOrders')->name('most-documented-orders');
+        Route::get('/count', 'totalCount')->name('count');
+        Route::get('/most-unpaid-orders', 'mostUnpaidOrders')->name('most-unpaid-orders');
     });
 
 

@@ -60,73 +60,134 @@ class UserAnalyticsService
         return User::whereIn('id', $userIds)->count();
     }
 
-    public function getTopCustomersByCompletedOrders(): array
+    public function countUsersWithCompletedOrders(): int
     {
-        return User::withCount(['contracts as completed_orders_count' => fn($q) => $q->where('is_completed', 1)->where('is_delete', 0)])
-            ->orderBy('completed_orders_count', 'desc')
-            ->limit(10)
+        return User::withCount(['contracts as completed_count' => fn ($q) => $q->where('is_completed', 1)->where('is_delete', 0)])
+            ->having('completed_count', '>', 0)
+            ->count();
+    }
+
+    public function countUsersWithIncompleteOrders(): int
+    {
+        return User::withCount(['contracts as incomplete_count' => fn ($q) => $q->where('is_completed', 0)->where('is_delete', 0)])
+            ->having('incomplete_count', '>', 0)
+            ->count();
+    }
+
+    public function countUsersWithOrders(): int
+    {
+        return User::has('contracts')->count();
+    }
+
+    public function countUsersWithRealEstates(): int
+    {
+        return User::has('realEstate')->count();
+    }
+
+    public function countUsersWithUnits(): int
+    {
+        return User::has('unitReal')->count();
+    }
+
+    public function getTopCustomersByCompletedOrders(int $limit = 10): array
+    {
+        return User::withCount(['contracts as completed_orders_count' => fn ($q) => $q->where('is_completed', 1)->where('is_delete', 0)])
+            ->having('completed_orders_count', '>', 0)
+            ->orderByDesc('completed_orders_count')
+            ->limit($limit)
             ->get(['id', 'fname', 'lname'])
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => $u->completed_orders_count,
+            ])
             ->values()
             ->all();
     }
 
-    public function getTopCustomersByIncompleteOrders(): array
+    public function getTopCustomersByIncompleteOrders(int $limit = 10): array
     {
-        return User::withCount(['contracts as incomplete_orders_count' => fn($q) => $q->where('is_completed', 0)->where('is_delete', 0)])
-            ->orderBy('incomplete_orders_count', 'desc')
-            ->limit(10)
+        return User::withCount(['contracts as incomplete_orders_count' => fn ($q) => $q->where('is_completed', 0)->where('is_delete', 0)])
+            ->having('incomplete_orders_count', '>', 0)
+            ->orderByDesc('incomplete_orders_count')
+            ->limit($limit)
             ->get(['id', 'fname', 'lname'])
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => $u->incomplete_orders_count,
+            ])
             ->values()
             ->all();
     }
 
-    public function getTopCustomersByTotalOrders(): array
+    public function getTopCustomersByTotalOrders(int $limit = 10): array
     {
-        return User::withCount(['contracts as total_orders_count' => fn($q) => $q->where('is_delete', 0)])
-            ->orderBy('total_orders_count', 'desc')
-            ->limit(10)
+        return User::withCount(['contracts as total_orders_count' => fn ($q) => $q->where('is_delete', 0)])
+            ->having('total_orders_count', '>', 0)
+            ->orderByDesc('total_orders_count')
+            ->limit($limit)
             ->get(['id', 'fname', 'lname'])
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => $u->total_orders_count,
+            ])
             ->values()
             ->all();
     }
 
-    public function getTopCustomersByRefunds(): array
+    public function getTopCustomersByRefunds(int $limit = 10): array
     {
-        return User::select('users.id', 'users.fname', 'users.lname')
-            ->selectRaw('SUM(payments.amount) as total_refunds')
+        return User::query()
+            ->select('users.id', 'users.fname', 'users.lname')
+            ->selectRaw('COUNT(DISTINCT contracts.id) as refunds_count')
+            ->selectRaw('COALESCE(SUM(payments.amount), 0) as total_refunds')
             ->join('contracts', 'users.id', '=', 'contracts.user_id')
             ->join('payments', 'contracts.uuid', '=', 'payments.contract_uuid')
             ->where('payments.status', 'failed')
             ->groupBy('users.id', 'users.fname', 'users.lname')
-            ->orderBy('total_refunds', 'desc')
-            ->limit(10)
+            ->orderByDesc('total_refunds')
+            ->limit($limit)
             ->get()
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => (int) $u->refunds_count,
+                'total_refunds' => (float) $u->total_refunds,
+            ])
             ->values()
             ->all();
     }
 
-    public function getTopCustomersByRealEstates(): array
+    public function getTopCustomersByRealEstates(int $limit = 10): array
     {
         return User::withCount('realEstate')
-            ->orderBy('real_estate_count', 'desc')
-            ->limit(10)
+            ->having('real_estate_count', '>', 0)
+            ->orderByDesc('real_estate_count')
+            ->limit($limit)
             ->get(['id', 'fname', 'lname'])
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => $u->real_estate_count,
+            ])
             ->values()
             ->all();
     }
 
-    public function getTopCustomersByUnits(): array
+    public function getTopCustomersByUnits(int $limit = 10): array
     {
         return User::withCount('unitReal')
-            ->orderBy('unit_real_count', 'desc')
-            ->limit(10)
+            ->having('unit_real_count', '>', 0)
+            ->orderByDesc('unit_real_count')
+            ->limit($limit)
             ->get(['id', 'fname', 'lname'])
-            ->map(fn($u) => ['id' => $u->id, 'name' => trim($u->fname . ' ' . $u->lname)])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => trim($u->fname.' '.$u->lname),
+                'count' => $u->unit_real_count,
+            ])
             ->values()
             ->all();
     }

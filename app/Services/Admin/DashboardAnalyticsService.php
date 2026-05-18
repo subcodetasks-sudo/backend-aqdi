@@ -142,12 +142,16 @@ class DashboardAnalyticsService
     private function getEmployeeAnalytics(): array
     {
         $emp = $this->employeeAnalytics;
+        $received = $emp->getTopEmployeesByReceivedContracts(1);
+        $documented = $emp->getTopEmployeesByConfirmedContracts(1);
+        $unpaid = $emp->getTopEmployeesByUnpaidOrders(1);
+
         return [
-            ['label_ar' => 'أكثر الموظفين استلم طلب', 'value' => $emp->getTopEmployeesByReceivedContracts(), 'type' => 'list'],
+            ['label_ar' => 'أكثر الموظفين استلم طلب', 'value' => $received[0]['name'] ?? null, 'type' => 'list'],
             ['label_ar' => 'أكثر الموظفين قدم استرجاع', 'value' => $emp->getRefundableSum(), 'type' => 'currency'],
-            ['label_ar' => 'أكثر الموظفين وثق طلب', 'value' => $emp->getTopEmployeesByConfirmedContracts(), 'type' => 'list'],
+            ['label_ar' => 'أكثر الموظفين وثق طلب', 'value' => $documented[0]['name'] ?? null, 'type' => 'list'],
             ['label_ar' => 'عدد الموظفين', 'value' => $emp->getEmployeeCount(), 'type' => 'count'],
-            ['label_ar' => 'أكثر الموظفين اكتسب طلب غير مدفوع', 'value' => $emp->getTopEmployeesByUnpaidOrders(), 'type' => 'list'],
+            ['label_ar' => 'أكثر الموظفين اكتسب طلب غير مدفوع', 'value' => $unpaid[0]['name'] ?? null, 'type' => 'list'],
         ];
     }
 
