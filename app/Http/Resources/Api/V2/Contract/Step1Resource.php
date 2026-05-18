@@ -55,8 +55,9 @@ class Step1Resource extends JsonResource
             'copy_of_the_endowment_registration_certificate' => $this->fileUrl($this->copy_of_the_endowment_registration_certificate),
             'copy_of_the_trusteeship_deed' => $this->fileUrl($this->copy_of_the_trusteeship_deed),
             'is_multiple_trusteeship_deed_copy' => (bool) $this->is_multiple_trusteeship_deed_copy,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'step' => $this->step,
-
         ];
     }
 }
