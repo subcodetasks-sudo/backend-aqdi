@@ -15,6 +15,8 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeCoordinateInputs();
+
         $instrumentType = $this->input('instrument_type');
 
         $aliases = [
@@ -74,8 +76,6 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'image_address' => 'nullable|image',
             'age_of_the_property' => 'nullable|integer|min:0',
             'number_of_units_per_floor' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
             'copy_of_the_endowment_registration_certificate' => 'nullable|file|mimes:jpg,jpeg,png,pdf',

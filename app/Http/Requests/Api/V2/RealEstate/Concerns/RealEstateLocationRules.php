@@ -2,8 +2,11 @@
 
 namespace App\Http\Requests\Api\V2\RealEstate\Concerns;
 
+use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
+
 trait RealEstateLocationRules
 {
+    use NormalizesCoordinateInputs;
     /**
      * @return array<string, mixed>
      */
@@ -20,6 +23,8 @@ trait RealEstateLocationRules
             'image_address' => 'nullable|image',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
         ];
 
         if ($requireId) {
@@ -55,16 +60,30 @@ trait RealEstateLocationRules
      */
     protected function locationAttributesForPayload(): array
     {
-        return [
-            'property_place_id' => $this->input('property_place_id'),
-            'property_city_id' => $this->input('property_city_id'),
-            'neighborhood' => $this->input('neighborhood'),
-            'street' => $this->input('street'),
-            'building_number' => $this->input('building_number'),
-            'postal_code' => $this->input('postal_code'),
-            'extra_figure' => $this->input('extra_figure'),
-            'latitude' => $this->input('latitude'),
-            'longitude' => $this->input('longitude'),
-        ];
+        $payload = [];
+
+        foreach ([
+            'property_place_id',
+            'property_city_id',
+            'neighborhood',
+            'street',
+            'building_number',
+            'postal_code',
+            'extra_figure',
+        ] as $field) {
+            if ($this->filled($field)) {
+                $payload[$field] = $this->input($field);
+            }
+        }
+
+        if ($this->filled('latitude')) {
+            $payload['latitude'] = $this->input('latitude');
+        }
+
+        if ($this->filled('longitude')) {
+            $payload['longitude'] = $this->input('longitude');
+        }
+
+        return $payload;
     }
 }
