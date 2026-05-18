@@ -3,11 +3,19 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
 use App\Models\Contract;
 use Illuminate\Validation\Rule;
 
 class Step2Request extends BaseApiV2Request
 {
+    use NormalizesCoordinateInputs;
+
+    protected function prepareForValidation(): void
+    {
+        $this->normalizeCoordinateInputs();
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -29,6 +37,8 @@ class Step2Request extends BaseApiV2Request
             'image_address' => 'nullable|image',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
         ];
     }
 

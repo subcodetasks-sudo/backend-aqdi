@@ -652,13 +652,35 @@ class ContractController extends Controller
      */
     private function applyCoordinatesIfPresent(array &$payload, Request $request, array $validated = []): void
     {
-        if ($request->filled('latitude')) {
-            $payload['latitude'] = $validated['latitude'] ?? $request->input('latitude');
+        $latitude = $this->resolveCoordinateInput($request, $validated, 'latitude', 'lat');
+        if ($latitude !== null) {
+            $payload['latitude'] = $latitude;
         }
 
-        if ($request->filled('longitude')) {
-            $payload['longitude'] = $validated['longitude'] ?? $request->input('longitude');
+        $longitude = $this->resolveCoordinateInput($request, $validated, 'longitude', 'lng');
+        if ($longitude !== null) {
+            $payload['longitude'] = $longitude;
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function resolveCoordinateInput(
+        Request $request,
+        array $validated,
+        string $canonicalKey,
+        string $aliasKey
+    ): ?float {
+        if ($request->filled($canonicalKey)) {
+            return (float) ($validated[$canonicalKey] ?? $request->input($canonicalKey));
+        }
+
+        if ($request->filled($aliasKey)) {
+            return (float) $request->input($aliasKey);
+        }
+
+        return null;
     }
 }
 
