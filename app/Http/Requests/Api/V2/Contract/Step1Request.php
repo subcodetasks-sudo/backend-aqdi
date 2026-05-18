@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
 use App\Models\Contract;
 use App\Models\RealEstate;
 use Illuminate\Contracts\Validation\Validator;
@@ -10,8 +11,12 @@ use Illuminate\Validation\Rule;
 
 class Step1Request extends BaseApiV2Request
 {
+    use NormalizesCoordinateInputs;
+
     protected function prepareForValidation(): void
     {
+        $this->normalizeCoordinateInputs();
+
         if ($this->has('instrument_type')) {
             $this->merge([
                 'instrument_type' => Contract::normalizeInstrumentType($this->input('instrument_type')),
@@ -75,6 +80,8 @@ class Step1Request extends BaseApiV2Request
             'is_multiple_trusteeship_deed_copy' => 'nullable|boolean',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
+            'lat' => 'nullable|numeric',
+            'lng' => 'nullable|numeric',
             'image_instrument_from_the_back'=>'nullable',
             'image_instrument_from_the_front'=>'nullable',
         ];
