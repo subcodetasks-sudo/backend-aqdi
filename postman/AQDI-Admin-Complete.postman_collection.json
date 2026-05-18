@@ -491,59 +491,44 @@
                                         "value": "application/json"
                                     }
                                 ],
-                                "url": "{{baseUrl}}/api/admin/analytics/contract-status/2/daily"
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=day&limit=10",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "admin", "analytics", "contract-status", "2"],
+                                    "query": [
+                                        {"key": "created_at", "value": "day"},
+                                        {"key": "limit", "value": "10"}
+                                    ]
+                                }
                             }
                         },
                         {
-                            "name": "الأسبوع (weekly)",
+                            "name": "فلتر — شهر (?created_at=month)",
                             "request": {
                                 "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": "{{baseUrl}}/api/admin/analytics/contract-status/2/weekly"
+                                "header": [{"key": "Accept", "value": "application/json"}],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=month&limit=10",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "admin", "analytics", "contract-status", "2"],
+                                    "query": [
+                                        {"key": "created_at", "value": "month"},
+                                        {"key": "limit", "value": "10"}
+                                    ]
+                                }
                             }
                         },
                         {
-                            "name": "الشهر (monthly)",
+                            "name": "قائمة العقود (?created_at=month)",
                             "request": {
                                 "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": "{{baseUrl}}/api/admin/analytics/contract-status/2/monthly"
-                            }
-                        },
-                        {
-                            "name": "العام (yearly)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": "{{baseUrl}}/api/admin/analytics/contract-status/2/yearly"
-                            }
-                        },
-                        {
-                            "name": "الإجمالي (total)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": "{{baseUrl}}/api/admin/analytics/contract-status/2/total"
+                                "header": [{"key": "Accept", "value": "application/json"}],
+                                "url": {
+                                    "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2/contracts?created_at=month",
+                                    "host": ["{{baseUrl}}"],
+                                    "path": ["api", "admin", "analytics", "contract-status", "2", "contracts"],
+                                    "query": [{"key": "created_at", "value": "month"}]
+                                }
                             }
                         }
                     ]

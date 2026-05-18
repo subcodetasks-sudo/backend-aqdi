@@ -103,12 +103,7 @@ use Illuminate\Support\Facades\Route;
 
     Route::prefix('analytics/contract-status')->name('analytics.contract-status.')->controller(ContractStatusAnalyticsController::class)->group(function () {
         Route::get('/{contractStatusId}/contracts', 'contracts')->whereNumber('contractStatusId')->name('contracts');
-        Route::get('/{contractStatusId}', 'summary')->whereNumber('contractStatusId')->name('summary');
-        Route::get('/{contractStatusId}/daily', 'daily')->whereNumber('contractStatusId')->name('daily');
-        Route::get('/{contractStatusId}/weekly', 'weekly')->whereNumber('contractStatusId')->name('weekly');
-        Route::get('/{contractStatusId}/monthly', 'monthly')->whereNumber('contractStatusId')->name('monthly');
-        Route::get('/{contractStatusId}/yearly', 'yearly')->whereNumber('contractStatusId')->name('yearly');
-        Route::get('/{contractStatusId}/total', 'total')->whereNumber('contractStatusId')->name('total');
+        Route::get('/{contractStatusId}', 'show')->whereNumber('contractStatusId')->name('show');
     });
 
     Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {

@@ -15,6 +15,66 @@ class ContractStatusAnalyticsService
 
     public const DEFAULT_STATUS_ID = 2;
 
+    /** Query ?created_at=day|week|month|year|total (aliases: today, daily, weekly, …). */
+    public const CREATED_AT_FILTERS = ['day', 'week', 'month', 'year', 'total'];
+
+    /** @var array<string, string> */
+    private const CREATED_AT_ALIASES = [
+        'day' => 'today',
+        'today' => 'today',
+        'daily' => 'today',
+        'week' => 'week',
+        'weekly' => 'week',
+        'month' => 'month',
+        'monthly' => 'month',
+        'year' => 'year',
+        'yearly' => 'year',
+        'total' => 'total',
+        'all' => 'total',
+    ];
+
+    public function resolveCreatedAtPeriod(?string $createdAt): ?string
+    {
+        if ($createdAt === null || trim($createdAt) === '') {
+            return null;
+        }
+
+        $key = strtolower(trim($createdAt));
+        $period = self::CREATED_AT_ALIASES[$key] ?? null;
+
+        if ($period === null) {
+            throw new \InvalidArgumentException(
+                'created_at must be one of: '.implode(', ', self::CREATED_AT_FILTERS)
+            );
+        }
+
+        return $period;
+    }
+
+    public function metricKeyForPeriod(string $period): string
+    {
+        return match ($period) {
+            'today' => 'contract_status_daily',
+            'week' => 'contract_status_weekly',
+            'month' => 'contract_status_monthly',
+            'year' => 'contract_status_yearly',
+            'total' => 'contract_status_total',
+            default => throw new \InvalidArgumentException("Unknown period: {$period}"),
+        };
+    }
+
+    public function createdAtLabelForPeriod(string $period): string
+    {
+        return match ($period) {
+            'today' => 'day',
+            'week' => 'week',
+            'month' => 'month',
+            'year' => 'year',
+            'total' => 'total',
+            default => $period,
+        };
+    }
+
     public function resolveStatus(int $contractStatusId): ContractStatus
     {
         $status = ContractStatus::query()->find($contractStatusId);
