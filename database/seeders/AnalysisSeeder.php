@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\City;
 use App\Models\Contract;
+use App\Models\ContractStatus;
 use App\Models\ContractWhatsApp;
 use App\Models\Employee;
 use App\Models\Expense;
@@ -17,73 +18,129 @@ use App\Models\User;
 use App\Models\Visitor;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class AnalysisSeeder extends Seeder
 {
+    private const PAYMENT_MARKER = 'بيانات تحليلات';
+
     /**
-     * Seed data for all dashboard analytics sections.
-     * Run after: RegionSeeder, CitySeeder, UserSeeder, EmployeeSeeder, BlogSeeder.
+     * Seed dashboard analytics: financial periods, users, employees, contract statuses, locations.
+     *
+     * Requires: RegionSeeder, CitySeeder, ContractStatusSeeder, UserSeeder, EmployeeSeeder.
      */
     public function run(): void
     {
         $users = User::all();
         $employees = Employee::all();
         $cities = City::all()->keyBy('name_ar');
-        $riyadhId = $cities->get('الرياض')?->id ?? 1;
-        $jeddahId = $cities->get('جدة')?->id ?? 5;
-        $dammamId = $cities->get('الدمام')?->id ?? 12;
-        $easternRegionId = Region::where('name_ar', 'الشرقية')->value('id') ?? 5;
+
+        $riyadhId = $cities->get('الرياض')?->id ?? City::query()->value('id');
+        $jeddahId = $cities->get('جدة')?->id ?? $riyadhId;
+        $dammamId = $cities->get('الدمام')?->id ?? $riyadhId;
+        $easternRegionId = Region::query()->where('name_ar', 'الشرقية')->value('id')
+            ?? Region::query()->value('id');
 
         if ($users->isEmpty() || $employees->isEmpty()) {
-            $this->command->warn('AnalysisSeeder requires UserSeeder and EmployeeSeeder to run first.');
+            $this->command?->warn('AnalysisSeeder: run UserSeeder and EmployeeSeeder first.');
+
             return;
         }
 
+        $this->seedExtraUsers();
+        $users = User::all();
         $userIds = $users->pluck('id')->all();
         $employeeIds = $employees->pluck('id')->all();
 
-        // 1. Visitors
+        $statusIds = $this->resolveContractStatusIds();
+        $primaryStatusId = $statusIds['review'] ?? $statusIds['default'] ?? 2;
+
+        $this->command?->info('Seeding analytics data (contract_status_id='.$primaryStatusId.' for status cards)...');
+
+        $this->removePreviousAnalyticsPayments();
         $this->seedVisitors();
-
-        // 2. Contracts with various steps, cities, completion status, spread over time
-        $contracts = $this->seedContracts($userIds, $riyadhId, $jeddahId, $dammamId, $easternRegionId);
-
-        // 3. Payments (success/failed) linked to contracts
-        $this->seedPayments($contracts);
-
-        // 4. ContractWhatsapp (completed/incomplete)
+        $contracts = $this->seedContracts($userIds, $riyadhId, $jeddahId, $dammamId, $easternRegionId, $statusIds);
+        $this->seedFinancialPayments($contracts, $riyadhId, $jeddahId, $dammamId, $easternRegionId);
         $this->seedContractWhatsapp();
-
-        // 5. ReceivedContract (employee received contracts)
-        $this->seedReceivedContracts($contracts, $employeeIds);
-
-        // 6. RefundableContract
+        $this->seedReceivedContracts($contracts, $employees);
         $this->seedRefundableContracts($contracts, $employeeIds);
-
-        // 7. Expenses (spread over periods)
         $this->seedExpenses($employeeIds);
-
-        // 8. RealEstate & UnitsReal
         $this->seedRealEstatesAndUnits($userIds, $riyadhId, $jeddahId, $dammamId);
+        $this->seedUnpaidReceivedContracts($contracts, $employeeIds, $userIds);
+
+        $this->command?->info('AnalysisSeeder finished: '.count($contracts).' contracts, payments & related records.');
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function resolveContractStatusIds(): array
+    {
+        $map = ContractStatus::query()->pluck('id', 'name')->all();
+
+        return [
+            'new' => $map['جديد'] ?? null,
+            'review' => $map['قيد المراجعة'] ?? ContractStatus::query()->orderBy('id')->skip(1)->value('id'),
+            'completed' => $map['مكتمل'] ?? null,
+            'cancelled' => $map['ملغى'] ?? null,
+            'pending' => $map['معلق'] ?? null,
+            'received' => $map['مستلم'] ?? null,
+            'default' => ContractStatus::query()->whereKey(2)->value('id')
+                ?? ContractStatus::query()->orderBy('id')->skip(1)->value('id'),
+        ];
+    }
+
+    private function removePreviousAnalyticsPayments(): void
+    {
+        Payment::query()->where('name', self::PAYMENT_MARKER)->delete();
+    }
+
+    private function seedExtraUsers(): void
+    {
+        $extra = [
+            ['fname' => 'عبدالرحمن', 'lname' => 'القحطاني', 'email' => 'analytics.user1@example.com', 'mobile' => '00966509990001', 'is_active' => true],
+            ['fname' => 'ريم', 'lname' => 'الشهري', 'email' => 'analytics.user2@example.com', 'mobile' => '00966509990002', 'is_active' => true],
+            ['fname' => 'فهد', 'lname' => 'العنزي', 'email' => 'analytics.user3@example.com', 'mobile' => '00966509990003', 'is_active' => true],
+            ['fname' => 'منى', 'lname' => 'الخالدي', 'email' => 'analytics.inactive@example.com', 'mobile' => '00966509990004', 'is_active' => false],
+        ];
+
+        foreach ($extra as $row) {
+            User::updateOrCreate(
+                ['email' => $row['email']],
+                array_merge($row, [
+                    'password' => bcrypt('User@123'),
+                    'email_verified_at' => Carbon::now(),
+                ])
+            );
+        }
     }
 
     private function seedVisitors(): void
     {
-        foreach (range(1, 50) as $i) {
+        foreach (range(1, 80) as $i) {
             Visitor::create([
-                'ip_address' => '192.168.1.' . $i,
-                'time_visit' => rand(60, 3600),
-                'created_at' => Carbon::now()->subDays(rand(0, 90)),
+                'ip_address' => '10.0.0.'.($i % 254 + 1),
+                'time_visit' => rand(30, 7200),
+                'created_at' => $this->randomDateInPeriods(),
             ]);
         }
     }
 
-    private function seedContracts(array $userIds, int $riyadhId, int $jeddahId, int $dammamId, int $easternRegionId): array
-    {
+    /**
+     * @param  array<string, int|null>  $statusIds
+     * @return array<int, Contract>
+     */
+    private function seedContracts(
+        array $userIds,
+        int $riyadhId,
+        int $jeddahId,
+        int $dammamId,
+        int $easternRegionId,
+        array $statusIds
+    ): array {
         $cityIds = [$riyadhId, $jeddahId, $dammamId];
         $contracts = [];
 
-        // Step distribution for order_transfer_analytics
         $stepConfigs = [
             ['step' => 0, 'is_completed' => 0],
             ['step' => 1, 'is_completed' => 0],
@@ -94,22 +151,32 @@ class AnalysisSeeder extends Seeder
             ['step' => 6, 'is_completed' => 1],
         ];
 
-        $periods = [
-            'today' => Carbon::today(),
-            'week' => Carbon::now()->subDays(rand(1, 6)),
-            'month' => Carbon::now()->subDays(rand(7, 30)),
-            'year' => Carbon::now()->subDays(rand(31, 365)),
+        $periodBuckets = [
+            'today' => fn () => Carbon::today()->addHours(rand(0, 20)),
+            'week' => fn () => Carbon::now()->startOfWeek()->addDays(rand(0, 6))->addHours(rand(0, 23)),
+            'month' => fn () => Carbon::now()->startOfMonth()->addDays(rand(0, 27))->addHours(rand(0, 23)),
+            'year' => fn () => Carbon::now()->startOfYear()->addDays(rand(0, 300))->addHours(rand(0, 23)),
         ];
 
+        $hasStatusColumn = Schema::hasColumn('contracts', 'contract_status_id');
+
         foreach ($stepConfigs as $config) {
-            foreach ($periods as $period => $baseDate) {
-                $count = $period === 'today' ? rand(2, 5) : rand(1, 4);
+            foreach ($periodBuckets as $period => $dateFactory) {
+                $count = match ($period) {
+                    'today' => rand(3, 8),
+                    'week' => rand(4, 10),
+                    'month' => rand(5, 12),
+                    'year' => rand(6, 15),
+                };
+
                 for ($i = 0; $i < $count; $i++) {
-                    $createdAt = $period === 'today' ? Carbon::today()->subHours(rand(0, 23)) : $baseDate->copy()->subDays(rand(0, 2));
                     $cityId = $cityIds[array_rand($cityIds)];
                     $regionId = $cityId === $dammamId ? $easternRegionId : ($cityId === $riyadhId ? 1 : 2);
+                    $createdAt = $dateFactory();
 
-                    $contract = Contract::create([
+                    $statusId = $this->pickContractStatusId($statusIds, $config['is_completed'], $period);
+
+                    $payload = [
                         'contract_type' => ['housing', 'commercial'][rand(0, 1)],
                         'user_id' => $userIds[array_rand($userIds)],
                         'app_or_web' => ['app', 'web'][rand(0, 1)],
@@ -119,8 +186,37 @@ class AnalysisSeeder extends Seeder
                         'property_city_id' => $cityId,
                         'property_place_id' => $regionId,
                         'created_at' => $createdAt,
+                        'updated_at' => $createdAt,
+                    ];
+
+                    if ($hasStatusColumn && $statusId) {
+                        $payload['contract_status_id'] = $statusId;
+                    }
+
+                    $contracts[] = Contract::create($payload);
+                }
+            }
+        }
+
+        // Extra batch for contract_status_id = 2 (dashboard status analytics)
+        if ($hasStatusColumn && ! empty($statusIds['default'])) {
+            foreach (['today', 'week', 'month', 'year'] as $period) {
+                for ($i = 0; $i < rand(2, 6); $i++) {
+                    $createdAt = $periodBuckets[$period]();
+                    $cityId = $cityIds[array_rand($cityIds)];
+                    $contracts[] = Contract::create([
+                        'contract_type' => 'housing',
+                        'user_id' => $userIds[array_rand($userIds)],
+                        'app_or_web' => 'web',
+                        'step' => rand(2, 5),
+                        'is_completed' => 0,
+                        'is_delete' => 0,
+                        'property_city_id' => $cityId,
+                        'property_place_id' => $cityId === $dammamId ? $easternRegionId : 1,
+                        'contract_status_id' => $statusIds['default'],
+                        'created_at' => $createdAt,
+                        'updated_at' => $createdAt,
                     ]);
-                    $contracts[] = $contract;
                 }
             }
         }
@@ -128,130 +224,332 @@ class AnalysisSeeder extends Seeder
         return $contracts;
     }
 
-    private function seedPayments(array $contracts): void
+    private function pickContractStatusId(array $statusIds, int $isCompleted, string $period): ?int
     {
-        $periods = [
-            Carbon::today(),
-            Carbon::now()->subDays(rand(1, 6)),
-            Carbon::now()->subDays(rand(7, 30)),
-            Carbon::now()->subDays(rand(31, 365)),
+        if ($isCompleted && $statusIds['completed']) {
+            return $statusIds['completed'];
+        }
+
+        if ($period === 'today' && $statusIds['review']) {
+            return $statusIds['review'];
+        }
+
+        $pool = array_filter([
+            $statusIds['review'] ?? null,
+            $statusIds['new'] ?? null,
+            $statusIds['pending'] ?? null,
+            $statusIds['received'] ?? null,
+        ]);
+
+        if ($pool === []) {
+            return $statusIds['default'] ?? null;
+        }
+
+        return $pool[array_rand($pool)];
+    }
+
+    /**
+     * Income, refunds (failed), and per-city success payments for location analytics.
+     *
+     * @param  array<int, Contract>  $contracts
+     */
+    private function seedFinancialPayments(
+        array $contracts,
+        int $riyadhId,
+        int $jeddahId,
+        int $dammamId,
+        int $easternRegionId
+    ): void {
+        $amountsByPeriod = [
+            'today' => [450, 1200],
+            'week' => [800, 2500],
+            'month' => [1500, 6000],
+            'year' => [3000, 12000],
+            'older' => [500, 2000],
         ];
 
-        foreach ($contracts as $contract) {
-            $status = $contract->is_completed ? (rand(1, 10) > 2 ? 'success' : 'failed') : (rand(1, 10) > 7 ? 'success' : 'pending');
-            $createdAt = $periods[array_rand($periods)]->copy()->subHours(rand(0, 12));
+        $periodDates = [
+            'today' => Carbon::today()->addHours(rand(1, 10)),
+            'week' => Carbon::now()->startOfWeek()->addDays(rand(0, 5)),
+            'month' => Carbon::now()->startOfMonth()->addDays(rand(0, 20)),
+            'year' => Carbon::now()->startOfYear()->addMonths(rand(0, 10)),
+            'older' => Carbon::now()->subYear()->subMonths(rand(1, 6)),
+        ];
 
-            Payment::create([
-                'name' => 'عقد توثيق',
-                'amount' => rand(100, 5000),
-                'payment_date' => $createdAt->toDateString(),
-                'contract_uuid' => $contract->uuid,
-                'tran_currency' => 'SAR',
-                'payment_method' => 'mada',
-                'status' => $status,
-                'created_at' => $createdAt,
-            ]);
+        foreach ($amountsByPeriod as $period => $range) {
+            $createdAt = $periodDates[$period];
+            $count = $period === 'today' ? 8 : 5;
+
+            for ($i = 0; $i < $count; $i++) {
+                $contract = $contracts[array_rand($contracts)] ?? null;
+                if (! $contract) {
+                    continue;
+                }
+
+                Payment::create([
+                    'name' => self::PAYMENT_MARKER,
+                    'amount' => rand($range[0], $range[1]),
+                    'payment_date' => $createdAt->toDateString(),
+                    'contract_uuid' => $contract->uuid,
+                    'tran_currency' => 'SAR',
+                    'payment_method' => 'mada',
+                    'status' => 'success',
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+            }
+
+            // Refunds (failed) — drives "مسترجع" financial cards
+            for ($i = 0; $i < ($period === 'today' ? 2 : 3); $i++) {
+                $contract = $contracts[array_rand($contracts)] ?? null;
+                if (! $contract) {
+                    continue;
+                }
+
+                Payment::create([
+                    'name' => self::PAYMENT_MARKER,
+                    'amount' => rand(200, 1800),
+                    'payment_date' => $createdAt->toDateString(),
+                    'contract_uuid' => $contract->uuid,
+                    'tran_currency' => 'SAR',
+                    'payment_method' => 'mada',
+                    'status' => 'failed',
+                    'created_at' => $createdAt,
+                    'updated_at' => $createdAt,
+                ]);
+            }
         }
+
+        // City-weighted success payments (الرياض، جدة، الدمام / الشرقية)
+        $cityTargets = [
+            ['city_id' => $riyadhId, 'amount' => [2000, 8000]],
+            ['city_id' => $jeddahId, 'amount' => [1500, 6000]],
+            ['city_id' => $dammamId, 'amount' => [1000, 4500]],
+        ];
+
+        foreach ($cityTargets as $target) {
+            $cityContracts = array_values(array_filter(
+                $contracts,
+                fn (Contract $c) => (int) $c->property_city_id === (int) $target['city_id']
+            ));
+            if ($cityContracts === []) {
+                continue;
+            }
+
+            for ($i = 0; $i < 4; $i++) {
+                $contract = $cityContracts[array_rand($cityContracts)];
+                $at = $this->randomDateInPeriods();
+
+                Payment::create([
+                    'name' => self::PAYMENT_MARKER,
+                    'amount' => rand($target['amount'][0], $target['amount'][1]),
+                    'payment_date' => $at->toDateString(),
+                    'contract_uuid' => $contract->uuid,
+                    'tran_currency' => 'SAR',
+                    'payment_method' => 'mada',
+                    'status' => 'success',
+                    'created_at' => $at,
+                    'updated_at' => $at,
+                ]);
+            }
+        }
+
+        unset($easternRegionId);
     }
 
     private function seedContractWhatsapp(): void
     {
-        $periods = [
-            Carbon::today(),
-            Carbon::now()->subDays(rand(1, 30)),
-        ];
-
-        for ($i = 0; $i < 15; $i++) {
+        foreach (range(1, 25) as $i) {
+            $complete = $i % 3 !== 0;
             ContractWhatsApp::create([
-                'mobile_number' => '9665' . rand(10000000, 59999999),
-                'addition_date' => $periods[array_rand($periods)],
+                'mobile_number' => '9665'.rand(10000000, 59999999),
+                'addition_date' => $this->randomDateInPeriods(),
                 'contract_type' => ['commercial', 'residential'][rand(0, 1)],
-                'is_complete' => (bool) rand(0, 1),
-                'amount_paid_by_client' => rand(100, 2000),
-                'rental_fees' => rand(500, 5000),
+                'is_complete' => $complete,
+                'amount_paid_by_client' => rand(100, 2500),
+                'rental_fees' => rand(500, 8000),
             ]);
         }
     }
 
-    private function seedReceivedContracts(array $contracts, array $employeeIds): void
+    /**
+     * @param  array<int, Contract>  $contracts
+     */
+    private function seedReceivedContracts(array $contracts, $employees): void
     {
-        $sample = array_slice($contracts, 0, min(20, count($contracts)));
+        $topEmployee = Employee::query()->where('name', 'محمد العلي')->first()
+            ?? $employees->first();
+
+        $weights = [];
+        foreach ($employees as $employee) {
+            $weights[$employee->id] = $employee->id === $topEmployee?->id ? 12 : 4;
+        }
+
+        $sample = $contracts;
+        shuffle($sample);
+        $sample = array_slice($sample, 0, min(45, count($sample)));
+
         foreach ($sample as $contract) {
+            $employeeId = $this->weightedEmployeeId($weights);
+            $isCompleted = (bool) $contract->is_completed;
+
             ReceivedContract::create([
                 'contract_id' => $contract->id,
-                'employee_id' => $employeeIds[array_rand($employeeIds)],
-                'status' => 'pending',
-                'date_of_received' => $contract->created_at?->toDateString() ?? Carbon::today(),
+                'employee_id' => $employeeId,
+                'status' => $isCompleted ? 'finish' : 'pending',
+                'date_of_received' => ($contract->created_at ?? Carbon::today())->toDateString(),
+                'created_at' => $contract->created_at ?? Carbon::now(),
             ]);
         }
     }
 
+    /**
+     * @param  array<int, int>  $weights
+     */
+    private function weightedEmployeeId(array $weights): int
+    {
+        $pool = [];
+        foreach ($weights as $id => $weight) {
+            for ($i = 0; $i < $weight; $i++) {
+                $pool[] = $id;
+            }
+        }
+
+        return $pool[array_rand($pool)];
+    }
+
+    /**
+     * @param  array<int, Contract>  $contracts
+     */
     private function seedRefundableContracts(array $contracts, array $employeeIds): void
     {
-        $completed = array_filter($contracts, fn($c) => $c->is_completed);
-        $sample = array_slice($completed, 0, min(8, count($completed)));
+        $completed = array_values(array_filter($contracts, fn (Contract $c) => $c->is_completed));
+        $sample = array_slice($completed, 0, min(15, count($completed)));
+
         foreach ($sample as $contract) {
             RefundableContract::create([
+                'user_id' => $contract->user_id,
                 'contract_id' => $contract->id,
                 'employee_id' => $employeeIds[array_rand($employeeIds)],
-                'refund_amount' => rand(100, 1500),
-                'notes' => 'استرجاع طلب',
+                'refund_amount' => rand(250, 3200),
+                'notes' => 'استرجاع طلب — بيانات تحليلات',
+                'created_at' => $contract->created_at?->copy()->addDay() ?? Carbon::now(),
             ]);
         }
     }
 
     private function seedExpenses(array $employeeIds): void
     {
-        $rows = [
-            ['notes' => 'مصاريف يومية', 'amount' => 500],
-            ['notes' => 'مصاريف أسبوعية', 'amount' => 1200],
-            ['notes' => 'مصاريف شهرية', 'amount' => 3500],
-            ['notes' => 'مصاريف سنوية', 'amount' => 8500],
+        $templates = [
+            ['notes' => 'مصروفات اليوم', 'amount' => [200, 900], 'at' => Carbon::today()],
+            ['notes' => 'مصروفات الأسبوع', 'amount' => [500, 1800], 'at' => Carbon::now()->startOfWeek()->addDays(rand(0, 5))],
+            ['notes' => 'مصروفات الشهر', 'amount' => [1200, 4500], 'at' => Carbon::now()->startOfMonth()->addDays(rand(0, 20))],
+            ['notes' => 'مصروفات العام', 'amount' => [4000, 12000], 'at' => Carbon::now()->startOfYear()->addMonths(rand(0, 8))],
+            ['notes' => 'مصروفات إضافية', 'amount' => [300, 1500], 'at' => $this->randomDateInPeriods()],
         ];
-        $periods = [
-            Carbon::today(),
-            Carbon::now()->subDays(rand(1, 6)),
-            Carbon::now()->subDays(rand(7, 30)),
-            Carbon::now()->subDays(rand(31, 365)),
-        ];
-        foreach ($rows as $row) {
-            Expense::create([
-                'employee_id' => $employeeIds[array_rand($employeeIds)],
-                'amount' => $row['amount'],
-                'notes' => $row['notes'],
-                'created_at' => $periods[array_rand($periods)],
-            ]);
+
+        foreach ($templates as $tpl) {
+            for ($i = 0; $i < rand(2, 4); $i++) {
+                Expense::create([
+                    'employee_id' => $employeeIds[array_rand($employeeIds)],
+                    'amount' => rand($tpl['amount'][0], $tpl['amount'][1]),
+                    'notes' => $tpl['notes'],
+                    'created_at' => $tpl['at'] instanceof Carbon ? $tpl['at'] : Carbon::parse($tpl['at']),
+                ]);
+            }
         }
     }
 
     private function seedRealEstatesAndUnits(array $userIds, int $riyadhId, int $jeddahId, int $dammamId): void
     {
         $cityIds = [$riyadhId, $jeddahId, $dammamId];
-        $periods = [
-            Carbon::today(),
-            Carbon::now()->subDays(rand(1, 6)),
-            Carbon::now()->subDays(rand(7, 30)),
-            Carbon::now()->subDays(rand(31, 365)),
-        ];
 
-        foreach (array_slice($userIds, 0, 6) as $userId) {
-            $createdAt = $periods[array_rand($periods)];
+        foreach (array_slice($userIds, 0, min(12, count($userIds))) as $index => $userId) {
+            $createdAt = $this->randomDateInPeriods();
+
             $estate = RealEstate::create([
                 'user_id' => $userId,
-                'property_city_id' => $cityIds[array_rand($cityIds)],
-                'contract_type' => 'housing',
+                'property_city_id' => $cityIds[$index % count($cityIds)],
+                'contract_type' => ['housing', 'commercial'][$index % 2],
                 'created_at' => $createdAt,
+                'updated_at' => $createdAt,
             ]);
 
-            if (rand(0, 1)) {
+            if ($index % 2 === 0) {
                 UnitsReal::create([
                     'real_estates_units_id' => $estate->id,
                     'user_id' => $userId,
-                    'unit_area' => (string) rand(80, 300),
+                    'unit_area' => (string) rand(90, 350),
                     'Services' => 0,
-                    'created_at' => $createdAt->copy()->addHours(1),
+                    'created_at' => $createdAt->copy()->addHours(2),
+                    'updated_at' => $createdAt->copy()->addHours(2),
                 ]);
             }
         }
+    }
+
+    /**
+     * Contracts received by employee but without successful payment (unpaid orders analytics).
+     *
+     * @param  array<int, Contract>  $contracts
+     */
+    private function seedUnpaidReceivedContracts(array $contracts, array $employeeIds, array $userIds): void
+    {
+        $paidUuids = Payment::query()->where('status', 'success')->pluck('contract_uuid')->all();
+
+        for ($i = 0; $i < 8; $i++) {
+            $createdAt = $this->randomDateInPeriods();
+            $cityId = $contracts[0]->property_city_id ?? 1;
+
+            $contract = Contract::create([
+                'contract_type' => 'commercial',
+                'user_id' => $userIds[array_rand($userIds)],
+                'app_or_web' => 'app',
+                'step' => rand(1, 4),
+                'is_completed' => 0,
+                'is_delete' => 0,
+                'property_city_id' => $cityId,
+                'property_place_id' => 1,
+                'created_at' => $createdAt,
+                'updated_at' => $createdAt,
+            ]);
+
+            ReceivedContract::create([
+                'contract_id' => $contract->id,
+                'employee_id' => $employeeIds[array_rand($employeeIds)],
+                'status' => 'pending',
+                'date_of_received' => $createdAt->toDateString(),
+            ]);
+
+            if (! in_array($contract->uuid, $paidUuids, true) && rand(0, 1)) {
+                Payment::create([
+                    'name' => self::PAYMENT_MARKER,
+                    'amount' => rand(100, 800),
+                    'payment_date' => $createdAt->toDateString(),
+                    'contract_uuid' => $contract->uuid,
+                    'tran_currency' => 'SAR',
+                    'payment_method' => 'mada',
+                    'status' => 'pending',
+                    'created_at' => $createdAt,
+                ]);
+            }
+        }
+    }
+
+    private function randomDateInPeriods(): Carbon
+    {
+        $pick = rand(1, 100);
+
+        if ($pick <= 15) {
+            return Carbon::today()->addHours(rand(0, 22));
+        }
+        if ($pick <= 40) {
+            return Carbon::now()->startOfWeek()->addDays(rand(0, 6))->addHours(rand(0, 23));
+        }
+        if ($pick <= 75) {
+            return Carbon::now()->startOfMonth()->addDays(rand(0, 28))->addHours(rand(0, 23));
+        }
+
+        return Carbon::now()->startOfYear()->addDays(rand(0, 300))->addHours(rand(0, 23));
     }
 }

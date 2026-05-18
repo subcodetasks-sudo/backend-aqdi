@@ -2,23 +2,30 @@
 
 namespace App\Http\Traits;
 
+use App\Support\JsonEncoding;
+use Illuminate\Http\JsonResponse;
+
 trait Responser
 {
+    protected function jsonResponse(array $payload, int $http = 200): JsonResponse
+    {
+        return response()->json($payload, $http, [], JsonEncoding::OPTIONS);
+    }
 
     protected function successMessage($msg, $code = 200)
     {
-        return response()->json([
+        return $this->jsonResponse([
             'message' => $msg,
             'code' => $code,
             'success' => true,
-        ]);
+        ], $this->httpStatus($code));
     }
 
     protected function errorMessage($msg, $code = 400)
     {
-        $http = ($code >= 100 && $code < 600) ? $code : 400;
+        $http = $this->httpStatus($code);
 
-        return response()->json([
+        return $this->jsonResponse([
             'message' => $msg,
             'code' => $code,
             'success' => false,
@@ -27,9 +34,9 @@ trait Responser
 
     protected function errorResponse($data, $code)
     {
-        $http = ($code >= 100 && $code < 600) ? $code : 422;
+        $http = $this->httpStatus($code);
 
-        return response()->json([
+        return $this->jsonResponse([
             'code' => $code,
             'success' => false,
             'errors' => $data,
@@ -38,14 +45,12 @@ trait Responser
 
     protected function apiResponse($data, $msg, $code = 200)
     {
-        $http = ($code >= 100 && $code < 600) ? $code : 200;
-
-        return response()->json([
+        return $this->jsonResponse([
             'message' => $msg,
             'code' => $code,
             'success' => true,
             'data' => $data,
-        ], $http);
+        ], $this->httpStatus($code));
     }
 
     protected function paginate($object)
@@ -62,5 +67,10 @@ trait Responser
             'per_page' => $object->perPage(),
             'total' => $object->total(),
         ];
+    }
+
+    private function httpStatus(int $code): int
+    {
+        return ($code >= 100 && $code < 600) ? $code : 200;
     }
 }

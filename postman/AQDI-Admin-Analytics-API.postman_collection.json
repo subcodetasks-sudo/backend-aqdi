@@ -1,229 +1,282 @@
 {
     "info": {
         "_postman_id": "aqdi-admin-analytics-api",
-        "name": "AQDI Admin — Analytics API (منفصل لكل بطاقة)",
-        "description": "كل بطاقة في لوحة التحليلات لها endpoint مستقل (عملاء + موظفين).\n\n**Query:** `limit` (1–100, default 10) — عدد السجلات في `items` عند «عرض».\n\n**Response:** `key` (إنجليزي فقط), `label_ar`, `value`, `type`, `items`.",
+        "name": "AQDI Admin — Analytics API",
+        "description": "All admin APIs in one collection.\n\n**Modules:** Analytics, Employees, Roles, Coupons, Message Alerts\n\n**Variables:** baseUrl, employee_token, employee_id, role_id, coupon_id, message_alert_section_id, message_alert_section_item_id, message_alert_id\n\n**Employees:** use Bearer {{employee_token}} after Login.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
         {
             "key": "baseUrl",
             "value": "http://localhost:8000"
+        },
+        {
+            "key": "contract_status_id",
+            "value": "2"
         }
     ],
     "item": [
         {
-            "name": "كل التحليلات (مجمّع)",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
+            "name": "Legacy / Full dashboard",
+            "item": [
+                {
+                    "name": "Get all analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/analytics/all"
                     }
-                ],
-                "url": "{{baseUrl}}/api/admin/analytics/all"
-            }
-        },
-        {
-            "name": "معدل نشاط المستخدمين",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
+                },
+                {
+                    "name": "Dashboard analytics alias",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/dashboard-analytics"
                     }
-                ],
-                "url": "{{baseUrl}}/api/admin/analytics/user-activity-rate",
-                "description": "معدل نشاط المستخدمين — `value` نسبة مئوية، `items` فيها active/total users."
-            }
-        },
-        {
-            "name": "أكثر العملاء طلب مكتمل",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
+                },
+                {
+                    "name": "Analytics (legacy)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/analytics"
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/completed-orders?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "completed-orders"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
-                        }
-                    ]
                 }
-            }
+            ]
         },
         {
-            "name": "أكثر العملاء طلب غير مكتمل",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
+            "name": "تحليلات العملاء",
+            "item": [
+                {
+                    "name": "كل التحليلات (مجمّع)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/analytics/all"
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/incomplete-orders?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "incomplete-orders"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
-                        }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "أكثر العملاء طلبات",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
+                },
+                {
+                    "name": "معدل نشاط المستخدمين",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/analytics/user-activity-rate",
+                        "description": "معدل نشاط المستخدمين — `value` نسبة مئوية، `items` فيها active/total users."
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/orders?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "orders"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
+                },
+                {
+                    "name": "أكثر العملاء طلب مكتمل",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/completed-orders?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "completed-orders"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
                         }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "أكثر العملاء استرجاع",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/returns?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "returns"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
+                },
+                {
+                    "name": "أكثر العملاء طلب غير مكتمل",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/incomplete-orders?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "incomplete-orders"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
                         }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "أكثر العملاء عقارات",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/real-estates?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "real-estates"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
+                },
+                {
+                    "name": "أكثر العملاء طلبات",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/orders?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "orders"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
                         }
-                    ]
-                }
-            }
-        },
-        {
-            "name": "أكثر العملاء وحدات",
-            "request": {
-                "method": "GET",
-                "header": [
-                    {
-                        "key": "Accept",
-                        "value": "application/json"
                     }
-                ],
-                "url": {
-                    "raw": "{{baseUrl}}/api/admin/analytics/top-customers/units?limit=10",
-                    "host": [
-                        "{{baseUrl}}"
-                    ],
-                    "path": [
-                        "api",
-                        "admin",
-                        "analytics",
-                        "top-customers",
-                        "units"
-                    ],
-                    "query": [
-                        {
-                            "key": "limit",
-                            "value": "10"
+                },
+                {
+                    "name": "أكثر العملاء استرجاع",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/returns?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "returns"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
                         }
-                    ]
+                    }
+                },
+                {
+                    "name": "أكثر العملاء عقارات",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/real-estates?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "real-estates"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "أكثر العملاء وحدات",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/top-customers/units?limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "top-customers",
+                                "units"
+                            ],
+                            "query": [
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
                 }
-            }
+            ]
         },
         {
             "name": "تحليلات الموظفين",
