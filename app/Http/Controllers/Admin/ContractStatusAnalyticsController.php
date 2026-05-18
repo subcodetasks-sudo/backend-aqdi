@@ -168,7 +168,7 @@ class ContractStatusAnalyticsController extends Controller
 
     /**
      * @param  array<string, mixed>  $definition
-     * @param  array<int, array<string, mixed>>  $items
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Contract>|\Illuminate\Contracts\Pagination\LengthAwarePaginator  $contracts
      * @return array<string, mixed>
      */
     private function buildCardPayload(
@@ -177,9 +177,10 @@ class ContractStatusAnalyticsController extends Controller
         $status,
         int $value,
         ?float $percentageChange,
-        array $items
+        $contracts
     ): array {
         $statusName = $status->name;
+        $orders = OrderResource::collection($contracts)->resolve();
 
         return [
             'key' => $key,
@@ -188,7 +189,8 @@ class ContractStatusAnalyticsController extends Controller
             'value' => $value,
             'type' => $definition['type'],
             'percentage_change' => $percentageChange,
-            'items' => $items,
+            'contracts' => $orders,
+            'items' => $orders,
             'meta' => [
                 'contract_status_id' => $status->id,
                 'contract_status_name' => $statusName,

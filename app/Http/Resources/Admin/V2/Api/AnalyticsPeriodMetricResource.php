@@ -19,7 +19,9 @@ class AnalyticsPeriodMetricResource extends JsonResource
             'value' => $this->resource['value'],
             'type' => $this->resource['type'],
             'percentage_change' => $this->resource['percentage_change'] ?? null,
-            'items' => $this->resource['items'] ?? [],
+            'contracts' => $this->resource['contracts'] ?? $this->resource['items'] ?? [],
+            'contracts_count' => count($this->resource['contracts'] ?? $this->resource['items'] ?? []),
+            'items' => $this->resource['items'] ?? $this->resource['contracts'] ?? [],
             'meta' => $this->resource['meta'] ?? null,
         ];
     }

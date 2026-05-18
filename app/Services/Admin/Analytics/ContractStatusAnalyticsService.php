@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractStatus;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ContractStatusAnalyticsService
@@ -78,13 +79,17 @@ class ContractStatusAnalyticsService
         ];
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function getContractsForPeriod(int $contractStatusId, string $period, int $limit = 10): array
+    public function getContractsForPeriod(int $contractStatusId, string $period, int $limit = 10): EloquentCollection
     {
-        $query = $this->baseQuery($contractStatusId)->with('user:id,fname,lname');
+        $query = $this->baseQuery($contractStatusId)->with($this->contractOrderRelations());
 
+        $this->applyPeriodFilter($query, $period);
+
+        return $query->latest()->limit($limit)->get();
+    }
+
+    protected function applyPeriodFilter($query, string $period): void
+    {
         match ($period) {
             'today' => $query->whereDate('created_at', Carbon::today()),
             'week' => $query->whereBetween('created_at', [
@@ -102,22 +107,18 @@ class ContractStatusAnalyticsService
             'total' => null,
             default => throw new \InvalidArgumentException("Unknown period: {$period}"),
         };
+    }
 
-        return $query
-            ->latest()
-            ->limit($limit)
-            ->get(['id', 'uuid', 'user_id', 'contract_status_id', 'created_at'])
-            ->map(fn ($c) => [
-                'id' => $c->id,
-                'uuid' => $c->uuid,
-                'user_id' => $c->user_id,
-                'user_name' => $c->user
-                    ? trim($c->user->fname.' '.$c->user->lname)
-                    : null,
-                'created_at' => $c->created_at?->format('Y-m-d H:i:s'),
-            ])
-            ->values()
-            ->all();
+    /**
+     * @return array<int, string>
+     */
+    protected function contractOrderRelations(): array
+    {
+        return [
+            'user',
+            'receivedContract.employee',
+            'contractStatus',
+        ];
     }
 
     protected function baseQuery(int $contractStatusId)
@@ -134,31 +135,10 @@ class ContractStatusAnalyticsService
     ): LengthAwarePaginator {
         $this->resolveStatus($contractStatusId);
 
-        $query = $this->baseQuery($contractStatusId)
-            ->with([
-                'user',
-                'receivedContract.employee',
-                'contractStatus',
-            ]);
+        $query = $this->baseQuery($contractStatusId)->with($this->contractOrderRelations());
 
         if ($period) {
-            match ($period) {
-                'today' => $query->whereDate('created_at', Carbon::today()),
-                'week' => $query->whereBetween('created_at', [
-                    Carbon::now()->startOfWeek(),
-                    Carbon::now()->endOfWeek(),
-                ]),
-                'month' => $query->whereBetween('created_at', [
-                    Carbon::now()->startOfMonth(),
-                    Carbon::now()->endOfMonth(),
-                ]),
-                'year' => $query->whereBetween('created_at', [
-                    Carbon::now()->startOfYear(),
-                    Carbon::now()->endOfYear(),
-                ]),
-                'total' => null,
-                default => throw new \InvalidArgumentException("Unknown period: {$period}"),
-            };
+            $this->applyPeriodFilter($query, $period);
         }
 
         return $query->latest()->paginate($perPage);
