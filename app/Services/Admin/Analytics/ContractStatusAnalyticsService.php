@@ -178,6 +178,7 @@ class ContractStatusAnalyticsService
             'user',
             'receivedContract.employee',
             'contractStatus',
+            'contractPayments',
         ];
     }
 
