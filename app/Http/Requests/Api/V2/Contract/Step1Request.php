@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ContractPropertyAddressRules;
 use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
+use App\Models\City;
 use App\Models\Contract;
 use App\Models\RealEstate;
 use Illuminate\Contracts\Validation\Validator;
@@ -11,6 +13,7 @@ use Illuminate\Validation\Rule;
 
 class Step1Request extends BaseApiV2Request
 {
+    use ContractPropertyAddressRules;
     use NormalizesCoordinateInputs;
 
     protected function prepareForValidation(): void
@@ -84,6 +87,7 @@ class Step1Request extends BaseApiV2Request
             'lng' => 'nullable|numeric',
             'image_instrument_from_the_back'=>'nullable',
             'image_instrument_from_the_front'=>'nullable',
+            ...$this->contractPropertyAddressRules(),
         ];
     }
 
@@ -127,12 +131,24 @@ class Step1Request extends BaseApiV2Request
             'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك الولاية يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'is_multiple_trusteeship_deed_copy.boolean' => 'حقل تعدد نسخ صك الولاية يجب أن يكون true أو false.',
+            ...$this->contractPropertyAddressMessages(),
         ];
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
+            if ($this->filled('property_city_id') && $this->filled('property_place_id')) {
+                $city = City::query()
+                    ->whereKey($this->input('property_city_id'))
+                    ->where('region_id', $this->input('property_place_id'))
+                    ->exists();
+
+                if (! $city) {
+                    $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
+                }
+            }
+
             if (! in_array($this->input('instrument_type'), ['electronic', 'strong_argument'], true)) {
                 return;
             }
