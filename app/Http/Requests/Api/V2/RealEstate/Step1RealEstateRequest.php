@@ -3,9 +3,9 @@
 namespace App\Http\Requests\Api\V2\RealEstate;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\RealEstate\Concerns\NormalizesRealEstateInstrumentType;
 use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
 use App\Models\City;
-use App\Models\Contract;
 use App\Models\RealEstate;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
@@ -16,24 +16,13 @@ use Illuminate\Validation\Rule;
  */
 class Step1RealEstateRequest extends BaseApiV2Request
 {
+    use NormalizesRealEstateInstrumentType;
     use RealEstateLocationRules;
 
     protected function prepareForValidation(): void
     {
         $this->normalizeCoordinateInputs();
-
-        $instrumentType = $this->input('instrument_type');
-
-        $aliases = [
-            'electronic_deed_from_the_ministry_of_justice' => 'electronic_deed_from_the_ministry_of_justice',
-            'electronic_deed'                              => 'electronic_deed',
-        ];
-
-        if (is_string($instrumentType) && isset($aliases[$instrumentType])) {
-            $this->merge([
-                'instrument_type' => $aliases[$instrumentType],
-            ]);
-        }
+        $this->normalizeInstrumentTypeInput();
     }
 
     public function authorize(): bool
@@ -48,7 +37,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
 
         return array_merge([
             'real_id'            => 'nullable|exists:contracts,id',
-            'instrument_type'    => ['nullable', Rule::in(Contract::instrumentTypes())],
+            'instrument_type'    => ['nullable', Rule::in(RealEstate::instrumentTypes())],
             'number_of_floors'   => 'required',
             'contract_type'    => 'required|in:housing,commercial',
             'property_type_id'   => 'required|exists:rea_estat_types,id',
@@ -61,9 +50,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'image_instrument'   => [
                 'nullable',
                 'image',
-                Rule::requiredIf(
-                    in_array($instrumentType, ['electronic', 'electronic_deed_from_the_ministry_of_justice', $ownerEndowment], true)
-                ),
+                Rule::requiredIf(in_array($instrumentType, ['electronic', $ownerEndowment], true)),
             ],
 
             'instrument_history' => 'nullable|date',
@@ -131,6 +118,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'property_type_id.exists'                 => 'نوع العقار غير موجود.',
             'contract_type.required'                  => 'نوع العقد مطلوب.',
             'contract_type.in'                        => 'نوع العقد يجب أن يكون سكني أو تجاري.',
+            'instrument_type.in'                      => 'نوع الصك غير صالح.',
             'number_of_floors.required'               => 'عدد الأدوار مطلوب.',
             'property_usages_id.required_if'          => 'استخدام العقار مطلوب.',
             'number_of_units_in_realestate.required'  => 'عدد الوحدات مطلوب.',
@@ -155,7 +143,6 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'user_id'                        => $userId,
             'contract_type'                  => $this->input('contract_type'),
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
-            'instrument_type'                => $this->input('instrument_type'),
             'property_type_id'               => $this->input('property_type_id'),
             'property_usages_id'             => $this->input('property_usages_id'),
             'number_of_floors'               => $this->input('number_of_floors'),
@@ -163,6 +150,10 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
             'step'                           => 1,
         ], $this->locationAttributesForPayload());
+
+        if ($this->filled('instrument_type')) {
+            $payload['instrument_type'] = $this->input('instrument_type');
+        }
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
             $payload['instrument_history'] = date('Y-m-d', strtotime((string) $this->input('instrument_history')));

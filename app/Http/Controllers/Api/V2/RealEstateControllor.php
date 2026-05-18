@@ -203,7 +203,6 @@ class RealEstateControllor extends ApiRealEstateControllor
             'date_first_registration' => $form->input('date_first_registration'),
             'property_owner_is_deceased' => $form->input('property_owner_is_deceased'),
             'number_of_units_in_realestate' => $form->input('number_of_units_in_realestate'),
-            'instrument_type' => $form->input('instrument_type'),
             'property_type_id' => $form->input('property_type_id'),
             'property_usages_id' => $form->input('property_usages_id'),
             'number_of_floors' => $form->input('number_of_floors'),
@@ -211,6 +210,10 @@ class RealEstateControllor extends ApiRealEstateControllor
             'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
             'step' => 1,
         ], $form->locationAttributesForPayload());
+
+        if ($form->filled('instrument_type')) {
+            $data['instrument_type'] = $form->input('instrument_type');
+        }
 
         if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
             $data['is_multiple_trusteeship_deed_copy'] = $form->boolean('is_multiple_trusteeship_deed_copy');

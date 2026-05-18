@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\RealEstate;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\RealEstate\Concerns\NormalizesRealEstateInstrumentType;
 use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
 use App\Models\City;
 use App\Models\RealEstate;
@@ -11,24 +12,13 @@ use Illuminate\Validation\Rule;
 
 class UpdateStep1RealEstateRequest extends BaseApiV2Request
 {
+    use NormalizesRealEstateInstrumentType;
     use RealEstateLocationRules;
 
     protected function prepareForValidation(): void
     {
         $this->normalizeCoordinateInputs();
-
-        $instrumentType = $this->input('instrument_type');
-
-        $aliases = [
-            'electronic_deed_from_the_ministry_of_justice' => 'electronic',
-            'electronic_deed' => 'electronic',
-        ];
-
-        if (is_string($instrumentType) && isset($aliases[$instrumentType])) {
-            $this->merge([
-                'instrument_type' => $aliases[$instrumentType],
-            ]);
-        }
+        $this->normalizeInstrumentTypeInput();
     }
 
     public function authorize(): bool
