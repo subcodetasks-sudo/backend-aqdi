@@ -1,11 +1,16 @@
 <?php
 
 namespace App\Providers;
-use Illuminate\Support\Facades\Blade;
-use Carbon\Carbon;
 
-use Illuminate\Support\ServiceProvider;
+use App\Routing\UnicodeJsonResponseFactory;
+use Carbon\Carbon;
+use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
+use Illuminate\Contracts\View\Factory as ViewFactory;
+use Illuminate\Routing\Redirector;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\ServiceProvider;
+
 class AppServiceProvider extends ServiceProvider
 {
     /**
@@ -13,7 +18,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(ResponseFactoryContract::class, function ($app) {
+            return new UnicodeJsonResponseFactory(
+                $app->make(ViewFactory::class),
+                $app->make(Redirector::class)
+            );
+        });
+
+        $this->app->alias(ResponseFactoryContract::class, 'Illuminate\Routing\ResponseFactory');
     }
 
     /**
