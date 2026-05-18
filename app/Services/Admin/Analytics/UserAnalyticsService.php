@@ -4,6 +4,8 @@ namespace App\Services\Admin\Analytics;
 
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class UserAnalyticsService
@@ -12,7 +14,7 @@ class UserAnalyticsService
 
     public function getNewUsersAnalytics(): array
     {
-        $getByPeriod = fn($start, $end) => User::whereBetween('created_at', [$start, $end])->count();
+        $getByPeriod = fn ($start, $end) => User::whereBetween('created_at', [$start, $end])->count();
         $today = $getByPeriod(Carbon::today(), Carbon::tomorrow());
         $week = $getByPeriod(Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek());
         $month = $getByPeriod(Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth());
@@ -32,6 +34,7 @@ class UserAnalyticsService
     {
         $totalUsers = User::count();
         $activeUsers = User::where('is_active', 1)->count();
+
         return [
             'rate' => $totalUsers > 0 ? round(($activeUsers / $totalUsers) * 100, 2) : 0,
             'active_users_count' => $activeUsers,
@@ -43,6 +46,7 @@ class UserAnalyticsService
     {
         $totalUsers = User::count();
         $inactiveUsers = User::where('is_active', 0)->count();
+
         return [
             'count' => $inactiveUsers,
             'percentage' => $totalUsers > 0 ? round(($inactiveUsers / $totalUsers) * 100, 2) : 0,
@@ -57,6 +61,7 @@ class UserAnalyticsService
             ->distinct()
             ->pluck('contracts.user_id')
             ->filter();
+
         return User::whereIn('id', $userIds)->count();
     }
 
@@ -89,107 +94,83 @@ class UserAnalyticsService
         return User::has('unitReal')->count();
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByCompletedOrders(int $limit = 10): array
     {
-        return User::withCount(['contracts as completed_orders_count' => fn ($q) => $q->where('is_completed', 1)->where('is_delete', 0)])
-            ->having('completed_orders_count', '>', 0)
-            ->orderByDesc('completed_orders_count')
-            ->limit($limit)
-            ->get(['id', 'fname', 'lname'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => $u->completed_orders_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('completed_orders_count', '>', 0)
+                ->orderByDesc('completed_orders_count'),
+            'completed_orders_count',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByIncompleteOrders(int $limit = 10): array
     {
-        return User::withCount(['contracts as incomplete_orders_count' => fn ($q) => $q->where('is_completed', 0)->where('is_delete', 0)])
-            ->having('incomplete_orders_count', '>', 0)
-            ->orderByDesc('incomplete_orders_count')
-            ->limit($limit)
-            ->get(['id', 'fname', 'lname'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => $u->incomplete_orders_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('incomplete_orders_count', '>', 0)
+                ->orderByDesc('incomplete_orders_count'),
+            'incomplete_orders_count',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByTotalOrders(int $limit = 10): array
     {
-        return User::withCount(['contracts as total_orders_count' => fn ($q) => $q->where('is_delete', 0)])
-            ->having('total_orders_count', '>', 0)
-            ->orderByDesc('total_orders_count')
-            ->limit($limit)
-            ->get(['id', 'fname', 'lname'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => $u->total_orders_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('total_orders_count', '>', 0)
+                ->orderByDesc('total_orders_count'),
+            'total_orders_count',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByRefunds(int $limit = 10): array
     {
-        return User::query()
-            ->select('users.id', 'users.fname', 'users.lname')
-            ->selectRaw('COUNT(DISTINCT contracts.id) as refunds_count')
-            ->selectRaw('COALESCE(SUM(payments.amount), 0) as total_refunds')
-            ->join('contracts', 'users.id', '=', 'contracts.user_id')
-            ->join('payments', 'contracts.uuid', '=', 'payments.contract_uuid')
-            ->where('payments.status', 'failed')
-            ->groupBy('users.id', 'users.fname', 'users.lname')
-            ->orderByDesc('total_refunds')
-            ->limit($limit)
-            ->get()
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => (int) $u->refunds_count,
-                'total_refunds' => (float) $u->total_refunds,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('refunds_count', '>', 0)
+                ->orderByDesc('refunds_count')
+                ->orderByDesc('total_refunds_amount'),
+            'refunds_count',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByRealEstates(int $limit = 10): array
     {
-        return User::withCount('realEstate')
-            ->having('real_estate_count', '>', 0)
-            ->orderByDesc('real_estate_count')
-            ->limit($limit)
-            ->get(['id', 'fname', 'lname'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => $u->real_estate_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('properties_count', '>', 0)
+                ->orderByDesc('properties_count'),
+            'properties_count',
+            $limit
+        );
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function getTopCustomersByUnits(int $limit = 10): array
     {
-        return User::withCount('unitReal')
-            ->having('unit_real_count', '>', 0)
-            ->orderByDesc('unit_real_count')
-            ->limit($limit)
-            ->get(['id', 'fname', 'lname'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => trim($u->fname.' '.$u->lname),
-                'count' => $u->unit_real_count,
-            ])
-            ->values()
-            ->all();
+        return $this->fetchTopAnalyticsClients(
+            fn (Builder $q) => $q->having('units_count', '>', 0)
+                ->orderByDesc('units_count'),
+            'units_count',
+            $limit
+        );
     }
 
     public function getTopCustomers(): array
@@ -202,5 +183,95 @@ class UserAnalyticsService
             'real_estates' => $this->getTopCustomersByRealEstates(),
             'units' => $this->getTopCustomersByUnits(),
         ];
+    }
+
+    protected function topAnalyticsClientsQuery(): Builder
+    {
+        return User::query()
+            ->select([
+                'users.id',
+                'users.fname',
+                'users.lname',
+                'users.email',
+                'users.mobile',
+                'users.is_active',
+                'users.created_at',
+            ])
+            ->withCount([
+                'contracts as completed_orders_count' => fn ($q) => $q->where('is_completed', 1)->where('is_delete', 0),
+                'contracts as incomplete_orders_count' => fn ($q) => $q->where('is_completed', 0)->where('is_delete', 0),
+                'contracts as total_orders_count' => fn ($q) => $q->where('is_delete', 0),
+                'realEstate as properties_count',
+                'unitReal as units_count',
+            ])
+            ->selectSub(
+                DB::table('payments')
+                    ->join('contracts', 'payments.contract_uuid', '=', 'contracts.uuid')
+                    ->whereColumn('contracts.user_id', 'users.id')
+                    ->where('payments.status', 'success')
+                    ->selectRaw('COALESCE(SUM(payments.amount), 0)'),
+                'total_paid_amount'
+            )
+            ->selectSub(
+                DB::table('payments')
+                    ->join('contracts', 'payments.contract_uuid', '=', 'contracts.uuid')
+                    ->whereColumn('contracts.user_id', 'users.id')
+                    ->where('payments.status', 'failed')
+                    ->selectRaw('COALESCE(SUM(payments.amount), 0)'),
+                'total_refunds_amount'
+            )
+            ->selectSub(
+                DB::table('contracts')
+                    ->join('payments', 'contracts.uuid', '=', 'payments.contract_uuid')
+                    ->whereColumn('contracts.user_id', 'users.id')
+                    ->where('payments.status', 'failed')
+                    ->selectRaw('COUNT(DISTINCT contracts.id)'),
+                'refunds_count'
+            );
+    }
+
+    /**
+     * @param  callable(Builder): void  $applySortAndFilter
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fetchTopAnalyticsClients(callable $applySortAndFilter, string $metricField, int $limit): array
+    {
+        $query = $this->topAnalyticsClientsQuery();
+        $applySortAndFilter($query);
+
+        return $this->mapAnalyticsClients($query->limit($limit)->get(), $metricField);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function mapAnalyticsClients(Collection $users, string $metricField): array
+    {
+        return $users->map(function (User $user) use ($metricField) {
+            $metricCount = (int) ($user->{$metricField} ?? 0);
+
+            return [
+                'id' => $user->id,
+                'name' => trim($user->fname.' '.$user->lname),
+                'email' => $user->email,
+                'phone' => $user->mobile,
+                'is_active' => (bool) $user->is_active,
+                'status' => $user->is_active ? 'active' : 'inactive',
+                'created_at' => $user->created_at?->format('Y-m-d H:i:s'),
+                'created_at_label' => $user->created_at
+                    ? date('j F Y - h:i A', strtotime($user->created_at))
+                    : null,
+                'properties_count' => (int) $user->properties_count,
+                'units_count' => (int) $user->units_count,
+                'completed_orders_count' => (int) $user->completed_orders_count,
+                'incomplete_orders_count' => (int) $user->incomplete_orders_count,
+                'total_orders_count' => (int) $user->total_orders_count,
+                'total_paid_amount' => round((float) $user->total_paid_amount, 2),
+                'refunds_count' => (int) $user->refunds_count,
+                'total_refunds_amount' => round((float) $user->total_refunds_amount, 2),
+                'count' => $metricCount,
+                'metric_count' => $metricCount,
+            ];
+        })->values()->all();
     }
 }

@@ -37,7 +37,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_completed_requests',
                 $this->userAnalytics->countUsersWithCompletedOrders(),
                 $this->userAnalytics->getTopCustomersByCompletedOrders($limit)
@@ -52,7 +52,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_incomplete_requests',
                 $this->userAnalytics->countUsersWithIncompleteOrders(),
                 $this->userAnalytics->getTopCustomersByIncompleteOrders($limit)
@@ -67,7 +67,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_requests',
                 $this->userAnalytics->countUsersWithOrders(),
                 $this->userAnalytics->getTopCustomersByTotalOrders($limit)
@@ -82,7 +82,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_returns',
                 $this->userAnalytics->getClientsWithRefundsCount(),
                 $this->userAnalytics->getTopCustomersByRefunds($limit)
@@ -97,7 +97,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_real_estate',
                 $this->userAnalytics->countUsersWithRealEstates(),
                 $this->userAnalytics->getTopCustomersByRealEstates($limit)
@@ -112,7 +112,7 @@ class UserDashboardAnalyticsController extends Controller
         try {
             $limit = $this->analyticsListLimit($request);
 
-            return $this->analyticsMetric(
+            return $this->analyticsClientsMetric(
                 'most_clients_units',
                 $this->userAnalytics->countUsersWithUnits(),
                 $this->userAnalytics->getTopCustomersByUnits($limit)

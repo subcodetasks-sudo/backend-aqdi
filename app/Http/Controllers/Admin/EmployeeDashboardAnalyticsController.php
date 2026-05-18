@@ -24,12 +24,12 @@ class EmployeeDashboardAnalyticsController extends Controller
     {
         try {
             $limit = $this->analyticsListLimit($request);
-            $items = $this->employeeAnalytics->getTopEmployeesByReceivedContracts($limit);
+            $employees = $this->employeeAnalytics->getTopEmployeesByReceivedContracts($limit);
 
-            return $this->analyticsMetric(
+            return $this->analyticsEmployeesMetric(
                 'most_received_orders_employee',
-                $this->topEmployeeDisplayValue($items) ?? $this->employeeAnalytics->countEmployeesWithReceivedContracts(),
-                $items,
+                $employees[0]['metric_value'] ?? 0,
+                $employees,
                 null,
                 self::METRICS_CONFIG
             );
@@ -42,14 +42,15 @@ class EmployeeDashboardAnalyticsController extends Controller
     {
         try {
             $limit = $this->analyticsListLimit($request);
-            $items = $this->employeeAnalytics->getTopEmployeesByRefundSubmissions($limit);
+            $employees = $this->employeeAnalytics->getTopEmployeesByRefundSubmissions($limit);
 
-            return $this->analyticsMetric(
+            return $this->analyticsEmployeesMetric(
                 'most_returns_employee',
-                $this->employeeAnalytics->getRefundableSum(),
-                $items,
+                $employees[0]['metric_value'] ?? 0,
+                $employees,
                 [
-                    'top_employee_name' => $this->topEmployeeDisplayValue($items),
+                    'total_refunds_amount' => $this->employeeAnalytics->getRefundableSum(),
+                    'top_employee_name' => $this->topEmployeeDisplayValue($employees),
                 ],
                 self::METRICS_CONFIG
             );
@@ -62,12 +63,12 @@ class EmployeeDashboardAnalyticsController extends Controller
     {
         try {
             $limit = $this->analyticsListLimit($request);
-            $items = $this->employeeAnalytics->getTopEmployeesByConfirmedContracts($limit);
+            $employees = $this->employeeAnalytics->getTopEmployeesByConfirmedContracts($limit);
 
-            return $this->analyticsMetric(
+            return $this->analyticsEmployeesMetric(
                 'most_documented_orders_employee',
-                $this->topEmployeeDisplayValue($items) ?? $this->employeeAnalytics->countEmployeesWithDocumentedOrders(),
-                $items,
+                $employees[0]['metric_value'] ?? 0,
+                $employees,
                 null,
                 self::METRICS_CONFIG
             );
@@ -95,12 +96,12 @@ class EmployeeDashboardAnalyticsController extends Controller
     {
         try {
             $limit = $this->analyticsListLimit($request);
-            $items = $this->employeeAnalytics->getTopEmployeesByUnpaidOrders($limit);
+            $employees = $this->employeeAnalytics->getTopEmployeesByUnpaidOrders($limit);
 
-            return $this->analyticsMetric(
+            return $this->analyticsEmployeesMetric(
                 'most_unpaid_orders_employee',
-                $this->topEmployeeDisplayValue($items) ?? $this->employeeAnalytics->countEmployeesWithUnpaidOrders(),
-                $items,
+                $employees[0]['metric_value'] ?? 0,
+                $employees,
                 null,
                 self::METRICS_CONFIG
             );

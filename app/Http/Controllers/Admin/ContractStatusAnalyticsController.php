@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\V2\Api\AnalyticsPeriodMetricResource;
+use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
+use App\Services\Admin\RefundableContractService;
 use App\Services\Admin\Analytics\ContractStatusAnalyticsService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -84,6 +86,50 @@ class ContractStatusAnalyticsController extends Controller
     public function total(Request $request, int $contractStatusId)
     {
         return $this->periodMetric($request, $contractStatusId, 'contract_status_total');
+    }
+
+    /**
+     * Paginated contracts for a status (e.g. status 3 = مكتمل).
+     * GET /api/admin/analytics/contract-status/3/contracts?period=today
+     */
+    public function contracts(Request $request, int $contractStatusId)
+    {
+        try {
+            $status = $this->statusAnalytics->resolveStatus($contractStatusId);
+            $period = $request->query('period');
+            if ($period !== null && $period !== '' && ! in_array($period, RefundableContractService::PERIODS, true)) {
+                return $this->errorMessage(
+                    'period must be one of: '.implode(', ', RefundableContractService::PERIODS),
+                    422
+                );
+            }
+
+            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
+            $contracts = $this->statusAnalytics->paginateContracts(
+                $contractStatusId,
+                $period ?: null,
+                $perPage
+            );
+
+            return $this->apiResponse([
+                'contract_status_id' => $status->id,
+                'contract_status_name' => $status->name,
+                'period' => $period,
+                'contracts' => OrderResource::collection($contracts),
+                'pagination' => [
+                    'current_page' => $contracts->currentPage(),
+                    'last_page' => $contracts->lastPage(),
+                    'per_page' => $contracts->perPage(),
+                    'total' => $contracts->total(),
+                ],
+            ], trans('api.success'));
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.not_found'), 404);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
     }
 
     private function periodMetric(Request $request, int $contractStatusId, string $metricKey)
