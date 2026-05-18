@@ -42,6 +42,7 @@ class OrderController extends Controller
                 'user',
                 'receivedContract.employee',
                 'contractStatus',
+                'contractPayments',
             ])
             ->latest()
             ->paginate($request->get('per_page', 20));
@@ -98,6 +99,8 @@ class OrderController extends Controller
         return [
             'user',
             'receivedContract.employee',
+            'contractStatus',
+            'contractPayments',
             'propertyType',
             'propertyUsages',
             'propertyRegion',
@@ -172,8 +175,7 @@ class OrderController extends Controller
             $query->orderBy($sortBy, $sortOrder);
 
             $incompleteOrders = $query->with([
-                'user',
-                'receivedContract.employee',
+                ...$this->contractRelations(),
                 'propertyType',
                 'propertyUsages',
                 'propertyRegion',
@@ -181,7 +183,7 @@ class OrderController extends Controller
                 'unitType',
                 'unitUsage',
                 'contractTermInYears',
-                'paymentType'
+                'paymentType',
             ])->paginate($request->get('per_page', 20));
 
             $orderCollection = OrderResource::collection($incompleteOrders);

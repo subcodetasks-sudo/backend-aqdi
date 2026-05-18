@@ -2,15 +2,19 @@
 
 namespace App\Http\Resources\Admin\V2\Api;
 
+use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
 use App\Models\ReceivedContract;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class OrderResource extends JsonResource
 {
+    use ResolvesContractPaymentForAdmin;
+
     public function toArray(Request $request): array
     {
         $receivedContract = $this->resolveReceivedContractRow();
+        $payment = $this->contractPaymentFields();
 
         // True iff `received_contracts.contract_id` = this contract id (row exists).
         $receivedContractExists = $receivedContract !== null;
@@ -20,7 +24,10 @@ class OrderResource extends JsonResource
             'uuid' => $this->uuid,
             'contract_type' => $this->contract_type_trans,
             'contract_type_key' => $this->contract_type,
-            'amount_payment' => $this->contract->payments->amount ?? 'لم يتم الدفع',
+            'amount_payment' => $payment['amount_payment'],
+            'is_paid' => $payment['is_paid'],
+            'payment_status' => $payment['payment_status'],
+            'payment_label_ar' => $payment['payment_label_ar'],
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'status' => [
                  
