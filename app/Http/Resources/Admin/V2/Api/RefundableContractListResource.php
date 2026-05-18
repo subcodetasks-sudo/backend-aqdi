@@ -27,6 +27,8 @@ class RefundableContractListResource extends JsonResource
                 : null,
             'contract_type' => $contract?->contract_type_trans,
             'contract_type_key' => $contract?->contract_type,
+            'instrument_type' => $contract?->instrument_type_trans,
+            'instrument_type_key' => $contract?->instrument_type,
             'contract_status' => $contract?->contractStatus ? [
                 'id' => $contract->contractStatus->id,
                 'name' => $contract->contractStatus->name,
