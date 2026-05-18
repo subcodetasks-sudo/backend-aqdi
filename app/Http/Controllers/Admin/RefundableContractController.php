@@ -26,12 +26,12 @@ class RefundableContractController extends Controller
     {
         try {
             $period = $this->refundableService->resolvePeriod($request->query('period'));
+            $summary = $this->refundableService->buildIndexSummary($period);
 
-            $query = $this->refundableService->baseQuery();
-            $this->refundableService->applyPeriod($query, $period);
+            $query = $this->refundableService->periodQuery($period);
 
             if ($request->filled('admin_confirmed')) {
-                $query->where('admin_confirmed', $request->boolean('admin_confirmed'));
+                $query->where('refundable_contracts.admin_confirmed', $request->boolean('admin_confirmed'));
             }
 
             if ($request->filled('contract_status_id')) {
@@ -47,6 +47,9 @@ class RefundableContractController extends Controller
             return $this->apiResponse([
                 'period' => $period,
                 'label_ar' => $this->periodLabelAr($period),
+                'summary' => $summary,
+                'management_approval' => $summary['management_approval'],
+                'contract_statuses' => $summary['contract_statuses'],
                 'contracts' => RefundableContractListResource::collection($records),
                 'pagination' => [
                     'current_page' => $records->currentPage(),
