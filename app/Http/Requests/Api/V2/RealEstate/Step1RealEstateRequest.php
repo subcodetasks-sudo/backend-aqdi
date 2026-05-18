@@ -20,6 +20,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeCoordinateInputs();
+
         $instrumentType = $this->input('instrument_type');
 
         $aliases = [

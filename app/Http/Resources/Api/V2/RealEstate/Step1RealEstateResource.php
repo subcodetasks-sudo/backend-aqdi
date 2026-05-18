@@ -59,8 +59,10 @@ class Step1RealEstateResource extends JsonResource
             'building_number' => $this->building_number,
             'postal_code' => $this->postal_code,
             'extra_figure' => $this->extra_figure,
-            'latitude' => $this->latitude,
-            'longitude' => $this->longitude,
+            'latitude' => $lat = $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $lng = $this->longitude !== null ? (float) $this->longitude : null,
+            'lat' => $lat,
+            'lng' => $lng,
             'step' => $this->step,
         ];
     }

@@ -36,8 +36,10 @@ class RealEstateResource extends JsonResource
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'image_address' => $this->image_address,
-            'latitude' => $this->latitude,
-            'longitude' => $this->longitude,
+            'latitude' => $lat = $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $lng = $this->longitude !== null ? (float) $this->longitude : null,
+            'lat' => $lat,
+            'lng' => $lng,
             'step' => $this->step,
         ];
     }
