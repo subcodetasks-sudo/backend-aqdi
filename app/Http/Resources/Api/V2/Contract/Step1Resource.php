@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Api\V2\Contract;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractAddressFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Step1Resource extends JsonResource
 {
+    use MapsContractAddressFields;
     use WithContractDocumentationDeadline;
 
     private function fileUrl(?string $path): ?string
@@ -59,6 +61,7 @@ class Step1Resource extends JsonResource
             'longitude' => $lng = $this->longitude !== null ? (float) $this->longitude : null,
             'lat' => $lat,
             'lng' => $lng,
+            ...$this->contractAddressFields(),
             'step' => $this->step,
         ];
     }

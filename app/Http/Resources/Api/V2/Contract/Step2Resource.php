@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Api\V2\Contract;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractAddressFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Step2Resource extends JsonResource
 {
+    use MapsContractAddressFields;
     use WithContractDocumentationDeadline;
 
     public function toArray(Request $request): array
@@ -39,6 +41,7 @@ class Step2Resource extends JsonResource
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
+            ...$this->contractAddressFields(),
             'step' => $this->step,
         ];
     }

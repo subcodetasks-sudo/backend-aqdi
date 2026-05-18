@@ -124,6 +124,10 @@ class ContractController extends Controller
 
         $this->applyCoordinatesIfPresent($step1Data, $request, $validated);
 
+        if ($addressError = $this->applyPropertyAddressIfPresent($step1Data, $request, $validated, $contract)) {
+            return $addressError;
+        }
+
         $effectiveInstrumentType = $step1Data['instrument_type'] ?? $contract->instrument_type;
         $step1Data['step'] = Contract::shouldSkipInitialSteps($effectiveInstrumentType) ? 3 : 2;
 
@@ -164,6 +168,12 @@ class ContractController extends Controller
             ]);
         }
 
+        if ($request->hasFile('image_address')) {
+            $contract->update([
+                'image_address' => $request->file('image_address')->store('images/contracts', 'public'),
+            ]);
+        }
+
         return response()->json([
             'message' => trans('api.success'),
             'code' => 200,
@@ -182,6 +192,9 @@ class ContractController extends Controller
         if (Contract::shouldSkipInitialSteps($contract->instrument_type)) {
             $skipData = ['step' => 3];
             $this->applyCoordinatesIfPresent($skipData, $request, $validated);
+            if ($addressError = $this->applyPropertyAddressIfPresent($skipData, $request, $validated, $contract)) {
+                return $addressError;
+            }
             $contract->update($skipData);
 
             return response()->json([
@@ -196,24 +209,11 @@ class ContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
-        $city = City::where('id', $validated['property_city_id'])
-            ->where('region_id', $validated['property_place_id'])
-            ->first();
-
-        if (! $city) {
-            return $this->errorMessage(trans('api.city_not_include_region'));
+        $data = ['step' => 3];
+        $this->mergeRequiredPropertyAddress($data, $validated);
+        if ($addressError = $this->applyPropertyAddressIfPresent($data, $request, $validated, $contract)) {
+            return $addressError;
         }
-
-        $data = [
-            'property_place_id' => $validated['property_place_id'],
-            'property_city_id' => $validated['property_city_id'],
-            'neighborhood' => $validated['neighborhood'] ?? null,
-            'street' => $validated['street'] ?? null,
-            'building_number' => $validated['building_number'] ?? null,
-            'postal_code' => $validated['postal_code'] ?? null,
-            'extra_figure' => $validated['extra_figure'] ?? null,
-            'step' => 3,
-        ];
 
         $this->applyCoordinatesIfPresent($data, $request, $validated);
 
@@ -642,6 +642,64 @@ class ContractController extends Controller
             'message' => 'التفاصيل الماليه',
             'data' => $responseData,
         ], 200);
+    }
+
+    private const PROPERTY_ADDRESS_FIELDS = [
+        'property_place_id',
+        'property_city_id',
+        'neighborhood',
+        'street',
+        'building_number',
+        'postal_code',
+        'extra_figure',
+    ];
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $validated
+     */
+    private function mergeRequiredPropertyAddress(array &$payload, array $validated): void
+    {
+        foreach (self::PROPERTY_ADDRESS_FIELDS as $field) {
+            if (array_key_exists($field, $validated)) {
+                $payload[$field] = $validated[$field];
+            }
+        }
+    }
+
+    /**
+     * Persist address fields only when the client sends them (step1 / optional step2 skip).
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $validated
+     */
+    private function applyPropertyAddressIfPresent(
+        array &$payload,
+        Request $request,
+        array $validated = [],
+        ?Contract $contract = null
+    ): ?\Illuminate\Http\JsonResponse {
+        foreach (self::PROPERTY_ADDRESS_FIELDS as $field) {
+            if ($request->filled($field)) {
+                $payload[$field] = $validated[$field] ?? $request->input($field);
+            }
+        }
+
+        $placeId = $payload['property_place_id'] ?? $contract?->property_place_id;
+        $cityId = $payload['property_city_id'] ?? $contract?->property_city_id;
+
+        if ($placeId && $cityId) {
+            $cityBelongsToRegion = City::query()
+                ->whereKey($cityId)
+                ->where('region_id', $placeId)
+                ->exists();
+
+            if (! $cityBelongsToRegion) {
+                return $this->errorMessage(trans('api.city_not_include_region'));
+            }
+        }
+
+        return null;
     }
 
     /**
