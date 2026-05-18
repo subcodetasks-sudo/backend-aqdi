@@ -39,7 +39,7 @@ class ContractController extends Controller
         $contracts = Contract::where('user_id', $user->id)
             ->with(['realEstate', 'contractStatus'])
             ->orderBy('created_at', 'desc')
-            ->where('step', '>', '6')
+            // ->where('step', '>', '6')
             ->where('is_delete', 0)
             ->paginate(10);
 
