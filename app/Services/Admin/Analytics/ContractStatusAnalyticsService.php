@@ -192,7 +192,8 @@ class ContractStatusAnalyticsService
     public function paginateContracts(
         int $contractStatusId,
         ?string $period = null,
-        int $perPage = 20
+        int $perPage = 20,
+        ?string $search = null
     ): LengthAwarePaginator {
         $this->resolveStatus($contractStatusId);
 
@@ -200,6 +201,10 @@ class ContractStatusAnalyticsService
 
         if ($period) {
             $this->applyPeriodFilter($query, $period);
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $query->adminSearch($search);
         }
 
         return $query->latest()->paginate($perPage);

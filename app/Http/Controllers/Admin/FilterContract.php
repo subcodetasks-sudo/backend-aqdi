@@ -36,7 +36,11 @@ class FilterContract extends Controller
             );
         }
 
-        $contracts = $contractsQuery->latest()->paginate(20);
+        if ($request->filled('search')) {
+            $contractsQuery->adminSearch($request->string('search')->toString());
+        }
+
+        $contracts = $contractsQuery->latest()->paginate($request->integer('per_page', 20));
 
         return $this->apiResponse(
             ContractResource::collection($contracts),

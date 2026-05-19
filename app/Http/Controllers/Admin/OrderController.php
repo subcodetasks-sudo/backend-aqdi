@@ -37,6 +37,9 @@ class OrderController extends Controller
             ->when($request->filled('contract_status_id'), fn ($q) =>
                 $q->where('contract_status_id', $request->contract_status_id)
             )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
             ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with([
                 'user',
@@ -83,8 +86,8 @@ class OrderController extends Controller
             ->when($request->user_id, fn ($q) =>
                 $q->where('user_id', $request->user_id)
             )
-            ->when($request->search, fn ($q) =>
-                $q->where('uuid', 'like', "%{$request->search}%")
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
             )
             ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->orderBy(
@@ -158,10 +161,8 @@ class OrderController extends Controller
                 $query->where('user_id', $request->user_id);
             }
 
-            // Search by UUID if provided
-            if ($request->has('search')) {
-                $search = $request->search;
-                $query->where('uuid', 'like', "%{$search}%");
+            if ($request->filled('search')) {
+                $query->adminSearch($request->string('search')->toString());
             }
 
             // Exclude deleted contracts
