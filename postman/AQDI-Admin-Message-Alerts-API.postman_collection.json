@@ -25,6 +25,55 @@
     ],
     "item": [
         {
+            "name": "Export all messages",
+            "item": [
+                {
+                    "name": "All messages (tree + flat list)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/all"
+                    }
+                },
+                {
+                    "name": "All messages — client only",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/message-alerts/all?type=client",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "message-alerts", "all"],
+                            "query": [{"key": "type", "value": "client"}]
+                        }
+                    }
+                },
+                {
+                    "name": "Types overview",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/admin/message-alerts/types"
+                    }
+                }
+            ]
+        },
+        {
             "name": "Client messages",
             "item": [
                 {

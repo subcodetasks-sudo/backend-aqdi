@@ -10,6 +10,7 @@ use App\Http\Traits\Responser;
 use App\Models\MessageAlert;
 use App\Models\MessageAlertSection;
 use App\Models\MessageAlertSectionItem;
+use App\Support\MessageAlertAudienceTree;
 use App\Support\MessageAlertType;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -68,6 +69,78 @@ class MessageAlertController extends Controller
                 MessageAlertCreateFormResource::forAudience($type, $sections),
                 trans('api.success')
             );
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * All messages (full tree, no pagination). Optional filter by audience type.
+     * GET /api/admin/message-alerts/all
+     * GET /api/admin/message-alerts/all?type=client
+     */
+    public function all(Request $request)
+    {
+        try {
+            $types = $request->filled('type')
+                ? [MessageAlertType::normalize($request->input('type'))]
+                : MessageAlertType::allowed();
+
+            $audiences = [];
+            $flatMessages = [];
+            $totalMessages = 0;
+
+            foreach ($types as $type) {
+                $sections = MessageAlertSection::query()
+                    ->where('type', $type)
+                    ->with([
+                        'items' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
+                        'items.messageAlerts' => fn ($q) => $q
+                            ->with([
+                                'sectionItem:id,message_alert_section_id,name_ar,name_en',
+                                'sectionItem.section:id,name_ar,name_en,type',
+                            ])
+                            ->latest(),
+                    ])
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get();
+
+                $export = MessageAlertAudienceTree::build($type, $sections);
+                $audiences[] = $export;
+                $totalMessages += (int) ($export['messages_count'] ?? 0);
+
+                foreach ($export['sections'] ?? [] as $section) {
+                    foreach ($section['items'] ?? [] as $item) {
+                        foreach ($item['messages'] ?? [] as $message) {
+                            $flatMessages[] = $message;
+                        }
+                    }
+                }
+            }
+
+            $typesOverview = [];
+            foreach (MessageAlertType::definitions() as $key => $definition) {
+                $typesOverview[] = [
+                    'key' => $key,
+                    'label_ar' => $definition['label_ar'],
+                    'label_en' => $definition['label_en'],
+                    'show_in_overview' => (bool) ($definition['show_in_overview'] ?? false),
+                    'sections_count' => MessageAlertSection::query()->where('type', $key)->count(),
+                    'messages_count' => MessageAlert::query()
+                        ->whereHas('sectionItem.section', fn ($q) => $q->where('type', $key))
+                        ->count(),
+                ];
+            }
+
+            return $this->apiResponse([
+                'types' => $typesOverview,
+                'audiences' => $audiences,
+                'messages' => $flatMessages,
+                'total_messages' => $totalMessages,
+            ], trans('api.success'));
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (\Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }

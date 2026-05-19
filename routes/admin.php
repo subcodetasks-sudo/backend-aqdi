@@ -356,6 +356,7 @@ use Illuminate\Support\Facades\Route;
 
     Route::prefix('message-alerts')->name('message-alerts.')->controller(MessageAlertController::class)->group(function () {
         Route::get('/types', 'types')->name('types');
+        Route::get('/all', 'all')->name('all');
 
         Route::prefix('{audience}')->where(['audience' => 'client|property|employee'])->group(function () {
             Route::get('/create', 'create')->name('create.audience');
