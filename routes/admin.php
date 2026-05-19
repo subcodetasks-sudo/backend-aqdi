@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\FilterContract;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HomeAdminController;
+use App\Http\Controllers\Admin\LocationAnalyticsController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PageContentController;
 use App\Http\Controllers\Admin\PaperworkController;
@@ -74,6 +75,11 @@ use Illuminate\Support\Facades\Route;
         Route::get('/analytics', 'analysis')->name('analytics');
         Route::get('/analytics/all', 'analysis')->name('analytics.all');
         Route::get('/dashboard-analytics', 'analysis')->name('dashboard-analytics');
+    });
+
+    Route::prefix('analytics/locations')->name('analytics.locations.')->controller(LocationAnalyticsController::class)->group(function () {
+        Route::get('/cities', 'cities')->name('cities');
+        Route::get('/', 'index')->name('index');
     });
 
     Route::prefix('analytics')->name('analytics.')->controller(UserDashboardAnalyticsController::class)->group(function () {
