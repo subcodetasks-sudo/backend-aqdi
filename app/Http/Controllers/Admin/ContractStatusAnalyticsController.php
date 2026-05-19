@@ -65,7 +65,8 @@ class ContractStatusAnalyticsController extends Controller
             $contracts = $this->statusAnalytics->paginateContracts(
                 $contractStatusId,
                 $period,
-                $perPage
+                $perPage,
+                $request->filled('search') ? $request->string('search')->toString() : null
             );
 
             return $this->apiResponse([

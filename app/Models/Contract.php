@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AdminSearchableContract;
 use App\Models\Payment;
 use App\Models\UnitsReal;
 use App\Models\UsageUnit;
@@ -14,6 +15,7 @@ use TaqnyatSms;
 
 class Contract extends Model
 {
+    use AdminSearchableContract;
     use HasFactory;
 
     public const SKIP_INITIAL_STEPS_INSTRUMENT_TYPES = [
