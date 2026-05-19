@@ -30,7 +30,6 @@ use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UnitUsageController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MessageAlertController;
-use App\Http\Controllers\Admin\ContractStatusAnalyticsController;
 use App\Http\Controllers\Admin\RefundableContractController;
 use App\Http\Controllers\Admin\EmployeeDashboardAnalyticsController;
 use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
@@ -107,11 +106,6 @@ use Illuminate\Support\Facades\Route;
         Route::get('/contracts/{id}', 'show')->whereNumber('id')->name('contracts.show');
     });
 
-    Route::prefix('analytics/contract-status')->name('analytics.contract-status.')->controller(ContractStatusAnalyticsController::class)->group(function () {
-        Route::get('/{contractStatusId}/contracts', 'contracts')->whereNumber('contractStatusId')->name('contracts');
-        Route::get('/{contractStatusId}', 'show')->whereNumber('contractStatusId')->name('show');
-    });
-
     Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {
         Route::get('/most-received-orders', 'mostReceivedOrders')->name('most-received-orders');
         Route::get('/most-returns', 'mostReturns')->name('most-returns');
@@ -149,10 +143,11 @@ use Illuminate\Support\Facades\Route;
     // Orders Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
         Route::get('/', 'orders')->name('index');
-        Route::get('/{id}', 'show')->name('show');
-        Route::post('/{id}/contract-status', 'updateContractStatus')->name('update-contract-status');
+        Route::get('/return', 'returnOrders')->name('return');
         Route::get('/incomplete/list', 'incomplete')->name('incomplete');
         Route::get('/complete/list', 'complete')->name('complete');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}/contract-status', 'updateContractStatus')->whereNumber('id')->name('update-contract-status');
     });
 
     // Contract comments (employee-authenticated)

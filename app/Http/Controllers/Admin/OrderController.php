@@ -49,8 +49,37 @@ class OrderController extends Controller
             ])
             ->latest()
             ->paginate($request->get('per_page', 20));
-        $orderCollection = OrderResource::collection($orders);
-        return $this->apiResponse($orderCollection, trans('api.success'));
+
+        return $this->apiResponse(
+            OrderResource::collection($orders),
+            trans('api.success')
+        );
+    }
+
+    /**
+     * Returned contracts (contract_status_id = 2).
+     * GET /api/admin/orders/return
+     */
+    public function returnOrders(Request $request)
+    {
+        try {
+            $contracts = $this->returnContractsQuery($request)
+                ->with($this->orderListRelations())
+                ->paginate(min(max((int) $request->get('per_page', 20), 1), 100));
+
+            return $this->apiResponse([
+                'contract_status_id' => 2,
+                'items' => OrderResource::collection($contracts),
+                'pagination' => $this->paginate($contracts),
+            ], trans('api.success'));
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
     }
 
     public function incomplete(Request $request)
@@ -73,6 +102,37 @@ class OrderController extends Controller
                 500
             );
         }
+    }
+
+    private function returnContractsQuery(Request $request)
+    {
+        return Contract::query()
+            ->where('contract_status_id', 2)
+            ->where('is_delete', false)
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+            ->orderBy(
+                $request->get('sort_by', 'created_at'),
+                $request->get('sort_order', 'desc')
+            );
+    }
+
+    private function orderListRelations(): array
+    {
+        return [
+            'user',
+            'receivedContract.employee',
+            'contractStatus',
+            'contractPayments',
+        ];
     }
 
     private function incompleteContractsQuery(Request $request)
