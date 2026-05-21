@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\MapsRealEstateOwnerAttributes;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ReaEstatType;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RealEstate extends Model
 {
+    use MapsRealEstateOwnerAttributes;
     /** صك ملكية ومالك العقار وقف — requires deed + endowment registration + trusteeship deed uploads */
     public const INSTRUMENT_TYPE_OWNER_ENDOWMENT = 'property_ownership_owner_is_endowment';
 
@@ -65,6 +67,9 @@ class RealEstate extends Model
     use HasFactory;
     protected $fillable = [
         'dob_hijri',
+        'national_num',
+        'mobile',
+        'iban_bank',
         'name_owner','property_owner_id_num', 'property_owner_dob_hijri', 'property_owner_mobile', 'property_owner_iban', 'name_real_estate', 
         'number_of_units_in_realestate', 'property_type_id', 'property_usages_id', 'property_place_id', 'neighborhood','user_id',
         'contract_type','instrument_type','id_num_of_property_owner_agent','id_num_of_property_owner_agent ',
