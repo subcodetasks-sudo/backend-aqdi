@@ -27,7 +27,7 @@ class Step1Request extends FormRequest
 
         return [
            
-            'contract_ownership' => 'required',
+            'contract_ownership' => 'nullable',
             'instrument_type' => ['required', Rule::in($instrumentTypes)],
             'instrument_number' => ['required_if:instrument_type,electronic'],
             'instrument_history' => ['nullable', 'date', 'required_if:instrument_type,electronic'],
