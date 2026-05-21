@@ -14,6 +14,9 @@
  * تشغيل يدوي (عند الحاجة فقط):
  *   php artisan migrate --path=database/migrations/add_to/2026_05_19_000000_contracts_schema_delta_from_baseline.php
  *
+ * إذا فشل تشغيل سابق عند تعديل contract_starting_date (errno 150): ارفع هذا الملف
+ * المحدّث وأعد الأمر — الخطوة 1 idempotent (تتخطى الأعمدة الموجودة).
+ *
  * مصادر التغييرات في المشروع (للمراجعة):
  *   - 2026_03_11_043547_add_new_fildes_to_contracts_table.php
  *   - 2026_03_26_100000_add_name_real_estate_to_contracts_table.php
@@ -67,6 +70,33 @@ MODIFY `instrument_type` ENUM(
     'property_ownership_owner_are_deceased'
 ) NULL
 SQL;
+    }
+
+    /**
+     * MySQL/MariaDB on shared hosting rebuilds the table on MODIFY/CHANGE;
+     * disable FK checks to avoid errno 150 when other tables reference contracts.
+     */
+    private function withoutForeignKeyChecks(callable $callback): void
+    {
+        Schema::disableForeignKeyConstraints();
+        try {
+            $callback();
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
+    }
+
+    private function contractStartingDateIsString(): bool
+    {
+        $row = DB::selectOne("
+            SELECT DATA_TYPE
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'contracts'
+              AND COLUMN_NAME = 'contract_starting_date'
+        ");
+
+        return $row && in_array(strtolower((string) $row->DATA_TYPE), ['varchar', 'char', 'text'], true);
     }
 
     public function up(): void
@@ -199,10 +229,12 @@ SQL;
 
         // ---------------------------------------------------------------------
         // 2) تغيير نوع عمود: contract_starting_date من date إلى string
+        //    (لا تستخدم ->change() — تفشل مع errno 150 عند وجود FK على contracts)
         // ---------------------------------------------------------------------
-        if (Schema::hasColumn('contracts', 'contract_starting_date')) {
-            Schema::table('contracts', function (Blueprint $table) {
-                $table->string('contract_starting_date', 20)->nullable()->change();
+        if (Schema::hasColumn('contracts', 'contract_starting_date')
+            && ! $this->contractStartingDateIsString()) {
+            $this->withoutForeignKeyChecks(function (): void {
+                DB::statement('ALTER TABLE `contracts` MODIFY `contract_starting_date` VARCHAR(20) NULL');
             });
         }
 
@@ -210,15 +242,19 @@ SQL;
         // 3) إعادة تسمية أعمدة (إن وُجدت الأسماء القديمة فقط)
         // ---------------------------------------------------------------------
         if (Schema::hasColumn('contracts', 'tenant_dob_hijri') && ! Schema::hasColumn('contracts', 'tenant_dob')) {
-            Schema::table('contracts', function (Blueprint $table) {
-                $table->renameColumn('tenant_dob_hijri', 'tenant_dob');
+            $this->withoutForeignKeyChecks(function (): void {
+                Schema::table('contracts', function (Blueprint $table) {
+                    $table->renameColumn('tenant_dob_hijri', 'tenant_dob');
+                });
             });
         }
 
         if (Schema::hasColumn('contracts', 'dob_hijri_of_property_tenant_agent')
             && ! Schema::hasColumn('contracts', 'dob_of_property_tenant_agent')) {
-            Schema::table('contracts', function (Blueprint $table) {
-                $table->renameColumn('dob_hijri_of_property_tenant_agent', 'dob_of_property_tenant_agent');
+            $this->withoutForeignKeyChecks(function (): void {
+                Schema::table('contracts', function (Blueprint $table) {
+                    $table->renameColumn('dob_hijri_of_property_tenant_agent', 'dob_of_property_tenant_agent');
+                });
             });
         }
 
@@ -261,13 +297,15 @@ SQL;
                 }
             }
 
-            Schema::table('contracts', function (Blueprint $table) {
-                if (Schema::hasColumn('contracts', 'property_owner_dob_hijri')) {
-                    $table->dropColumn('property_owner_dob_hijri');
-                }
-                if (Schema::hasColumn('contracts', 'property_owner_dob_gregorian')) {
-                    $table->dropColumn('property_owner_dob_gregorian');
-                }
+            $this->withoutForeignKeyChecks(function (): void {
+                Schema::table('contracts', function (Blueprint $table) {
+                    if (Schema::hasColumn('contracts', 'property_owner_dob_hijri')) {
+                        $table->dropColumn('property_owner_dob_hijri');
+                    }
+                    if (Schema::hasColumn('contracts', 'property_owner_dob_gregorian')) {
+                        $table->dropColumn('property_owner_dob_gregorian');
+                    }
+                });
             });
         }
 
@@ -292,7 +330,9 @@ SQL;
         // 6) توسيع ENUM لـ instrument_type إلى القائمة النهائية
         // ---------------------------------------------------------------------
         if (Schema::hasColumn('contracts', 'instrument_type')) {
-            DB::statement('ALTER TABLE `contracts` '.$this->finalInstrumentTypeEnumSql());
+            $this->withoutForeignKeyChecks(function (): void {
+                DB::statement('ALTER TABLE `contracts` '.$this->finalInstrumentTypeEnumSql());
+            });
         }
     }
 
@@ -354,9 +394,10 @@ SQL;
             });
         }
 
-        if (Schema::hasColumn('contracts', 'contract_starting_date')) {
-            Schema::table('contracts', function (Blueprint $table) {
-                $table->date('contract_starting_date')->nullable()->change();
+        if (Schema::hasColumn('contracts', 'contract_starting_date')
+            && $this->contractStartingDateIsString()) {
+            $this->withoutForeignKeyChecks(function (): void {
+                DB::statement('ALTER TABLE `contracts` MODIFY `contract_starting_date` DATE NULL');
             });
         }
 
