@@ -9,6 +9,8 @@ class Step5Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
         $booleanKeys = ['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'];
         $normalizedBooleans = [];
 
@@ -119,16 +121,26 @@ class Step5Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'id.required' => 'معرف العقد مطلوب.',
-            'id.exists' => 'العقد المحدد غير موجود.',
-            'unit_type_id.required' => 'نوع الوحدة مطلوب.',
-            'unit_usage_id.required' => 'استخدام الوحدة مطلوب.',
-            'unit_number.required' => 'رقم الوحدة مطلوب.',
-            'floor_number.required' => 'رقم الطابق مطلوب.',
-            'unit_area.required' => 'مساحة الوحدة مطلوبة.',
-            'window_ac.required' => 'عدد مكيفات الشباك مطلوب.',
-            'split_ac.required' => 'عدد مكيفات السبليت مطلوب.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'unit_type_id',
+            'unit_usage_id',
+            'unit_number',
+            'floor_number',
+            'unit_area',
+            'tootal_rooms',
+            'The_number_of_halls',
+            'The_number_of_kitchens',
+            'The_number_of_the_toilet',
+            'window_ac',
+            'split_ac',
+            'electricity_meter_number',
+            'water_meter_number',
+            'kitchen_tank',
+            'furnished',
+            'type_furnished',
+            'electricity_meter',
+            'water_meter',
+        ]);
     }
 }

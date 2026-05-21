@@ -12,6 +12,8 @@ class ContractTypeRequest extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
         if ($this->has('instrument_type')) {
             $this->merge([
                 'instrument_type' => Contract::normalizeInstrumentType($this->input('instrument_type')),
@@ -46,22 +48,13 @@ class ContractTypeRequest extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'contract_type.required' => 'نوع العقد مطلوب.',
-            'contract_type.in' => 'نوع العقد غير صالح.',
-            'real_id.required' => 'العقار مطلوب عند اختيار عقد على عقار موجود.',
-            'real_id.exists' => 'العقار المحدد غير موجود.',
-            // 'real_units_id.required' => 'الوحدة مطلوبة عند اختيار عقد على عقار موجود.',
-            // 'real_units_id.exists' => 'الوحدة المحددة غير موجودة.',
-            // 'property_type_id.required' => 'نوع العقار مطلوب.',
-            // 'property_type_id.exists' => 'نوع العقار غير موجود.',
-            // 'number_of_floors.required' => 'عدد الأدوار مطلوب.',
-            // 'property_usages_id.required_if' => 'استخدام العقار مطلوب.',
-            // 'number_of_units_in_realestate.required' => 'عدد الوحدات مطلوب.',
-            // 'number_of_units_in_realestate.integer' => 'عدد الوحدات يجب أن يكون رقمًا صحيحًا.',
-            // 'image_instrument.required_if' => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
-            // 'image_instrument.image' => 'حقل صورة الصك يجب أن يكون صورة.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'contract_type',
+            'instrument_type',
+            'is_real',
+            'real_id',
+            'real_units_id',
+        ]);
     }
 
     public function withValidator(Validator $validator): void

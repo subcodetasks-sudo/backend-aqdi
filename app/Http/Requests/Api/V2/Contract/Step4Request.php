@@ -10,6 +10,8 @@ class Step4Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
         if ($this->filled('tenant_dob') && ! $this->filled('tenant_dob_day')) {
             $parts = HijriDobParts::split((string) $this->input('tenant_dob'));
             if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
@@ -83,22 +85,30 @@ class Step4Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'id.required' => 'معرف العقد مطلوب.',
-            'id.exists' => 'العقد المحدد غير موجود.',
-            'tenant_entity.required' => 'نوع الكيان المستأجر مطلوب.',
-            'tenant_entity.in' => 'الكيان المستأجر يجب أن يكون شخص أو مؤسسة.',
-            'tenant_id_num.required_if' => 'رقم الهوية مطلوب إذا كان الكيان المستأجر شخصاً.',
-            'tenant_dob_day.required_if' => 'يوم تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
-            'tenant_dob_month.required_if' => 'شهر تاريخ ميلاد المستأجر مطلوب إذا كان الكيان شخصاً.',
-            'tenant_dob_year.required_if' => 'سنة تاريخ ميلاد المستأجر مطلوبة إذا كان الكيان شخصاً.',
-            'tenant_mobile.required_if' => 'رقم الجوال مطلوب إذا كان الكيان المستأجر شخصاً.',
-            'tenant_mobile.regex' => 'رقم الجوال يجب أن يبدأ بـ 05 ويكون مكون من 10 أرقام.',
-            'authorization_type.required_if' => 'نوع التوكيل مطلوب إذا كان الكيان مؤسسة.',
-            'id_num_of_property_tenant_agent.min' => 'رقم الهوية لا يقل عن عشرة أرقام.',
-            'dobof_property_tenant_agent.required_if' => 'تاريخ ميلاد وكيل المالك مطلوب.',
-            'copy_of_the_owner_record.mimes' => 'نسخة السجل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'notes_edits',
+            'tenant_entity',
+            'tenant_id_num',
+            'tenant_dob',
+            'tenant_dob_day',
+            'tenant_dob_month',
+            'tenant_dob_year',
+            'tenant_mobile',
+            'region_of_the_tenant_legal_agent',
+            'city_of_the_tenant_legal_agent',
+            'tenant_entity_unified_registry_number',
+            'authorization_type',
+            'copy_of_the_owner_record',
+            'id_num_of_property_tenant_agent',
+            'mobile_of_property_tenant_agent',
+            'dobof_property_tenant_agent',
+            'dobof_property_tenant_agent_day',
+            'dobof_property_tenant_agent_month',
+            'dobof_property_tenant_agent_year',
+            'type_tenant_dob',
+            'type_dob_tenant_agent',
+        ]);
     }
 }
 

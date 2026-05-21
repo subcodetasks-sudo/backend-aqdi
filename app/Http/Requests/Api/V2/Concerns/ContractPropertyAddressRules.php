@@ -22,21 +22,4 @@ trait ContractPropertyAddressRules
         ];
     }
 
-    /**
-     * @return array<string, string>
-     */
-    protected function contractPropertyAddressMessages(): array
-    {
-        return [
-            'property_place_id.required' => 'المنطقة مطلوبة.',
-            'property_place_id.exists' => 'المنطقة المحددة غير موجودة.',
-            'property_city_id.required' => 'المدينة مطلوبة.',
-            'property_city_id.exists' => 'المدينة المحددة غير موجودة.',
-            'neighborhood.required' => 'الحي مطلوب.',
-            'street.required' => 'الشارع مطلوب.',
-            'building_number.required' => 'رقم المبنى مطلوب.',
-            'postal_code.required' => 'الرمز البريدي مطلوب.',
-            'extra_figure.required' => 'الرقم الإضافي مطلوب.',
-        ];
-    }
 }
