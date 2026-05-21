@@ -40,6 +40,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'instrument_type'    => ['nullable', Rule::in(RealEstate::instrumentTypes())],
             'number_of_floors'   => 'required',
             'contract_type'    => 'required|in:housing,commercial',
+            'contract_ownership' => 'nullable|in:owner,tenant',
             'property_type_id'   => 'required|exists:rea_estat_types,id',
             'property_usages_id' => [
                 'nullable',
@@ -153,6 +154,10 @@ class Step1RealEstateRequest extends BaseApiV2Request
 
         if ($this->filled('instrument_type')) {
             $payload['instrument_type'] = $this->input('instrument_type');
+        }
+
+        if ($this->filled('contract_ownership')) {
+            $payload['contract_ownership'] = $this->input('contract_ownership');
         }
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {

@@ -34,7 +34,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         return array_merge([
             'id' => 'required|exists:real_estates,id',
             'name_real_estate' => 'nullable|string|max:255',
-            'contract_ownership' => 'required|in:owner,tenant',
+            'contract_ownership' => 'nullable|in:owner,tenant',
             'contract_type' => 'required|in:housing,commercial',
             'instrument_number' => [Rule::requiredIf($instrumentType === 'electronic')],
             'instrument_history' => [Rule::requiredIf($instrumentType === 'electronic')],
