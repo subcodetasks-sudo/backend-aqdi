@@ -13,6 +13,7 @@ class Step2Request extends BaseApiV2Request
 
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
         $this->normalizeCoordinateInputs();
     }
 
@@ -56,22 +57,21 @@ class Step2Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'id.required' => 'معرف العقد مطلوب.',
-            'id.exists' => 'العقد المحدد غير موجود.',
-            'property_place_id.required' => 'المنطقة مطلوبة.',
-            'property_place_id.exists' => 'المنطقة المحددة غير موجودة.',
-            'property_city_id.required' => 'المدينة مطلوبة.',
-            'property_city_id.exists' => 'المدينة المحددة غير موجودة.',
-            'neighborhood.required' => 'الحي مطلوب.',
-            'street.required' => 'الشارع مطلوب.',
-            'building_number.required' => 'رقم المبنى مطلوب.',
-            'postal_code.required' => 'الرمز البريدي مطلوب.',
-            'extra_figure.required' => 'الرقم الإضافي مطلوب.',
-            'image_address.image' => 'صورة العنوان يجب أن تكون ملف صورة.',
-            'latitude.numeric' => 'خط العرض يجب أن يكون رقماً.',
-            'longitude.numeric' => 'خط الطول يجب أن يكون رقماً.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'property_place_id',
+            'property_city_id',
+            'neighborhood',
+            'street',
+            'building_number',
+            'postal_code',
+            'extra_figure',
+            'image_address',
+            'latitude',
+            'longitude',
+            'lat',
+            'lng',
+        ]);
     }
 }
 

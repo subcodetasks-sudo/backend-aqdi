@@ -14,6 +14,8 @@ class Step3Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
         foreach ([
             'property_owner_dob_day',
             'property_owner_dob_month',
@@ -239,31 +241,30 @@ class Step3Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'type_dob_property_owner.in' => 'نوع تاريخ الميلاد للمالك غير صالح.',
-            'type_dob_property_owner_agent.in' => 'نوع تاريخ الميلاد لوكيل المالك غير صالح.',
-            'name_real_estate.required' => 'اسم العقار مطلوب.',
-            'name_real_estate.max' => 'اسم العقار يجب ألا يزيد عن 255 حرفاً.',
-            'name_owner.required' => 'اسم المالك مطلوب.',
-            'property_owner_id_num.required' => 'رقم هوية المالك مطلوب.',
-            'property_owner_id_num.min' => 'رقم هوية المالك لا يقل عن 10 أرقام.',
-            'property_owner_mobile.required' => 'رقم جوال المالك مطلوب.',
-            'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-          
-            'add_legal_agent_of_owner.required' => 'تحديد وجود وكيل قانوني مطلوب.',
-            'id_num_of_property_owner_agent.required_if' => 'رقم هوية الوكيل مطلوب.',
-            'dob_of_property_owner_agent_day.required_if' => 'يوم تاريخ ميلاد الوكيل مطلوب.',
-            'dob_of_property_owner_agent_day.between' => 'يوم تاريخ ميلاد الوكيل غير صالح.',
-            'dob_of_property_owner_agent_month.required_if' => 'شهر تاريخ ميلاد الوكيل مطلوب.',
-            'dob_of_property_owner_agent_month.between' => 'شهر تاريخ ميلاد الوكيل غير صالح.',
-            'dob_of_property_owner_agent_year.required_if' => 'سنة تاريخ ميلاد الوكيل مطلوبة.',
-            'dob_of_property_owner_agent_year.min' => 'سنة تاريخ ميلاد الوكيل غير صالحة.',
-            'dob_of_property_owner_agent_year.max' => 'سنة تاريخ ميلاد الوكيل غير صالحة.',
-            'mobile_of_property_owner_agent.required_if' => 'رقم جوال الوكيل مطلوب.',
-            'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'property_owner_dob_day.required' => 'يوم تاريخ ميلاد المالك مطلوب.',
-            'property_owner_dob_month.required' => 'شهر تاريخ ميلاد المالك مطلوب.',
-            'property_owner_dob_year.required' => 'سنة تاريخ ميلاد المالك مطلوبة.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'type_dob_property_owner',
+            'type_dob_property_owner_agent',
+            'type_agency_instrument_date_of_property_owner',
+            'name_real_estate',
+            'name_owner',
+            'property_owner_id_num',
+            'property_owner_dob_day',
+            'property_owner_dob_month',
+            'property_owner_dob_year',
+            'property_owner_mobile',
+            'property_owner_iban',
+            'add_legal_agent_of_owner',
+            'id_num_of_property_owner_agent',
+            'dob_of_property_owner_agent_day',
+            'dob_of_property_owner_agent_month',
+            'dob_of_property_owner_agent_year',
+            'mobile_of_property_owner_agent',
+            'agency_number_in_instrument_of_property_owner',
+            'agency_instrument_date_of_property_owner_day',
+            'agency_instrument_date_of_property_owner_month',
+            'agency_instrument_date_of_property_owner_year',
+            'copy_of_the_authorization_or_agency',
+        ]);
     }
 }

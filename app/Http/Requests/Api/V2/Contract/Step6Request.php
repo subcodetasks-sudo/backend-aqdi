@@ -10,6 +10,8 @@ class Step6Request extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
         ContractStartingDateInput::prepareRequest($this);
 
         // صلاحيات المستخدم (أدوار المستأجر): الافتراضي false؛ يُقبل true/false أو 1/0 أو نصوص شائعة.
@@ -76,16 +78,26 @@ class Step6Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'id.required' => 'معرف العقد مطلوب.',
-            'id.exists' => 'العقد المحدد غير موجود.',
-            'contract_term_in_years.required' => 'مدة العقد مطلوبة.',
-            'annual_rent_amount_for_the_unit.required' => 'قيمة الإيجار السنوي مطلوبة.',
-            'payment_type_id.required' => 'نوع الدفع مطلوب.',
-            'conditions.required' => 'حقل الشروط مطلوب.',
-            'other_conditions.required_if' => 'حقل شروط أخرى مطلوب عندما تكون الشروط مفعلة.',
-            'tenant_roles.boolean' => 'صلاحيات المستخدم يجب أن تكون true أو false أو 1 أو 0.',
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'contract_starting_date',
+            'contract_starting_date_day',
+            'contract_starting_date_month',
+            'contract_starting_date_year',
+            'type_contract_starting_date',
+            'contract_term_in_years',
+            'annual_rent_amount_for_the_unit',
+            'payment_type_id',
+            'conditions',
+            'other_conditions',
+            'additional_terms',
+            'tenant_roles',
+            'tenant_role_id',
+            'tenant_role_ids',
+        ], [
+            'tenant_role_ids.*.exists' => 'إحدى صفات المستأجر المحددة غير موجودة.',
+            'tenant_role_ids.*.integer' => 'صفة المستأجر يجب أن تكون رقماً صحيحاً.',
+        ]);
     }
 }
 

@@ -18,6 +18,7 @@ class Step1Request extends BaseApiV2Request
 
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
         $this->normalizeCoordinateInputs();
 
         if ($this->has('instrument_type')) {
@@ -107,32 +108,37 @@ class Step1Request extends BaseApiV2Request
 
     public function messages(): array
     {
-        return [
-            'id.required' => 'معرف العقد مطلوب.',
-            'id.exists' => 'العقد المحدد غير موجود.',
-         //   'contract_ownership.required' => 'نوع ملكية العقد مطلوب.',
-            'contract_ownership.in' => 'نوع ملكية العقد غير صالح.',
-            'instrument_type.in' => 'نوع الصك غير صالح.',
-            'instrument_number.required_if' => 'رقم الصك مطلوب عند اختيار صك إلكتروني.',
-            'instrument_history.required_if' => 'تاريخ الصك مطلوب عند اختيار صك إلكتروني.',
-            'real_estate_registry_number.required_if' => 'رقم السجل العقاري مطلوب عند اختيار صك السجل العقاري.',
-            'date_first_registration.required_if' => 'تاريخ أول تسجيل مطلوب عند اختيار صك السجل العقاري.',
-            'property_type_id.required_if' => 'نوع العقار مطلوب في حالة الصك الإلكتروني أو السجل العقاري.',
-            'property_type_id.exists' => 'نوع العقار غير موجود.',
-            //'property_owner_is_deceased.required' => 'حالة مالك العقار مطلوبة.',
-          //  'property_owner_is_deceased.boolean' => 'حالة مالك العقار يجب أن تكون نعم أو لا.',
-            'number_of_floors.required' => 'عدد الأدوار مطلوب.',
-            'property_usages_id.required_if' => 'استخدام العقار مطلوب.',
-            'number_of_units_in_realestate.required' => 'عدد الوحدات مطلوب.',
-            'number_of_units_in_realestate.integer' => 'عدد الوحدات يجب أن يكون رقمًا صحيحًا.',
-            'image_instrument.required' => 'صورة الصك مطلوبة.',
-            'image_instrument.required_if' => 'صورة الصك مطلوبة.',
-             'image_address.image' => 'حقل صورة العنوان يجب أن يكون صورة.',
-            'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك الولاية يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'is_multiple_trusteeship_deed_copy.boolean' => 'حقل تعدد نسخ صك الولاية يجب أن يكون true أو false.',
-            ...$this->contractPropertyAddressMessages(),
-        ];
+        return $this->contractV2ArabicMessages([
+            'id',
+            'instrument_type',
+            'number_of_floors',
+            'property_type_id',
+            'property_usages_id',
+            'number_of_units_in_realestate',
+            'number_of_units_per_floor',
+            'image_instrument',
+            'image_address',
+            'image_instrument_from_the_front',
+            'image_instrument_from_the_back',
+            'instrument_history',
+            'type_instrument_history',
+            'type_date_first_registration',
+            'age_of_the_property',
+            'copy_of_the_endowment_registration_certificate',
+            'copy_of_the_trusteeship_deed',
+            'is_multiple_trusteeship_deed_copy',
+            'latitude',
+            'longitude',
+            'lat',
+            'lng',
+            'property_place_id',
+            'property_city_id',
+            'neighborhood',
+            'street',
+            'building_number',
+            'postal_code',
+            'extra_figure',
+        ]);
     }
 
     public function withValidator(Validator $validator): void
