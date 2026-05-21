@@ -195,7 +195,6 @@ class RealEstateControllor extends ApiRealEstateControllor
 
         $data = array_merge([
             'name_real_estate' => $form->input('name_real_estate'),
-            'contract_ownership' => $form->input('contract_ownership'),
             'contract_type' => $form->input('contract_type'),
             'instrument_number' => $form->input('instrument_number'),
             'instrument_history' => $form->input('instrument_history'),
@@ -213,6 +212,10 @@ class RealEstateControllor extends ApiRealEstateControllor
 
         if ($form->filled('instrument_type')) {
             $data['instrument_type'] = $form->input('instrument_type');
+        }
+
+        if ($form->filled('contract_ownership')) {
+            $data['contract_ownership'] = $form->input('contract_ownership');
         }
 
         if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
