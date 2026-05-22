@@ -48,7 +48,7 @@ class OrderController extends Controller
                 'contractPayments',
             ])
             ->latest()
-            ->paginate($request->get('per_page', 20));
+            ->paginate($request->get('per_page', 120));
 
         return $this->apiResponse(
             OrderResource::collection($orders),
