@@ -207,7 +207,8 @@ class OrderController extends Controller
      public function complete(Request $request)
     {
         try {
-            $query = Contract::where('is_completed', true);
+            $query = Contract::where('is_completed', true)
+             ->latest();
             $this->applySuccessfulPaymentAmountSelect($query);
 
             // Filter by contract_type if provided
