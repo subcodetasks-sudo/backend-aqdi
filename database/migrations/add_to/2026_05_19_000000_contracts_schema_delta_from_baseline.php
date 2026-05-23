@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * تشغيل يدوي:
+ *   php artisan migrate --path=database/migrations/add_to/2026_05_19_000000_contracts_schema_delta_from_baseline.php
+ *
+ * errno 1118 (row size too large): يُضاف كل عمود في ALTER منفصل؛ مسارات الملفات TEXT وليس VARCHAR(255).
+ * إذا فشل تشغيل سابق: ارفع هذا الملف وأعد الأمر (الأعمدة الموجودة تُتخطى).
+ */
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -56,124 +63,122 @@ SQL;
         return $row && in_array(strtolower((string) $row->DATA_TYPE), ['varchar', 'char', 'text'], true);
     }
 
+    /**
+     * Add one column per ALTER to avoid MySQL errno 1118 (row size too large).
+     * TEXT paths do not count fully toward the 65535 row limit like VARCHAR(255).
+     */
+    private function addContractsColumnIfMissing(string $column, string $definition): void
+    {
+        if (Schema::hasColumn('contracts', $column)) {
+            return;
+        }
+
+        DB::statement("ALTER TABLE `contracts` ADD COLUMN `{$column}` {$definition}");
+    }
+
+    private function addNewContractsColumns(): void
+    {
+        $pathText = 'TEXT NULL';
+        $varchar100 = 'VARCHAR(100) NULL';
+        $boolFalse = 'TINYINT(1) NOT NULL DEFAULT 0';
+
+        // مسارات ملفات — TEXT لتقليل حجم الصف
+        foreach ([
+            'image_instrument',
+            'image_address',
+            'image_instrument_from_the_front',
+            'image_instrument_from_the_back',
+            'Image_from_the_agency',
+            'copy_power_of_attorney_from_heirs_to_agent',
+            'Image_inheritance_certificate',
+            'copy_of_the_endowment_registration_certificate',
+            'copy_of_the_trusteeship_deed',
+        ] as $col) {
+            $this->addContractsColumnIfMissing($col, $pathText);
+        }
+
+        $this->addContractsColumnIfMissing('age_of_the_property', 'INT NULL');
+        $this->addContractsColumnIfMissing('number_of_units_per_floor', $varchar100);
+        $this->addContractsColumnIfMissing('latitude', 'DECIMAL(11,8) NULL');
+        $this->addContractsColumnIfMissing('longitude', 'DECIMAL(11,8) NULL');
+        $this->addContractsColumnIfMissing('name_real_estate', $varchar100);
+        $this->addContractsColumnIfMissing('is_multiple_trusteeship_deed_copy', $boolFalse);
+        $this->addContractsColumnIfMissing('tenant_roles', $boolFalse);
+        $this->addContractsColumnIfMissing('tenant_role_id', 'BIGINT UNSIGNED NULL');
+        $this->addContractsColumnIfMissing('tenant_role_ids', 'JSON NULL');
+        $this->addContractsColumnIfMissing('text_additional_terms', 'TEXT NULL');
+        $this->addContractsColumnIfMissing('additional_terms', $boolFalse);
+        $this->addContractsColumnIfMissing('notes_edits', 'TEXT NULL');
+
+        $hijriGregorian = "ENUM('hijri','gregorian')";
+        $this->addContractsColumnIfMissing('type_dob', "{$hijriGregorian} NOT NULL DEFAULT 'hijri'");
+        $this->addContractsColumnIfMissing('type_dob_property_owner', "{$hijriGregorian} NOT NULL DEFAULT 'hijri'");
+        $this->addContractsColumnIfMissing('type_dob_property_owner_agent', "{$hijriGregorian} NULL");
+        $this->addContractsColumnIfMissing('type_tenant_dob', "{$hijriGregorian} NOT NULL DEFAULT 'hijri'");
+        $this->addContractsColumnIfMissing('type_dob_tenant_agent', "{$hijriGregorian} NULL");
+        $this->addContractsColumnIfMissing('type_contract_starting_date', "{$hijriGregorian} NOT NULL DEFAULT 'hijri'");
+        $this->addContractsColumnIfMissing('type_instrument_history', "{$hijriGregorian} NULL");
+        $this->addContractsColumnIfMissing('type_date_first_registration', "{$hijriGregorian} NULL");
+        $this->addContractsColumnIfMissing('type_agency_instrument_date_of_property_owner', "{$hijriGregorian} NULL");
+
+        $this->addContractsColumnIfMissing('split_ac', 'INT NULL');
+        $this->addContractsColumnIfMissing('window_ac', 'INT NULL');
+        $this->addContractsColumnIfMissing('kitchen_tank', $boolFalse);
+        $this->addContractsColumnIfMissing('furnished', $boolFalse);
+        $this->addContractsColumnIfMissing('type_furnished', $varchar100);
+        $this->addContractsColumnIfMissing('electricity_meter', $boolFalse);
+        $this->addContractsColumnIfMissing('water_meter', $boolFalse);
+        $this->addContractsColumnIfMissing('expiry_date', 'DATE NULL');
+
+        $this->addContractsColumnIfMissing('contract_status_id', 'BIGINT UNSIGNED NULL');
+    }
+
+    private function dropContractsColumnIfExists(string $column): void
+    {
+        if (! Schema::hasColumn('contracts', $column)) {
+            return;
+        }
+
+        $this->withoutForeignKeyChecks(function () use ($column): void {
+            DB::statement("ALTER TABLE `contracts` DROP COLUMN `{$column}`");
+        });
+    }
+
     public function up(): void
     {
         if (! Schema::hasTable('contracts')) {
             return;
         }
 
-      
-        Schema::table('contracts', function (Blueprint $table) {
-            $addString = static function (string $col) use ($table): void {
-                if (! Schema::hasColumn('contracts', $col)) {
-                    $table->string($col)->nullable();
-                }
-            };
-            $addText = static function (string $col) use ($table): void {
-                if (! Schema::hasColumn('contracts', $col)) {
-                    $table->text($col)->nullable();
-                }
-            };
-            $addBool = static function (string $col, bool $default = false) use ($table): void {
-                if (! Schema::hasColumn('contracts', $col)) {
-                    $table->boolean($col)->default($default);
-                }
-            };
-            $addInt = static function (string $col) use ($table): void {
-                if (! Schema::hasColumn('contracts', $col)) {
-                    $table->integer($col)->nullable();
-                }
-            };
-            $addEnum = static function (string $col, array $values, ?string $default = null) use ($table): void {
-                if (! Schema::hasColumn('contracts', $col)) {
-                    $colDef = $table->enum($col, $values);
-                    if ($default !== null) {
-                        $colDef->default($default);
-                    } else {
-                        $colDef->nullable();
-                    }
-                }
-            };
-
-            // موقع / صك / صور
-            $addString('image_instrument');
-            $addInt('age_of_the_property');
-            $addString('number_of_units_per_floor');
-            $addString('image_address');
-            if (! Schema::hasColumn('contracts', 'latitude')) {
-                $table->decimal('latitude', 11, 8)->nullable();
-            }
-            if (! Schema::hasColumn('contracts', 'longitude')) {
-                $table->decimal('longitude', 11, 8)->nullable();
-            }
-            $addString('image_instrument_from_the_front');
-            $addString('image_instrument_from_the_back');
-            $addString('Image_from_the_agency');
-            $addString('copy_power_of_attorney_from_heirs_to_agent');
-            $addString('Image_inheritance_certificate');
-
-            $addString('name_real_estate');
-
-            // وقف / نظارة
-            $addString('copy_of_the_endowment_registration_certificate');
-            $addString('copy_of_the_trusteeship_deed');
-            $addBool('is_multiple_trusteeship_deed_copy', false);
-
-            $addBool('tenant_roles', false);
-            if (! Schema::hasColumn('contracts', 'tenant_role_id')) {
-                $table->unsignedBigInteger('tenant_role_id')->nullable();
-            }
-            if (! Schema::hasColumn('contracts', 'tenant_role_ids')) {
-                $table->json('tenant_role_ids')->nullable();
-            }
-            $addText('text_additional_terms');
-            $addBool('additional_terms', false);
-            $addText('notes_edits');
-
-            $addEnum('type_dob', ['hijri', 'gregorian'], 'hijri');
-            $addEnum('type_dob_property_owner', ['hijri', 'gregorian'], 'hijri');
-            $addEnum('type_dob_property_owner_agent', ['hijri', 'gregorian']);
-            $addEnum('type_tenant_dob', ['hijri', 'gregorian'], 'hijri');
-            $addEnum('type_dob_tenant_agent', ['hijri', 'gregorian']);
-            $addEnum('type_contract_starting_date', ['hijri', 'gregorian'], 'hijri');
-            $addEnum('type_instrument_history', ['hijri', 'gregorian']);
-            $addEnum('type_date_first_registration', ['hijri', 'gregorian']);
-            $addEnum('type_agency_instrument_date_of_property_owner', ['hijri', 'gregorian']);
-
-            $addInt('split_ac');
-            $addInt('window_ac');
-            $addBool('kitchen_tank', false);
-            $addBool('furnished', false);
-            $addString('type_furnished');
-
-            $addBool('electricity_meter', false);
-            $addBool('water_meter', false);
-
-            if (! Schema::hasColumn('contracts', 'expiry_date')) {
-                $table->date('expiry_date')->nullable();
-            }
-
-            if (! Schema::hasColumn('contracts', 'contract_status_id')) {
-                $table->foreignId('contract_status_id')
-                    ->nullable()
-                    ->constrained('contract_statuses')
-                    ->nullOnDelete();
-            }
-        });
+        $this->addNewContractsColumns();
 
         if (
             Schema::hasTable('tenant_roles')
             && Schema::hasColumn('contracts', 'tenant_role_id')
         ) {
             try {
-                Schema::table('contracts', function (Blueprint $table) {
-                    $table->foreign('tenant_role_id')
-                        ->references('id')
-                        ->on('tenant_roles')
-                        ->cascadeOnDelete();
-                });
+                DB::statement('
+                    ALTER TABLE `contracts`
+                    ADD CONSTRAINT `contracts_tenant_role_id_foreign`
+                    FOREIGN KEY (`tenant_role_id`) REFERENCES `tenant_roles` (`id`) ON DELETE CASCADE
+                ');
             } catch (\Throwable) {
-             
+                // FK may already exist
+            }
+        }
+
+        if (
+            Schema::hasTable('contract_statuses')
+            && Schema::hasColumn('contracts', 'contract_status_id')
+        ) {
+            try {
+                DB::statement('
+                    ALTER TABLE `contracts`
+                    ADD CONSTRAINT `contracts_contract_status_id_foreign`
+                    FOREIGN KEY (`contract_status_id`) REFERENCES `contract_statuses` (`id`) ON DELETE SET NULL
+                ');
+            } catch (\Throwable) {
+                // FK may already exist
             }
         }
 
@@ -204,11 +209,7 @@ SQL;
         }
 
    
-        if (! Schema::hasColumn('contracts', 'property_owner_dob')) {
-            Schema::table('contracts', function (Blueprint $table) {
-                $table->text('property_owner_dob')->nullable();
-            });
-        }
+        $this->addContractsColumnIfMissing('property_owner_dob', 'TEXT NULL');
 
         if (Schema::hasColumn('contracts', 'property_owner_dob_hijri')
             || Schema::hasColumn('contracts', 'property_owner_dob_gregorian')) {
@@ -239,16 +240,8 @@ SQL;
                 }
             }
 
-            $this->withoutForeignKeyChecks(function (): void {
-                Schema::table('contracts', function (Blueprint $table) {
-                    if (Schema::hasColumn('contracts', 'property_owner_dob_hijri')) {
-                        $table->dropColumn('property_owner_dob_hijri');
-                    }
-                    if (Schema::hasColumn('contracts', 'property_owner_dob_gregorian')) {
-                        $table->dropColumn('property_owner_dob_gregorian');
-                    }
-                });
-            });
+            $this->dropContractsColumnIfExists('property_owner_dob_hijri');
+            $this->dropContractsColumnIfExists('property_owner_dob_gregorian');
         }
 
 
@@ -336,52 +329,48 @@ SQL;
             });
         }
 
-        Schema::table('contracts', function (Blueprint $table) {
-            foreach ([
-                'contract_status_id',
-                'notes_edits',
-                'tenant_role_ids',
-                'type_furnished',
-                'furnished',
-                'kitchen_tank',
-                'window_ac',
-                'split_ac',
-                'water_meter',
-                'electricity_meter',
-                'is_multiple_trusteeship_deed_copy',
-                'copy_of_the_trusteeship_deed',
-                'copy_of_the_endowment_registration_certificate',
-                'type_agency_instrument_date_of_property_owner',
-                'type_date_first_registration',
-                'type_instrument_history',
-                'type_contract_starting_date',
-                'type_dob_tenant_agent',
-                'type_tenant_dob',
-                'type_dob_property_owner_agent',
-                'type_dob_property_owner',
-                'type_dob',
-                'additional_terms',
-                'text_additional_terms',
-                'tenant_role_id',
-                'tenant_roles',
-                'Image_inheritance_certificate',
-                'copy_power_of_attorney_from_heirs_to_agent',
-                'Image_from_the_agency',
-                'image_instrument_from_the_back',
-                'image_instrument_from_the_front',
-                'longitude',
-                'latitude',
-                'image_address',
-                'number_of_units_per_floor',
-                'age_of_the_property',
-                'image_instrument',
-                'name_real_estate',
-                'expiry_date',
-            ] as $column) {
-                if (Schema::hasColumn('contracts', $column)) {
-                    $table->dropColumn($column);
-                }
-            }
-        });
+        foreach ([
+            'contract_status_id',
+            'notes_edits',
+            'tenant_role_ids',
+            'type_furnished',
+            'furnished',
+            'kitchen_tank',
+            'window_ac',
+            'split_ac',
+            'water_meter',
+            'electricity_meter',
+            'is_multiple_trusteeship_deed_copy',
+            'copy_of_the_trusteeship_deed',
+            'copy_of_the_endowment_registration_certificate',
+            'type_agency_instrument_date_of_property_owner',
+            'type_date_first_registration',
+            'type_instrument_history',
+            'type_contract_starting_date',
+            'type_dob_tenant_agent',
+            'type_tenant_dob',
+            'type_dob_property_owner_agent',
+            'type_dob_property_owner',
+            'type_dob',
+            'additional_terms',
+            'text_additional_terms',
+            'tenant_role_id',
+            'tenant_roles',
+            'Image_inheritance_certificate',
+            'copy_power_of_attorney_from_heirs_to_agent',
+            'Image_from_the_agency',
+            'image_instrument_from_the_back',
+            'image_instrument_from_the_front',
+            'longitude',
+            'latitude',
+            'image_address',
+            'number_of_units_per_floor',
+            'age_of_the_property',
+            'image_instrument',
+            'name_real_estate',
+            'expiry_date',
+        ] as $column) {
+            $this->dropContractsColumnIfExists($column);
+        }
     }
 };
