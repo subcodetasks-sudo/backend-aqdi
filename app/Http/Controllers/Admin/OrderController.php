@@ -211,12 +211,10 @@ class OrderController extends Controller
              ->latest();
             $this->applySuccessfulPaymentAmountSelect($query);
 
-            // Filter by contract_type if provided
             if ($request->has('contract_type')) {
                 $query->where('contract_type', $request->contract_type);
             }
 
-            // Filter by user_id if provided
             if ($request->has('user_id')) {
                 $query->where('user_id', $request->user_id);
             }
@@ -225,12 +223,10 @@ class OrderController extends Controller
                 $query->adminSearch($request->string('search')->toString());
             }
 
-            // Exclude deleted contracts
             $query->where('is_delete', false);
 
             $this->applyReceivedContractPresenceToQuery($query, $request);
 
-            // Sorting
             $sortBy = $request->get('sort_by', 'created_at');
             $sortOrder = $request->get('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
@@ -314,7 +310,7 @@ class OrderController extends Controller
                 'instrument_type' => Arr::get($detail, 'instrument_type_trans', Arr::get($detail, 'instrument_type')),
                 'contract_type_key' => Arr::get($detail, 'contract_type'),
                 'instrument_type_key' => Arr::get($detail, 'instrument_type'),
-                'contract_period' => Arr::get($detail, 'contract_term_in_years.period'),
+                'contract_period' => Arr::get($detail, 'contract_period.period'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
