@@ -2,8 +2,7 @@
 
 namespace App\Models;
 
-use App\Models\Contract;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
@@ -12,12 +11,48 @@ class Payment extends Model
         'payment_date','contract_uuid','payment_method','tran_currency' ,'name', 'amount', 'payment_date', 'status'
     ];
 
-    // Define relationships
     public function contract()
     {
         return $this->belongsTo(Contract::class, 'contract_uuid', 'uuid');
     }
-   
 
+    public function scopeSuccessful(Builder $query): Builder
+    {
+        return $query->where('status', 'success');
+    }
+
+    /**
+     * Match payments.contract_uuid to a contract uuid (exact or with "-{suffix}").
+     */
+    public function scopeMatchingContractUuid(Builder $query, string|int $contractUuid): Builder
+    {
+        $uuid = (string) $contractUuid;
+
+        return $query->where(function (Builder $q) use ($uuid) {
+            $q->where('contract_uuid', $uuid)
+                ->orWhere('contract_uuid', 'like', $uuid.'-%');
+        });
+    }
+
+    /**
+     * Match payments.contract_uuid to contracts.uuid on the parent query (for subqueries).
+     */
+    public function scopeMatchingContractUuidColumn(Builder $query, string $column = 'contracts.uuid'): Builder
+    {
+        return $query->where(function (Builder $q) use ($column) {
+            $q->whereColumn('payments.contract_uuid', $column)
+                ->orWhereRaw("payments.contract_uuid LIKE CONCAT(CAST({$column} AS CHAR), '-%')");
+        });
+    }
+
+    public function scopeSuccessfulMatchingContractUuid(Builder $query, string|int $contractUuid): Builder
+    {
+        return $query->successful()->matchingContractUuid($contractUuid);
+    }
+
+    public function scopeSuccessfulMatchingContractUuidColumn(Builder $query, string $column = 'contracts.uuid'): Builder
+    {
+        return $query->successful()->matchingContractUuidColumn($column);
+    }
 }
  

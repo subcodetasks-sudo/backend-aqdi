@@ -7,7 +7,7 @@ use App\Models\Payment;
 trait ResolvesContractPaymentForAdmin
 {
     /**
-     * Admin orders list: completed contract (= paid). Amount from successful payment, else contract total.
+     * Admin orders list: amount from payments where status = success only.
      *
      * @return array{
      *     is_paid: bool,
@@ -21,10 +21,7 @@ trait ResolvesContractPaymentForAdmin
         $isPaid = (bool) $this->is_completed;
         $successPayment = $this->resolveSuccessfulPayment();
 
-        $amount = $this->resolveOrderAmountPayment() ?? $successPayment?->amount;
-        if ($amount === null && $isPaid) {
-            $amount = $this->total_price ?? null;
-        }
+        $amount = $this->resolvePaymentAmountFromPayments($successPayment);
 
         return [
             'is_paid' => $isPaid,
@@ -36,25 +33,43 @@ trait ResolvesContractPaymentForAdmin
         ];
     }
 
-    private function resolveOrderAmountPayment(): ?float
+    private function resolvePaymentAmountFromPayments(?Payment $successPayment): mixed
     {
-        if (isset($this->order_amount_payment) && $this->order_amount_payment !== null && $this->order_amount_payment !== '') {
-            return round((float) $this->order_amount_payment, 2);
+        if (isset($this->successful_payment_amount) && $this->successful_payment_amount !== null && $this->successful_payment_amount !== '') {
+            return $this->successful_payment_amount;
         }
 
-        return null;
+        return $successPayment?->amount;
     }
 
     private function resolveSuccessfulPayment(): ?Payment
     {
         if ($this->relationLoaded('contractPayments')) {
-            return $this->contractPayments
-                ->first(fn (Payment $payment) => $payment->status === 'success');
+            $payment = $this->contractPayments
+                ->filter(fn (Payment $payment) => $this->paymentContractUuidMatches($payment->contract_uuid))
+                ->sortByDesc('id')
+                ->first();
+
+            if ($payment !== null) {
+                return $payment;
+            }
         }
 
-        return $this->contractPayments()
-            ->where('status', 'success')
+        return Payment::query()
+            ->successfulMatchingContractUuid($this->uuid)
             ->latest('id')
             ->first();
+    }
+
+    private function paymentContractUuidMatches(?string $paymentContractUuid): bool
+    {
+        if ($paymentContractUuid === null || $paymentContractUuid === '') {
+            return false;
+        }
+
+        $uuid = (string) $this->uuid;
+
+        return $paymentContractUuid === $uuid
+            || str_starts_with($paymentContractUuid, $uuid.'-');
     }
 }

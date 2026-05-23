@@ -8,7 +8,7 @@ use App\Http\Resources\Admin\V2\Api\AdminContractDetailResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
-use App\Models\Order;
+use App\Models\Payment;
 use App\Models\TenantRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -24,7 +24,7 @@ class OrderController extends Controller
         $status = $request->get('status');
 
         $orders = Contract::query()
-            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->when($request->filled('status'), function ($q) use ($status) {
                 if (is_numeric($status)) {
                     $q->where('contract_status_id', (int) $status);
@@ -42,12 +42,7 @@ class OrderController extends Controller
                 $q->adminSearch($request->string('search')->toString())
             )
             ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
-            ->with([
-                'user',
-                'receivedContract.employee',
-                'contractStatus',
-                'contractPayments',
-            ])
+            ->with($this->orderListRelations())
             ->latest()
             ->paginate($request->get('per_page', 120));
 
@@ -108,7 +103,7 @@ class OrderController extends Controller
     private function returnContractsQuery(Request $request)
     {
         return Contract::query()
-            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->where('contract_status_id', 2)
             ->where('is_delete', false)
             ->when($request->filled('contract_type'), fn ($q) =>
@@ -133,14 +128,14 @@ class OrderController extends Controller
             'user',
             'receivedContract.employee',
             'contractStatus',
-            'contractPayments',
+            'contractPayments' => fn ($q) => $q->where('status', 'success'),
         ];
     }
 
     private function incompleteContractsQuery(Request $request)
     {
         return Contract::query()
-            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->where('is_completed', false)
             ->where('is_delete', false)
             ->when($request->contract_type, fn ($q) =>
@@ -166,7 +161,7 @@ class OrderController extends Controller
             'user',
             'receivedContract.employee',
             'contractStatus',
-            'contractPayments',
+            'contractPayments' => fn ($q) => $q->where('status', 'success'),
             'propertyType',
             'propertyUsages',
             'propertyRegion',
@@ -213,7 +208,7 @@ class OrderController extends Controller
     {
         try {
             $query = Contract::where('is_completed', true);
-            $this->applyOrderAmountPaymentSelect($query);
+            $this->applySuccessfulPaymentAmountSelect($query);
 
             // Filter by contract_type if provided
             if ($request->has('contract_type')) {
@@ -566,14 +561,14 @@ class OrderController extends Controller
     }
 
     /**
-     * Subquery: orders.amount_payment where orders.uuid matches contract uuid (with optional "-suffix").
+     * Subquery: payments.amount for success status where contract_uuid matches contract uuid (with optional "-suffix").
      */
-    private function applyOrderAmountPaymentSelect($query): void
+    private function applySuccessfulPaymentAmountSelect($query): void
     {
         $query->addSelect([
-            'order_amount_payment' => Order::query()
-                ->select('amount_payment')
-                ->matchingContractUuidColumn('contracts.uuid')
+            'successful_payment_amount' => Payment::query()
+                ->select('amount')
+                ->successfulMatchingContractUuidColumn('contracts.uuid')
                 ->orderByDesc('id')
                 ->limit(1),
         ]);
