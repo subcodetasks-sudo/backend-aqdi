@@ -22,11 +22,11 @@ class PaymentController extends Controller
         $query = $this->filterPayments($query, $request);
 
         $payments = $query->latest('payment_date')
-            ->paginate($request->get('per_page', 20));
+            ->paginate($this->perPageFromRequest($request));
 
-        return $this->apiResponse(
-            PaymentDataAdminResource::collection($payments),
-            trans('api.success')
+        return $this->paginatedApiResponse(
+            $payments,
+            PaymentDataAdminResource::collection($payments)
         );
     }
 

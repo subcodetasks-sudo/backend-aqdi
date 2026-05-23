@@ -16,7 +16,10 @@ use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HomeAdminController;
 use App\Http\Controllers\Admin\LocationAnalyticsController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\AppContentOverviewController;
+use App\Http\Controllers\Admin\CustomerApplicationMessageController;
 use App\Http\Controllers\Admin\PageContentController;
+use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PaperworkController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -388,8 +391,35 @@ use Illuminate\Support\Facades\Route;
         Route::get('/statistics', 'statistics')->name('statistics');
     });
 
-    // Terms & Privacy Content Management
+    // App content dashboard (payment methods, legal pages, customer messages)
+    Route::prefix('app-content')->name('app-content.')->controller(AppContentOverviewController::class)->group(function () {
+        Route::get('/overview', 'overview')->name('overview');
+    });
+
+    // Payment methods (طرق الدفع)
+    Route::prefix('payment-types')->name('payment-types.')->controller(PaymentTypeController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Customer application messages (رسائل التطبيق للعميل)
+    Route::prefix('customer-messages')->name('customer-messages.')->controller(CustomerApplicationMessageController::class)->group(function () {
+        Route::get('/overview', 'overview')->name('overview');
+        Route::get('/all', 'all')->name('all');
+        Route::get('/create', 'createForm')->name('create');
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Terms, conditions & privacy (الشروط والأحكام / سياسة الخصوصية)
     Route::prefix('content')->name('content.')->controller(PageContentController::class)->group(function () {
+        Route::get('/legal-pages', 'legalPages')->name('legal-pages');
         Route::get('/terms-and-conditions', 'termsAndConditions')->name('terms.show');
         Route::post('/terms-and-conditions', 'updateTermsAndConditions')->name('terms.update');
         Route::get('/privacy', 'privacy')->name('privacy.show');

@@ -61,28 +61,25 @@ class ContractStatusAnalyticsController extends Controller
                 ? $this->statusAnalytics->resolveCreatedAtPeriod((string) $rawFilter)
                 : null;
 
-            $perPage = min(max((int) $request->input('per_page', 20), 1), 100);
             $contracts = $this->statusAnalytics->paginateContracts(
                 $contractStatusId,
                 $period,
-                $perPage,
+                $this->perPageFromRequest($request),
                 $request->filled('search') ? $request->string('search')->toString() : null
             );
 
-            return $this->apiResponse([
-                'contract_status_id' => $status->id,
-                'contract_status_name' => $status->name,
-                'created_at' => $period
-                    ? $this->statusAnalytics->createdAtLabelForPeriod($period)
-                    : null,
-                'contracts' => OrderResource::collection($contracts),
-                'pagination' => [
-                    'current_page' => $contracts->currentPage(),
-                    'last_page' => $contracts->lastPage(),
-                    'per_page' => $contracts->perPage(),
-                    'total' => $contracts->total(),
-                ],
-            ], trans('api.success'));
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                [
+                    'contract_status_id' => $status->id,
+                    'contract_status_name' => $status->name,
+                    'created_at' => $period
+                        ? $this->statusAnalytics->createdAtLabelForPeriod($period)
+                        : null,
+                ]
+            );
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.not_found'), 404);
         } catch (InvalidArgumentException $e) {

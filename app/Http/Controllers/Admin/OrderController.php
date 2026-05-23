@@ -44,11 +44,11 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with($this->orderListRelations())
             ->latest()
-            ->paginate($request->get('per_page', 120));
+            ->paginate($this->perPageFromRequest($request, 120, 200));
 
-        return $this->apiResponse(
-            OrderResource::collection($orders),
-            trans('api.success')
+        return $this->paginatedApiResponse(
+            $orders,
+            OrderResource::collection($orders)
         );
     }
 
@@ -61,13 +61,14 @@ class OrderController extends Controller
         try {
             $contracts = $this->returnContractsQuery($request)
                 ->with($this->orderListRelations())
-                ->paginate(min(max((int) $request->get('per_page', 20), 1), 100));
+                ->paginate($this->perPageFromRequest($request));
 
-            return $this->apiResponse([
-                'contract_status_id' => 2,
-                'items' => OrderResource::collection($contracts),
-                'pagination' => $this->paginate($contracts),
-            ], trans('api.success'));
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['contract_status_id' => 2]
+            );
         } catch (\Throwable $e) {
             return $this->apiResponse(
                 null,
@@ -83,11 +84,11 @@ class OrderController extends Controller
         try {
             $contracts = $this->incompleteContractsQuery($request)
                 ->with($this->contractRelations())
-                ->paginate($request->get('per_page', 20));
+                ->paginate($this->perPageFromRequest($request));
 
-            return $this->apiResponse(
-                OrderResource::collection($contracts),
-                trans('api.success')
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts)
             );
 
         } catch (\Throwable $e) {
@@ -241,10 +242,12 @@ class OrderController extends Controller
                 'unitUsage',
                 'contractTermInYears',
                 'paymentType',
-            ])->paginate($request->get('per_page', 10));
+            ])->paginate($this->perPageFromRequest($request, 10));
 
-            $orderCollection = OrderResource::collection($incompleteOrders);
-              return $this->apiResponse($orderCollection, trans('api.success'));
+            return $this->paginatedApiResponse(
+                $incompleteOrders,
+                OrderResource::collection($incompleteOrders)
+            );
  
         } catch (\Exception $e) {
             return $this->apiResponse(

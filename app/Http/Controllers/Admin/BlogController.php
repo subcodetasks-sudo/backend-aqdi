@@ -23,12 +23,12 @@ class BlogController extends Controller
     public function index(BlogIndexRequest $request)
     {
         try {
-            $blogs = Blog::latest()->paginate(10);
+            $blogs = Blog::latest()->paginate($this->perPageFromRequest($request, 10));
 
-            return $this->apiResponse([
-                'items' => BlogResource::collection($blogs),
-                'pagination' => $this->paginate($blogs),
-            ], trans('api.success'));
+            return $this->paginatedApiResponse(
+                $blogs,
+                BlogResource::collection($blogs)
+            );
 
         } catch (\Throwable $e) {
             return $this->errorMessage(

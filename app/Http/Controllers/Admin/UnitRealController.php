@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UnitsResource;
 use App\Http\Traits\Responser;
 use App\Models\UnitsReal;
 use Illuminate\Http\Request;
@@ -39,14 +40,11 @@ class UnitRealController extends Controller
                 });
             }
 
-            $units = $query->latest()->paginate($request->get('per_page', 20));
+            $units = $query->latest()->paginate($this->perPageFromRequest($request));
 
-            return $this->apiResponse(
-                [
-                    'items' => $units->items(),
-                    'pagination' => $this->paginate($units),
-                ],
-                trans('api.success')
+            return $this->paginatedApiResponse(
+                $units,
+                UnitsResource::collection($units)
             );
         } catch (\Exception $e) {
             return $this->errorMessage(

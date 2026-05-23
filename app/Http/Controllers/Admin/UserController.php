@@ -43,26 +43,26 @@ class UserController extends Controller
             );
         }
 
-        $users = $usersQuery->latest()->paginate(20);
+        $users = $usersQuery->latest()->paginate($this->perPageFromRequest($request));
 
-        return $this->apiResponse(
-            AllUserResource::collection($users),
-            trans('api.success')
+        return $this->paginatedApiResponse(
+            $users,
+            AllUserResource::collection($users)
         );
     }
 
     /**
      * Get today's new users
      */
-    public function newcommersUser()
+    public function newcommersUser(Request $request)
     {
         $users = $this->usersWithTotalPaidQuery()->whereDate('created_at', now()->toDateString())
                      ->latest()
-                     ->paginate(20);
+                     ->paginate($this->perPageFromRequest($request));
 
-        return $this->apiResponse(
-            AllUserResource::collection($users),
-            trans('api.success')
+        return $this->paginatedApiResponse(
+            $users,
+            AllUserResource::collection($users)
         );
     }
 
