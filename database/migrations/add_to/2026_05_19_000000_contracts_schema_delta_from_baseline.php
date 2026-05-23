@@ -1,12 +1,5 @@
 <?php
-
-/**
- * تشغيل يدوي:
- *   php artisan migrate --path=database/migrations/add_to/2026_05_19_000000_contracts_schema_delta_from_baseline.php
- *
- * errno 1118 (row size too large): يُضاف كل عمود في ALTER منفصل؛ مسارات الملفات TEXT وليس VARCHAR(255).
- * إذا فشل تشغيل سابق: ارفع هذا الملف وأعد الأمر (الأعمدة الموجودة تُتخطى).
- */
+ 
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

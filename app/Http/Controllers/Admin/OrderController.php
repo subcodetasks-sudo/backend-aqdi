@@ -245,7 +245,7 @@ class OrderController extends Controller
                 'unitUsage',
                 'contractTermInYears',
                 'paymentType',
-            ])->paginate($request->get('per_page', 20));
+            ])->paginate($request->get('per_page', 10));
 
             $orderCollection = OrderResource::collection($incompleteOrders);
               return $this->apiResponse($orderCollection, trans('api.success'));
