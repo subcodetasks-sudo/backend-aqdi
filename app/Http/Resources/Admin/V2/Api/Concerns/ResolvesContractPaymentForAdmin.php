@@ -21,7 +21,7 @@ trait ResolvesContractPaymentForAdmin
         $isPaid = (bool) $this->is_completed;
         $successPayment = $this->resolveSuccessfulPayment();
 
-        $amount = $successPayment?->amount;
+        $amount = $this->resolveOrderAmountPayment() ?? $successPayment?->amount;
         if ($amount === null && $isPaid) {
             $amount = $this->total_price ?? null;
         }
@@ -34,6 +34,15 @@ trait ResolvesContractPaymentForAdmin
                 ? ($amount !== null && $amount !== '' ? round((float) $amount, 2) : 'تم الدفع')
                 : 'لم يتم الدفع',
         ];
+    }
+
+    private function resolveOrderAmountPayment(): ?float
+    {
+        if (isset($this->order_amount_payment) && $this->order_amount_payment !== null && $this->order_amount_payment !== '') {
+            return round((float) $this->order_amount_payment, 2);
+        }
+
+        return null;
     }
 
     private function resolveSuccessfulPayment(): ?Payment
