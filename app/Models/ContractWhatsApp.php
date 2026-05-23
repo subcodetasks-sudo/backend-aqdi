@@ -80,4 +80,22 @@ class ContractWhatsApp extends Model
             default => $this->contract_type,
         };
     }
+
+    /**
+     * Human-readable contract duration (from contract_periods.period or note).
+     */
+    public function getContractDurationNameAttribute(): ?string
+    {
+        $period = $this->contractPeriod;
+
+        if (! $period) {
+            return null;
+        }
+
+        if ($period->period !== null && $period->period !== '') {
+            return $period->period;
+        }
+
+        return $period->note_trans ?: null;
+    }
 }
