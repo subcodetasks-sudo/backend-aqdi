@@ -1,48 +1,5 @@
 <?php
-<?php
 
-/**
- * =============================================================================
- * ملف مرجعي فقط — لا يُشغَّل تلقائياً مع migrate
- * =============================================================================
- *
- * المسار: database/migrations/add_to/
- * Laravel لا يحمّل هذا المجلد افتراضياً (خارج database/migrations الجذر).
- *
- * الغرض: تطبيق كل ما تغيّر في جدول `contracts` في المشروع مقارنةً بـ migration
- * الإنشاء الأصلي (2024_01_30_165201_create_contracts_table.php أو النسخة التي أرسلتها).
- *
- * تشغيل يدوي (عند الحاجة فقط):
- *   php artisan migrate --path=database/migrations/add_to/2026_05_19_000000_contracts_schema_delta_from_baseline.php
- *
- * إذا فشل تشغيل سابق عند تعديل contract_starting_date (errno 150): ارفع هذا الملف
- * المحدّث وأعد الأمر — الخطوة 1 idempotent (تتخطى الأعمدة الموجودة).
- *
- * مصادر التغييرات في المشروع (للمراجعة):
- *   - 2026_03_11_043547_add_new_fildes_to_contracts_table.php
- *   - 2026_03_26_100000_add_name_real_estate_to_contracts_table.php
- *   - 2024_01_30_165203_create_add_expiry_date_column_to_contracts_table.php
- *   - 2026_04_04_000000_change_contract_starting_date_to_string_on_contracts_table.php
- *   - 2026_04_06_131907_add_contract_status_id_to_contracts.php
- *   - 2026_04_08_130000_expand_instrument_type_enum_on_contracts_table.php
- *   - 2026_04_14_113122_add_dob_type_to_contracts_table.php (type_dob)
- *   - 2026_04_15_120000_add_dob_types_to_owner_fields.php
- *   - 2026_04_19_100000_add_calendar_types_for_dates_to_contracts_and_real_estates.php
- *   - 2026_04_24_183750_add_copy_of_the_endowment_registration_certificate_to_contracts_table.php
- *   - 2026_05_03_120000_merge_contract_property_owner_dob_columns.php
- *   - 2026_05_08_163600_sync_contract_instrument_type_enum_with_real_estate.php
- *   - 2026_05_09_120000_add_real_estate_owner_endowment_fields_and_enum.php (enum فقط على contracts)
- *   - 2026_05_09_120000_add_notes_edits_to_contracts_table.php
- *   - 2026_05_09_130000_add_tenant_role_ids_to_contracts_table.php
- *   - 2026_05_11_115827_add_ac_to_contracts_table.php
- *   - 2026_05_11_140000_rename_tenant_dob_hijri_to_tenant_dob_on_contracts_table.php
- *   - 2026_05_11_150000_rename_dob_hijri_of_property_tenant_agent_on_contracts_table.php
- *   - 2026_05_11_160000_add_step5_booleans_to_contracts_table.php
- *
- * ملاحظات أعمدة مستخدمة في الكود بدون migration واضحة في المشروع:
- *   - electricity_meter, water_meter (boolean) — يُحفظان من Contract V2 step5؛ أضفهما يدوياً إن لم يكونا موجودين.
- *   - conditions — يُتحقق منه في Step6Request فقط ولا يُخزَّن كعمود منفصل (يُستخدم other_conditions).
- */
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -51,7 +8,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /** القيم النهائية لـ instrument_type في المشروع (مايو 2026). */
     private function finalInstrumentTypeEnumSql(): string
     {
         return <<<'SQL'
@@ -106,9 +62,7 @@ SQL;
             return;
         }
 
-        // ---------------------------------------------------------------------
-        // 1) أعمدة جديدة (غير موجودة في migration الإنشاء الأصلي)
-        // ---------------------------------------------------------------------
+      
         Schema::table('contracts', function (Blueprint $table) {
             $addString = static function (string $col) use ($table): void {
                 if (! Schema::hasColumn('contracts', $col)) {
@@ -165,7 +119,6 @@ SQL;
             $addString('copy_of_the_trusteeship_deed');
             $addBool('is_multiple_trusteeship_deed_copy', false);
 
-            // مستأجر / شروط
             $addBool('tenant_roles', false);
             if (! Schema::hasColumn('contracts', 'tenant_role_id')) {
                 $table->unsignedBigInteger('tenant_role_id')->nullable();
@@ -177,7 +130,6 @@ SQL;
             $addBool('additional_terms', false);
             $addText('notes_edits');
 
-            // أنواع التقويم (هجري / ميلادي)
             $addEnum('type_dob', ['hijri', 'gregorian'], 'hijri');
             $addEnum('type_dob_property_owner', ['hijri', 'gregorian'], 'hijri');
             $addEnum('type_dob_property_owner_agent', ['hijri', 'gregorian']);
@@ -188,14 +140,12 @@ SQL;
             $addEnum('type_date_first_registration', ['hijri', 'gregorian']);
             $addEnum('type_agency_instrument_date_of_property_owner', ['hijri', 'gregorian']);
 
-            // تكييف / تأثيث
             $addInt('split_ac');
             $addInt('window_ac');
             $addBool('kitchen_tank', false);
             $addBool('furnished', false);
             $addString('type_furnished');
 
-            // اختياري: مستخدم في API V2 step5 إن لم يكن العمود موجوداً
             $addBool('electricity_meter', false);
             $addBool('water_meter', false);
 
@@ -211,7 +161,6 @@ SQL;
             }
         });
 
-        // FK لـ tenant_role_id إن وُجد الجدول
         if (
             Schema::hasTable('tenant_roles')
             && Schema::hasColumn('contracts', 'tenant_role_id')
@@ -224,14 +173,11 @@ SQL;
                         ->cascadeOnDelete();
                 });
             } catch (\Throwable) {
-                // قد يكون الـ FK موجوداً مسبقاً
+             
             }
         }
 
-        // ---------------------------------------------------------------------
-        // 2) تغيير نوع عمود: contract_starting_date من date إلى string
-        //    (لا تستخدم ->change() — تفشل مع errno 150 عند وجود FK على contracts)
-        // ---------------------------------------------------------------------
+     
         if (Schema::hasColumn('contracts', 'contract_starting_date')
             && ! $this->contractStartingDateIsString()) {
             $this->withoutForeignKeyChecks(function (): void {
@@ -239,9 +185,7 @@ SQL;
             });
         }
 
-        // ---------------------------------------------------------------------
-        // 3) إعادة تسمية أعمدة (إن وُجدت الأسماء القديمة فقط)
-        // ---------------------------------------------------------------------
+  
         if (Schema::hasColumn('contracts', 'tenant_dob_hijri') && ! Schema::hasColumn('contracts', 'tenant_dob')) {
             $this->withoutForeignKeyChecks(function (): void {
                 Schema::table('contracts', function (Blueprint $table) {
@@ -259,10 +203,7 @@ SQL;
             });
         }
 
-        // ---------------------------------------------------------------------
-        // 4) دمج تاريخ ميلاد المالك: عمود واحد property_owner_dob + حذف الهجري/الميلادي
-        //    (بدلاً من property_owner_dob_hijri + property_owner_dob_gregorian)
-        // ---------------------------------------------------------------------
+   
         if (! Schema::hasColumn('contracts', 'property_owner_dob')) {
             Schema::table('contracts', function (Blueprint $table) {
                 $table->text('property_owner_dob')->nullable();
@@ -310,9 +251,7 @@ SQL;
             });
         }
 
-        // ---------------------------------------------------------------------
-        // 5) ترحيل tenant_role_id → tenant_role_ids (JSON)
-        // ---------------------------------------------------------------------
+
         if (Schema::hasColumn('contracts', 'tenant_role_id') && Schema::hasColumn('contracts', 'tenant_role_ids')) {
             DB::table('contracts')
                 ->whereNotNull('tenant_role_id')
@@ -327,9 +266,6 @@ SQL;
                 });
         }
 
-        // ---------------------------------------------------------------------
-        // 6) توسيع ENUM لـ instrument_type إلى القائمة النهائية
-        // ---------------------------------------------------------------------
         if (Schema::hasColumn('contracts', 'instrument_type')) {
             $this->withoutForeignKeyChecks(function (): void {
                 DB::statement('ALTER TABLE `contracts` '.$this->finalInstrumentTypeEnumSql());
@@ -343,7 +279,6 @@ SQL;
             return;
         }
 
-        // استرجاع instrument_type إلى القيم الأصلية الثلاث
         if (Schema::hasColumn('contracts', 'instrument_type')) {
             DB::statement("
                 ALTER TABLE `contracts`
@@ -355,7 +290,6 @@ SQL;
             ");
         }
 
-        // استرجاع أعمدة تاريخ المالك المنفصلة
         Schema::table('contracts', function (Blueprint $table) {
             if (! Schema::hasColumn('contracts', 'property_owner_dob_hijri')) {
                 $table->string('property_owner_dob_hijri')->nullable();
