@@ -41,10 +41,15 @@ class ContractWhatsAppController extends Controller
                     'date' => $contract->date,
                     'is_complete' => $contract->is_complete,
                 ];
-            } else {
-                // Complete: return all data
-                return $contract;
             }
+
+            // Complete: all fields; contract_type shown in Arabic/English per locale
+            $data = $contract->toArray();
+            if ($contract->contract_type !== null && $contract->contract_type !== '') {
+                $data['contract_type'] = $contract->contract_type_trans;
+            }
+
+            return $data;
         });
 
         // Replace collection in pagination
