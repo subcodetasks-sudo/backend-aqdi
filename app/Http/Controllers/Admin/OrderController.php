@@ -24,6 +24,7 @@ class OrderController extends Controller
         $status = $request->get('status');
 
         $orders = Contract::query()
+            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
             ->when($request->filled('status'), function ($q) use ($status) {
                 if (is_numeric($status)) {
                     $q->where('contract_status_id', (int) $status);
@@ -107,6 +108,7 @@ class OrderController extends Controller
     private function returnContractsQuery(Request $request)
     {
         return Contract::query()
+            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
             ->where('contract_status_id', 2)
             ->where('is_delete', false)
             ->when($request->filled('contract_type'), fn ($q) =>
@@ -138,6 +140,7 @@ class OrderController extends Controller
     private function incompleteContractsQuery(Request $request)
     {
         return Contract::query()
+            ->tap(fn ($q) => $this->applyOrderAmountPaymentSelect($q))
             ->where('is_completed', false)
             ->where('is_delete', false)
             ->when($request->contract_type, fn ($q) =>
@@ -210,6 +213,7 @@ class OrderController extends Controller
     {
         try {
             $query = Contract::where('is_completed', true);
+            $this->applyOrderAmountPaymentSelect($query);
 
             // Filter by contract_type if provided
             if ($request->has('contract_type')) {
@@ -245,7 +249,7 @@ class OrderController extends Controller
                 'unitUsage',
                 'contractTermInYears',
                 'paymentType',
-            ])->paginate($request->get('per_page', 100));
+            ])->paginate($request->get('per_page', 10));
 
             $orderCollection = OrderResource::collection($incompleteOrders);
               return $this->apiResponse($orderCollection, trans('api.success'));
@@ -559,6 +563,20 @@ class OrderController extends Controller
         } else {
             $query->whereDoesntHave('receivedContract');
         }
+    }
+
+    /**
+     * Subquery: orders.amount_payment where orders.uuid matches contract uuid (with optional "-suffix").
+     */
+    private function applyOrderAmountPaymentSelect($query): void
+    {
+        $query->addSelect([
+            'order_amount_payment' => Order::query()
+                ->select('amount_payment')
+                ->matchingContractUuidColumn('contracts.uuid')
+                ->orderByDesc('id')
+                ->limit(1),
+        ]);
     }
 
     private function parseReceivedContractQueryFilter(Request $request): ?bool
