@@ -68,7 +68,7 @@ class ContractWhatsAppController extends Controller
 
         return $this->apiResponse(
             $this->formatCompleteRecord($contract),
-            trans('api.contract_created_successfully'),
+             ('تم انشاء عقد واتساب مكتمل بنجاح '),
             true,
             201
         );
@@ -88,7 +88,7 @@ class ContractWhatsAppController extends Controller
         $data = $this->prepareIncompleteData($request);
         $contract = ContractWhatsApp::create($data);
 
-        return $this->apiResponse($contract, trans('api.contract_created_successfully'), true, 201);
+        return $this->apiResponse($contract,  ('تم انشاء عقد واتساب غير مكتمل بنجاح '), true, 201);
     }
 
     /**
