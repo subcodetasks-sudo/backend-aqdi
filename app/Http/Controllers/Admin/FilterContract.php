@@ -4,12 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ContractResource;
+use App\Http\Traits\Responser;
 use App\Models\Contract;
 use Illuminate\Http\Request;
 
 class FilterContract extends Controller
 {
-     public function allcontracts(Request $request)
+    use Responser;
+
+    public function filter(Request $request)
+    {
+        return $this->allcontracts($request);
+    }
+
+    public function allcontracts(Request $request)
     {
         $contractsQuery = Contract::query();
 
@@ -40,11 +48,11 @@ class FilterContract extends Controller
             $contractsQuery->adminSearch($request->string('search')->toString());
         }
 
-        $contracts = $contractsQuery->latest()->paginate($request->integer('per_page', 20));
+        $contracts = $contractsQuery->latest()->paginate($this->perPageFromRequest($request));
 
-        return $this->apiResponse(
-            ContractResource::collection($contracts),
-            trans('api.success')
+        return $this->paginatedApiResponse(
+            $contracts,
+            ContractResource::collection($contracts)
         );
     }
 }

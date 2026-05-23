@@ -79,4 +79,5 @@ return [
     'received_contract_not_found' => 'لا يوجد سجل استلام لهذا العقد',
     'received_contract_update_requires_field' => 'يرجى إرسال حقل واحد على الأقل: status أو date_of_received أو notes.',
     'contract_already_received' => 'تم استلام العقد بالفعل',
+    'payment_type_in_use' => 'لا يمكن حذف طريقة الدفع لأنها مرتبطة بعقود',
 ];

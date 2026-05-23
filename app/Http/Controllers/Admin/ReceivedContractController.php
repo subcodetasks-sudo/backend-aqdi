@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateEmployeeContractReceivedRequest;
 use App\Http\Resources\Admin\V2\Api\ReceivedContractResource;
 use App\Http\Traits\Responser;
 use App\Enums\ReceivedContractStatus;
+use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\ReceivedContract;
 use Illuminate\Database\QueryException;
@@ -53,6 +54,15 @@ class ReceivedContractController extends Controller
             }
 
             $contractId = $request->integer('contract_id');
+
+            $contract = Contract::query()
+                ->whereKey($contractId)
+                ->where('is_delete', false)
+                ->exists();
+
+            if (! $contract) {
+                return $this->errorMessage(trans('api.contract_not_found'), 404);
+            }
 
             $existingReceived = ReceivedContract::query()
                 ->where('contract_id', $contractId)
@@ -100,6 +110,10 @@ class ReceivedContractController extends Controller
                     if ($conflictRow) {
                         return $this->contractAlreadyReceivedResponse($conflictRow);
                     }
+                }
+
+                if ($this->isMissingContractForeignKeyViolation($queryException)) {
+                    return $this->errorMessage(trans('api.contract_not_found'), 404);
                 }
 
                 throw $queryException;
@@ -197,5 +211,19 @@ class ReceivedContractController extends Controller
         $driverCode = (int) ($exception->errorInfo[1] ?? 0);
 
         return $driverCode === 1062 || $driverCode === 19;
+    }
+
+    private function isMissingContractForeignKeyViolation(QueryException $exception): bool
+    {
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+
+        if ($driverCode !== 1452) {
+            return false;
+        }
+
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'received_contracts_contract_id_foreign')
+            || str_contains($message, '`contract_id`');
     }
 }

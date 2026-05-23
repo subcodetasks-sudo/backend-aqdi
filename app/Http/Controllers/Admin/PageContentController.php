@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\V2\Api\PageContentResource;
 use App\Http\Traits\Responser;
 use App\Models\Page;
 use Illuminate\Http\Request;
@@ -20,15 +21,38 @@ class PageContentController extends Controller
                 ['description_ar' => '', 'description_en' => null]
             );
 
-            return $this->apiResponse([
-                'id' => $page->id,
-                'page' => $page->page,
-                'description_ar' => $page->description_ar,
-                'description_en' => $page->description_en,
-                'description' => $page->description_trans,
-            ], trans('api.success'));
+            return $this->apiResponse(
+                new PageContentResource($page),
+                trans('api.success')
+            );
         } catch (\Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Terms + privacy in one response (admin legal content screen).
+     *
+     * GET /api/admin/content/legal-pages
+     */
+    public function legalPages()
+    {
+        try {
+            $terms = Page::query()->firstOrCreate(
+                ['page' => 'term_and_condition'],
+                ['description_ar' => '', 'description_en' => null]
+            );
+            $privacy = Page::query()->firstOrCreate(
+                ['page' => 'privacy'],
+                ['description_ar' => '', 'description_en' => null]
+            );
+
+            return $this->apiResponse([
+                'terms_and_conditions' => new PageContentResource($terms),
+                'privacy_policy' => new PageContentResource($privacy),
+            ], trans('api.success'));
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -45,13 +69,10 @@ class PageContentController extends Controller
                 ['description_ar' => '', 'description_en' => null]
             );
 
-            return $this->apiResponse([
-                'id' => $page->id,
-                'page' => $page->page,
-                'description_ar' => $page->description_ar,
-                'description_en' => $page->description_en,
-                'description' => $page->description_trans,
-            ], trans('api.success'));
+            return $this->apiResponse(
+                new PageContentResource($page),
+                trans('api.success')
+            );
         } catch (\Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
@@ -76,13 +97,10 @@ class PageContentController extends Controller
             );
             $page->update($validated);
 
-            return $this->apiResponse([
-                'id' => $page->id,
-                'page' => $page->page,
-                'description_ar' => $page->description_ar,
-                'description_en' => $page->description_en,
-                'description' => $page->description_trans,
-            ], trans('api.updated_successfully'));
+            return $this->apiResponse(
+                new PageContentResource($page->fresh()),
+                trans('api.updated_successfully')
+            );
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (\Throwable $e) {

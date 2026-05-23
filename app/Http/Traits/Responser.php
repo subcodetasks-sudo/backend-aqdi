@@ -3,7 +3,9 @@
 namespace App\Http\Traits;
 
 use App\Support\JsonEncoding;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 trait Responser
 {
@@ -53,20 +55,48 @@ trait Responser
         ], $this->httpStatus($code));
     }
 
-    protected function paginate($object)
+    protected function paginate(LengthAwarePaginator $paginator): array
     {
         return [
-            'current_page' => $object->currentPage(),
-            'last_page' => $object->lastPage(),
-            'first_page_url' => $object->url(1),
-            'last_page_url' => $object->url($object->lastPage()),
-            'next_page_url' => $object->nextPageUrl(),
-            'prev_page_url' => $object->previousPageUrl(),
-            'from' => $object->firstItem(),
-            'to' => $object->lastItem(),
-            'per_page' => $object->perPage(),
-            'total' => $object->total(),
+            'current_page' => $paginator->currentPage(),
+            'last_page' => $paginator->lastPage(),
+            'first_page_url' => $paginator->url(1),
+            'last_page_url' => $paginator->url($paginator->lastPage()),
+            'next_page_url' => $paginator->nextPageUrl(),
+            'prev_page_url' => $paginator->previousPageUrl(),
+            'from' => $paginator->firstItem(),
+            'to' => $paginator->lastItem(),
+            'per_page' => $paginator->perPage(),
+            'total' => $paginator->total(),
         ];
+    }
+
+    protected function perPageFromRequest(Request $request, int $default = 20, int $max = 100): int
+    {
+        return min(max((int) $request->input('per_page', $default), 1), $max);
+    }
+
+    /**
+     * Standard admin list response: data.items + data.pagination.
+     *
+     * @param  mixed  $items  Resource collection or list payload
+     * @param  array<string, mixed>  $meta  Extra keys merged into data (before items/pagination)
+     */
+    protected function paginatedApiResponse(
+        LengthAwarePaginator $paginator,
+        mixed $items,
+        ?string $message = null,
+        array $meta = [],
+        int $code = 200
+    ): JsonResponse {
+        $message = $message ?? trans('api.success');
+
+        $data = array_merge($meta, [
+            'items' => $items,
+            'pagination' => $this->paginate($paginator),
+        ]);
+
+        return $this->apiResponse($data, $message, $code);
     }
 
     private function httpStatus(int $code): int

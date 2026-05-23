@@ -68,5 +68,6 @@ return [
     'received_contract_not_found' => 'No received-contract record for this contract',
     'received_contract_update_requires_field' => 'Send at least one of: status, date_of_received, notes.',
     'contract_already_received' => 'The contract has already been received',
+    'payment_type_in_use' => 'Cannot delete this payment method because it is linked to contracts',
 
 ];

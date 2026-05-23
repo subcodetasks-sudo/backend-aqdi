@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ReceivedContractStatus;
+use App\Models\Contract;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,7 +41,11 @@ class StoreEmployeeContractReceivedRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
+            'contract_id' => [
+                'required',
+                'integer',
+                Rule::exists(Contract::class, 'id')->where(fn ($q) => $q->where('is_delete', false)),
+            ],
             'status' => ['sometimes', Rule::enum(ReceivedContractStatus::class)],
             'date_of_received' => ['sometimes', 'nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],

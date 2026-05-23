@@ -24,11 +24,11 @@ class RealEstateController extends Controller
 
             $reals = $query
                 ->latest()
-                ->paginate(20);
+                ->paginate($this->perPageFromRequest($request));
 
-            return $this->apiResponse(
-                RealEstateResource::collection($reals),
-                trans('api.success')
+            return $this->paginatedApiResponse(
+                $reals,
+                RealEstateResource::collection($reals)
             );
         } catch (\Throwable $e) {
             return $this->errorMessage(
