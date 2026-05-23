@@ -43,13 +43,7 @@ class ContractWhatsAppController extends Controller
                 ];
             }
 
-            // Complete: all fields; contract_type shown in Arabic/English per locale
-            $data = $contract->toArray();
-            if ($contract->contract_type !== null && $contract->contract_type !== '') {
-                $data['contract_type'] = $contract->contract_type_trans;
-            }
-
-            return $data;
+            return $this->formatCompleteRecord($contract);
         });
 
         // Replace collection in pagination
@@ -72,7 +66,12 @@ class ContractWhatsAppController extends Controller
         $data = $this->prepareCompleteData($request);
         $contract = ContractWhatsApp::with('contractPeriod')->create($data);
 
-        return $this->apiResponse($contract, trans('api.contract_created_successfully'), true, 201);
+        return $this->apiResponse(
+            $this->formatCompleteRecord($contract),
+            trans('api.contract_created_successfully'),
+            true,
+            201
+        );
     }
 
     /**
@@ -163,5 +162,25 @@ class ContractWhatsAppController extends Controller
             'date' => $request->date,
             'is_complete' => false,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatCompleteRecord(ContractWhatsApp $contract): array
+    {
+        $data = $contract->toArray();
+
+        if ($contract->contract_type !== null && $contract->contract_type !== '') {
+            $data['contract_type'] = $contract->contract_type_trans;
+        }
+
+        if ($contract->contract_duration !== null) {
+            $data['contract_duration'] = $contract->contract_duration_name;
+        }
+
+        unset($data['contract_period']);
+
+        return $data;
     }
 }
