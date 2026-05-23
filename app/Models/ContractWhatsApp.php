@@ -46,11 +46,38 @@ class ContractWhatsApp extends Model
         'rental_fees' => 'decimal:2',
     ];
 
+    protected $appends = [
+        'contract_type_trans',
+    ];
+
     /**
      * Get the contract period relationship
      */
     public function contractPeriod()
     {
         return $this->belongsTo(ContractPeriod::class, 'contract_duration');
+    }
+
+    public function getContractTypeTransAttribute(): ?string
+    {
+        if ($this->contract_type === null || $this->contract_type === '') {
+            return null;
+        }
+
+        $locale = app()->getLocale();
+
+        if ($locale === 'en') {
+            return match ($this->contract_type) {
+                'commercial' => 'Commercial',
+                'residential', 'housing' => 'Residential',
+                default => $this->contract_type,
+            };
+        }
+
+        return match ($this->contract_type) {
+            'commercial' => 'تجاري',
+            'residential', 'housing' => 'سكني',
+            default => $this->contract_type,
+        };
     }
 }
