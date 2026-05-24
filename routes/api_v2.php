@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GeneralController;
+use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TenantRoleController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
@@ -33,6 +34,11 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
+});
+
+Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{key}', 'show')->where('key', '[a-z0-9\-]+');
 });
 
 Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {

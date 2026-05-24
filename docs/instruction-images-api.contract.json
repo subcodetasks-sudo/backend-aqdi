@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Instruction / promotional images API",
+  "version": "1.0.0",
+  "adminBasePath": "/api/admin/instruction-sections",
+  "clientBasePath": "/api/instruction-images",
+  "models": {
+    "section": {
+      "id": 1,
+      "key": "new-client",
+      "title_ar": "عميل جديد",
+      "description_ar": "صورة تظهر للعملاء - الجدد",
+      "is_active": true,
+      "sort_order": 1,
+      "images": []
+    },
+    "image": {
+      "id": 101,
+      "section_id": 1,
+      "title_ar": "العقد #10001",
+      "image_url": "https://example.com/storage/uploads/instructions/xxx.png",
+      "mime_type": "image/png",
+      "file_extension": "png",
+      "sort_order": 1
+    }
+  },
+  "predefinedSectionKeys": [
+    "new-client",
+    "start",
+    "create-residential-contract",
+    "create-commercial-contract",
+    "my-real-estate",
+    "units",
+    "deed",
+    "address",
+    "owner",
+    "tenant",
+    "real-estate",
+    "instrument",
+    "agent",
+    "authorization",
+    "endowment",
+    "financial-data",
+    "payment-completion",
+    "requests",
+    "documentation",
+    "contract-review"
+  ],
+  "adminEndpoints": [
+    { "action": "list", "method": "GET", "path": "", "query": { "per_page": 20, "page": 1 } },
+    { "action": "show", "method": "GET", "path": "/{id}" },
+    { "action": "update", "method": "POST", "path": "/{id}", "body": { "title_ar": "عميل جديد", "description_ar": "صورة تظهر للعملاء - الجدد", "is_active": true, "sort_order": 1 }, "note": "Sections are predefined via seeder; no create endpoint." },
+    { "action": "toggle", "method": "POST", "path": "/{id}/toggle", "body": { "is_active": false } },
+    { "action": "delete", "method": "POST", "path": "/{id}/delete" },
+    { "action": "uploadImage", "method": "POST", "path": "/{id}/images", "contentType": "multipart/form-data", "fields": { "image": "required file png|jpg|jpeg|webp", "title_ar": "optional", "sort_order": "optional integer" } },
+    { "action": "deleteImage", "method": "POST", "path": "/{id}/images/{imageId}/delete" }
+  ],
+  "clientEndpoints": [
+    {
+      "action": "listByKeys",
+      "method": "GET",
+      "path": "",
+      "query": { "keys": "new-client,start" },
+      "description": "Optional comma-separated keys; returns active sections with images. No static image URLs in the app."
+    },
+    {
+      "action": "showByKey",
+      "method": "GET",
+      "path": "/{key}",
+      "description": "Primary mobile usage: pass screen key (e.g. deed, tenant); returns images[] or empty when inactive/missing."
+    }
+  ],
+  "listResponseExample": {
+    "message": "نجحت العملية",
+    "code": 200,
+    "success": true,
+    "data": {
+      "items": [],
+      "pagination": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 20,
+        "total": 20
+      }
+    }
+  },
+  "clientResponseExample": {
+    "message": "نجحت العملية",
+    "code": 200,
+    "success": true,
+    "data": {
+      "key": "new-client",
+      "title_ar": "عميل جديد",
+      "images": [
+        {
+          "id": 101,
+          "title_ar": "العقد #10001",
+          "image_url": "https://example.com/storage/uploads/instructions/xxx.png",
+          "file_extension": "png",
+          "sort_order": 1
+        }
+      ]
+    }
+  }
+}

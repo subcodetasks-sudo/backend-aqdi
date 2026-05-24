@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CouponAdminController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ReceivedContractController;
 use App\Http\Controllers\Admin\FaqController;
+use App\Http\Controllers\Admin\InstructionSectionController;
 use App\Http\Controllers\Admin\FilterContract;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\HomeAdminController;
@@ -325,6 +326,19 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
         Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Instruction / promotional images (صور تعليمية أو إعلانية)
+    Route::prefix('instruction-sections')->name('instruction-sections.')->controller(InstructionSectionController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/toggle', 'toggle')->whereNumber('id')->name('toggle');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+        Route::post('/{id}/images', 'uploadImage')->whereNumber('id')->name('images.store');
+        Route::post('/{id}/images/{imageId}/delete', 'destroyImage')
+            ->whereNumber(['id', 'imageId'])
+            ->name('images.destroy');
     });
 
     // Message alerts (explanatory messages) — sections & items + alerts CRUD
