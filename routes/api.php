@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BlogSubDomainController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\GeneralController;
+use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RealEstateControllor;
 use App\Http\Controllers\Api\SavedRealEstateController;
@@ -50,6 +51,11 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
+});
+
+Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
+    Route::get('/', 'index');
+    Route::get('/{key}', 'show')->where('key', '[a-z0-9\-]+');
 });
 
 // ============================================================================
