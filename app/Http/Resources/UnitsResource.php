@@ -29,12 +29,16 @@ class UnitsResource extends JsonResource
              'water_meter_number'=>$this->water_meter_number,
              
             'floor_number'=>$this->floor_number,
-            'unit_usage_id'=> $this->unit_usage_id ,
+            'unit_usage_id'=> $this->unit_usage_id,
             'unit_type_id'=>$this->unit_type_id,
-            'unit_usage_name'=> $this->unitUsage->name_ar,
-            'unit_type_name'=>$this->unitType->name_ar,
-            'contract_type' => optional($this->realEstate)->contract_type, // Fixed to use relationship
-
+            'unit_usage_name' => $this->unitUsage?->name_ar,
+            'unit_type_name' => $this->unitType?->name_trans ?? $this->unitType?->name_ar,
+            'contract_type' => $this->realEstate?->contract_type,
+            'user_id' => $this->user_id,
+            'user_name' => $this->user?->name,
+            'real_estate_id' => $this->real_estates_units_id,
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
     }
 }
