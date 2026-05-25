@@ -1,0 +1,279 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-selected-api",
+        "name": "AQDI Admin — Selected APIs (Orders POST, Refunds, Instructions)",
+        "description": "Focused collection for:\n\n- `POST /api/admin/orders/{id}` — partial contract update\n- `POST /api/admin/orders/{id}/contract-status`\n- `POST /api/admin/analytics/refunds/contracts/{id}` — موافقة / رفض\n- `instruction-sections` routes (admin.php 337-348)\n\n**Variables:** `baseUrl`, `contract_id`, `refund_id`, `instruction_section_id`, `instruction_image_id`",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "contract_id", "value": "1" },
+        { "key": "refund_id", "value": "1" },
+        { "key": "instruction_section_id", "value": "1" },
+        { "key": "instruction_image_id", "value": "1" }
+    ],
+    "item": [
+        {
+            "name": "Orders — POST",
+            "item": [
+                {
+                    "name": "Update contract (partial) — JSON",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"annual_rent_amount_for_the_unit\": \"334\",\n    \"notes_edits\": \"تعديل من الأدمن\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "{{contract_id}}"]
+                        },
+                        "description": "Send only fields to change. All contract columns optional except id, uuid, timestamps."
+                    }
+                },
+                {
+                    "name": "Update contract (partial) — form-data",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "annual_rent_amount_for_the_unit",
+                                    "value": "334",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "{{contract_id}}"]
+                        },
+                        "description": "Same as JSON body; use form-data key names matching DB columns."
+                    }
+                },
+                {
+                    "name": "Update contract status",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_status_id\": 2\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}/contract-status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "{{contract_id}}", "contract-status"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Refunds — POST (موافقة / رفض)",
+            "item": [
+                {
+                    "name": "Approve refund — admin_confirmed true",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": true\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "analytics", "refunds", "contracts", "{{refund_id}}"]
+                        },
+                        "description": "تم الموافقة — sets is_refunded = true"
+                    }
+                },
+                {
+                    "name": "Reject refund — admin_confirmed false",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": false\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "analytics", "refunds", "contracts", "{{refund_id}}"]
+                        },
+                        "description": "لم تتم الموافقة — is_refunded = false"
+                    }
+                },
+                {
+                    "name": "Update amount + approve",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": true,\n    \"refund_amount\": 125.99,\n    \"notes\": \"تمت المراجعة\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "analytics", "refunds", "contracts", "{{refund_id}}"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Instruction sections",
+            "item": [
+                {
+                    "name": "List sections",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections?per_page=20",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections"],
+                            "query": [{ "key": "per_page", "value": "20" }]
+                        }
+                    }
+                },
+                {
+                    "name": "Show section",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Update section",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title_ar\": \"عنوان القسم\",\n    \"description_ar\": \"وصف\",\n    \"sort_order\": 1\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}"]
+                        }
+                    }
+                },
+                {
+                    "name": "Toggle active",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"is_active\": true\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/toggle",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}", "toggle"]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete section",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}", "delete"]
+                        }
+                    }
+                },
+                {
+                    "name": "Upload image",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                { "key": "image", "type": "file", "src": [] },
+                                { "key": "title_ar", "value": "عنوان الصورة", "type": "text" },
+                                { "key": "sort_order", "value": "1", "type": "text" }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/images",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}", "images"]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const j = pm.response.json();",
+                                    "if (j?.data?.id) pm.collectionVariables.set('instruction_image_id', String(j.data.id));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete image",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/images/{{instruction_image_id}}/delete",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "instruction-sections", "{{instruction_section_id}}", "images", "{{instruction_image_id}}", "delete"]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

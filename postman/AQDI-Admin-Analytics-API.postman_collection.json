@@ -1,8 +1,8 @@
 {
     "info": {
         "_postman_id": "aqdi-admin-analytics-api",
-        "name": "AQDI Admin — Analytics API",
-        "description": "All admin APIs in one collection.\n\n**Modules:** Analytics, Employees, Roles, Coupons, Message Alerts\n\n**Variables:** baseUrl, employee_token, employee_id, role_id, coupon_id, message_alert_section_id, message_alert_section_item_id, message_alert_id\n\n**Employees:** use Bearer {{employee_token}} after Login.",
+        "name": "AQDI Admin — Analytics, Orders, Refunds & Instructions",
+        "description": "Generated from admin-analytics-api-filters.en.json\n\n**Do not import** `admin-analytics-api-filters.en.json` into Postman — it is API reference only.\nImport this file instead.\n\nQuery and path parameters for admin analytics endpoints. Base URL prefix: /api/admin",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -11,93 +11,102 @@
             "value": "http://localhost:8000"
         },
         {
+            "key": "employee_token",
+            "value": ""
+        },
+        {
+            "key": "contract_id",
+            "value": "1"
+        },
+        {
+            "key": "refund_id",
+            "value": "1"
+        },
+        {
             "key": "contract_status_id",
             "value": "2"
+        },
+        {
+            "key": "instruction_section_id",
+            "value": "1"
+        },
+        {
+            "key": "instruction_image_id",
+            "value": "1"
         }
     ],
     "item": [
         {
-            "name": "Legacy / Full dashboard",
+            "name": "Dashboard",
             "item": [
                 {
-                    "name": "Get all analytics",
+                    "name": "Full dashboard analytics",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
-                        "url": "{{baseUrl}}/api/admin/analytics/all"
-                    }
-                },
-                {
-                    "name": "Dashboard analytics alias",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": "{{baseUrl}}/api/admin/dashboard-analytics"
-                    }
-                },
-                {
-                    "name": "Analytics (legacy)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": "{{baseUrl}}/api/admin/analytics"
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics"
+                            ]
+                        }
                     }
                 }
             ]
         },
         {
-            "name": "تحليلات العملاء",
+            "name": "Users",
             "item": [
                 {
-                    "name": "كل التحليلات (مجمّع)",
+                    "name": "User activity rate",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
-                        "url": "{{baseUrl}}/api/admin/analytics/all"
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/user-activity-rate",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "user-activity-rate"
+                            ]
+                        }
                     }
-                },
+                }
+            ]
+        },
+        {
+            "name": "Clients",
+            "item": [
                 {
-                    "name": "معدل نشاط المستخدمين",
+                    "name": "Top customers — completed orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": "{{baseUrl}}/api/admin/analytics/user-activity-rate",
-                        "description": "معدل نشاط المستخدمين — `value` نسبة مئوية، `items` فيها active/total users."
-                    }
-                },
-                {
-                    "name": "أكثر العملاء طلب مكتمل",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -122,13 +131,14 @@
                     }
                 },
                 {
-                    "name": "أكثر العملاء طلب غير مكتمل",
+                    "name": "Top customers — incomplete orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -153,13 +163,14 @@
                     }
                 },
                 {
-                    "name": "أكثر العملاء طلبات",
+                    "name": "Top customers — total orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -184,13 +195,14 @@
                     }
                 },
                 {
-                    "name": "أكثر العملاء استرجاع",
+                    "name": "Top customers — returns",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -215,13 +227,14 @@
                     }
                 },
                 {
-                    "name": "أكثر العملاء عقارات",
+                    "name": "Top customers — real estates",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -246,13 +259,14 @@
                     }
                 },
                 {
-                    "name": "أكثر العملاء وحدات",
+                    "name": "Top customers — units",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -279,16 +293,257 @@
             ]
         },
         {
-            "name": "تحليلات الموظفين",
+            "name": "Refunds",
             "item": [
                 {
-                    "name": "أكثر الموظفين استلم طلب",
+                    "name": "Returned contracts list",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts?period=today&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "today"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Submit refund request (employee)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/refundable-contracts",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "refundable-contracts"
+                            ]
+                        },
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{employee_token}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_id\": 42,\n    \"draft_contract_number\": \"000042\",\n    \"refund_amount\": 500,\n    \"notes\": null\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Contract must be from GET /orders/return (contract_status_id = 2)."
+                    }
+                },
+                {
+                    "name": "Management approval — accept or reject",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": true,\n    \"refund_amount\": 1,\n    \"notes\": null\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Returned contract detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Contract status",
+            "item": [
+                {
+                    "name": "Contracts by status — summary or single period",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/{{contract_status_id}}?created_at=month&limit=10",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "contract-status",
+                                "{{contract_status_id}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "created_at",
+                                    "value": "month"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Contracts by status — paginated list",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/{{contract_status_id}}/contracts?created_at=month&period=today&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "contract-status",
+                                "{{contract_status_id}}",
+                                "contracts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "created_at",
+                                    "value": "month"
+                                },
+                                {
+                                    "key": "period",
+                                    "value": "today"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Employees",
+            "item": [
+                {
+                    "name": "Top employee — most received orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -313,13 +568,14 @@
                     }
                 },
                 {
-                    "name": "أكثر الموظفين قدم استرجاع",
+                    "name": "Top employee — most returns submitted",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -344,13 +600,14 @@
                     }
                 },
                 {
-                    "name": "أكثر الموظفين وثق طلب",
+                    "name": "Top employee — most documented orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -375,26 +632,40 @@
                     }
                 },
                 {
-                    "name": "عدد الموظفين",
+                    "name": "Total employees count",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
-                        "url": "{{baseUrl}}/api/admin/analytics/employees/count"
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/employees/count",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "employees",
+                                "count"
+                            ]
+                        }
                     }
                 },
                 {
-                    "name": "أكثر الموظفين طلب غير مدفوع",
+                    "name": "Top employee — most unpaid orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -421,131 +692,487 @@
             ]
         },
         {
-            "name": "عقود حسب الحالة (contract_status_id = 2)",
+            "name": "Orders",
             "item": [
                 {
-                    "name": "كل الفترات (5 بطاقات)",
+                    "name": "List orders",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
-                                "value": "application/json"
+                                "value": "application/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?limit=10",
+                            "raw": "{{baseUrl}}/api/admin/orders?per_page=20&page=1",
                             "host": [
                                 "{{baseUrl}}"
                             ],
                             "path": [
                                 "api",
                                 "admin",
-                                "analytics",
-                                "contract-status",
-                                "2"
+                                "orders"
                             ],
                             "query": [
                                 {
-                                    "key": "limit",
-                                    "value": "10"
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
                                 }
                             ]
                         }
                     }
                 },
                 {
-                    "name": "فلتر — اليوم (?created_at=day)",
+                    "name": "Return orders (for refunds)",
                     "request": {
                         "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=day&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2"],
-                            "query": [
-                                {"key": "created_at", "value": "day"},
-                                {"key": "limit", "value": "10"}
+                            "raw": "{{baseUrl}}/api/admin/orders/return",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "return"
+                            ]
+                        },
+                        "description": "contract_status_id = 2. Use contract id when POST /refundable-contracts."
+                    }
+                },
+                {
+                    "name": "Incomplete orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/incomplete/list",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "incomplete",
+                                "list"
+                            ]
+                        },
+                        "description": "is_completed = 0, is_delete = 0"
+                    }
+                },
+                {
+                    "name": "Complete orders",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/complete/list",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "complete",
+                                "list"
+                            ]
+                        },
+                        "description": "is_completed = 1"
+                    }
+                },
+                {
+                    "name": "Show contract",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{contract_id}}"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "فلتر — الأسبوع (?created_at=week)",
+                    "name": "Update contract (partial)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{contract_id}}"
+                            ]
+                        },
+                        "description": "Any contract column except id, uuid, timestamps. Send only fields to change."
+                    }
+                },
+                {
+                    "name": "Update contract status",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}/contract-status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{contract_id}}",
+                                "contract-status"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_status_id\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Instruction sections",
+            "item": [
+                {
+                    "name": "List instruction sections",
                     "request": {
                         "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=week&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2"],
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections?per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections"
+                            ],
                             "query": [
-                                {"key": "created_at", "value": "week"},
-                                {"key": "limit", "value": "10"}
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
                             ]
                         }
                     }
                 },
                 {
-                    "name": "فلتر — الشهر (?created_at=month)",
+                    "name": "Show section",
                     "request": {
                         "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=month&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2"],
-                            "query": [
-                                {"key": "created_at", "value": "month"},
-                                {"key": "limit", "value": "10"}
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "فلتر — العام (?created_at=year)",
+                    "name": "Update section",
                     "request": {
-                        "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=year&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2"],
-                            "query": [
-                                {"key": "created_at", "value": "year"},
-                                {"key": "limit", "value": "10"}
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title_ar\": null,\n    \"description_ar\": null,\n    \"is_active\": true,\n    \"sort_order\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Toggle active",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/toggle",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}",
+                                "toggle"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"is_active\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Delete section",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/delete",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}",
+                                "delete"
                             ]
                         }
                     }
                 },
                 {
-                    "name": "فلتر — الإجمالي (?created_at=total)",
+                    "name": "Upload image",
                     "request": {
-                        "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2?created_at=total&limit=10",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2"],
-                            "query": [
-                                {"key": "created_at", "value": "total"},
-                                {"key": "limit", "value": "10"}
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/images",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}",
+                                "images"
+                            ]
+                        },
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": []
+                                },
+                                {
+                                    "key": "title_ar",
+                                    "value": "عنوان",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "sort_order",
+                                    "value": "1",
+                                    "type": "text"
+                                }
                             ]
                         }
                     }
                 },
                 {
-                    "name": "قائمة العقود (?created_at=month)",
+                    "name": "Delete image",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/instruction-sections/{{instruction_section_id}}/images/{{instruction_image_id}}/delete",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "instruction-sections",
+                                "{{instruction_section_id}}",
+                                "images",
+                                "{{instruction_image_id}}",
+                                "delete"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Payments",
+            "item": [
+                {
+                    "name": "List payments",
                     "request": {
                         "method": "GET",
-                        "header": [{"key": "Accept", "value": "application/json"}],
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/analytics/contract-status/2/contracts?created_at=month&per_page=20",
-                            "host": ["{{baseUrl}}"],
-                            "path": ["api", "admin", "analytics", "contract-status", "2", "contracts"],
+                            "raw": "{{baseUrl}}/api/admin/payments?filter=month&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "payments"
+                            ],
                             "query": [
-                                {"key": "created_at", "value": "month"},
-                                {"key": "per_page", "value": "20"}
+                                {
+                                    "key": "filter",
+                                    "value": "month"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                }
                             ]
                         }
                     }

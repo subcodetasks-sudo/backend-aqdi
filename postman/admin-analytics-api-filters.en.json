@@ -1,4 +1,5 @@
 {
+  "_note": "NOT a Postman collection. Import postman/AQDI-Admin-Analytics-API.postman_collection.json instead. Regenerate: php tools/convert_analytics_filters_to_postman.php",
   "title": "Admin Analytics API Filters",
   "description": "Query and path parameters for admin analytics endpoints. Base URL prefix: /api/admin",
   "version": "1.0.0",
@@ -403,7 +404,7 @@
       "path": "/instruction-sections/{id}/images/{imageId}/delete"
     }
   ],
-  "postman_collection": "postman/AQDI-Admin-Orders-Refunds-Instructions.postman_collection.json",
+  "postman_collection": "postman/AQDI-Admin-Analytics-API.postman_collection.json",
   "payments_filter": {
     "description": "Payments screen time filter.",
     "method": "GET",
