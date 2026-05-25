@@ -155,6 +155,42 @@
     },
     {
       "group": "refunds",
+      "name": "Submit refund request (employee)",
+      "method": "POST",
+      "path": "/refundable-contracts",
+      "auth": "Bearer employee_token",
+      "description": "Contract must be from GET /orders/return (contract_status_id = 2).",
+      "body": {
+        "contract_id": { "type": "integer", "required": false, "example": 42, "description": "From orders/return list (preferred)" },
+        "draft_contract_number": { "type": "string", "required": false, "example": "000042" },
+        "refund_amount": { "type": "number", "required": true, "example": 500 },
+        "notes": { "type": "string", "required": false }
+      }
+    },
+    {
+      "group": "refunds",
+      "name": "Management approval — accept or reject",
+      "method": "POST",
+      "path": "/analytics/refunds/contracts/{id}",
+      "path_parameters": [
+        {
+          "name": "id",
+          "type": "integer",
+          "description": "refundable_contracts.id"
+        }
+      ],
+      "body": {
+        "admin_confirmed": {
+          "type": "boolean",
+          "required": true,
+          "description": "true = الموافقة على الإرجاع, false = لم تتم الموافقة"
+        },
+        "refund_amount": { "type": "number", "required": false, "description": "Override amount; omit to keep value from request" },
+        "notes": { "type": "string", "required": false }
+      }
+    },
+    {
+      "group": "refunds",
       "name": "Returned contract detail",
       "method": "GET",
       "path": "/analytics/refunds/contracts/{id}",
@@ -273,41 +309,101 @@
       "query_parameters": ["limit"]
     }
   ],
-  "related_orders_filters": {
-    "description": "Orders list (non-analytics) often used alongside analytics screens.",
-    "method": "GET",
-    "path": "/orders",
-    "query_parameters": [
-      {
-        "name": "status",
-        "type": "integer|string",
-        "description": "If numeric, filters contract_status_id."
-      },
-      {
-        "name": "contract_status_id",
-        "type": "integer"
-      },
-      {
-        "name": "status_name",
-        "type": "string",
-        "description": "Partial match on contract status name."
-      },
-      {
-        "name": "received_contract",
-        "type": "boolean",
-        "description": "Legacy: filter by received_contracts presence."
-      },
-      {
-        "name": "is_received",
-        "type": "boolean"
-      },
-      {
-        "name": "per_page",
-        "type": "integer",
-        "default": 20
+  "orders_endpoints": [
+    {
+      "name": "List orders",
+      "method": "GET",
+      "path": "/orders",
+      "query_parameters": ["per_page", "page", "is_completed", "status", "contract_status_id", "search", "is_received"]
+    },
+    {
+      "name": "Return orders (for refunds)",
+      "method": "GET",
+      "path": "/orders/return",
+      "description": "contract_status_id = 2. Use contract id when POST /refundable-contracts."
+    },
+    {
+      "name": "Incomplete orders",
+      "method": "GET",
+      "path": "/orders/incomplete/list",
+      "description": "is_completed = 0, is_delete = 0"
+    },
+    {
+      "name": "Complete orders",
+      "method": "GET",
+      "path": "/orders/complete/list",
+      "description": "is_completed = 1"
+    },
+    {
+      "name": "Show contract",
+      "method": "GET",
+      "path": "/orders/{id}"
+    },
+    {
+      "name": "Update contract (partial)",
+      "method": "POST",
+      "path": "/orders/{id}",
+      "description": "Any contract column except id, uuid, timestamps. Send only fields to change."
+    },
+    {
+      "name": "Update contract status",
+      "method": "POST",
+      "path": "/orders/{id}/contract-status",
+      "body": { "contract_status_id": { "type": "integer", "required": true } }
+    }
+  ],
+  "instruction_sections_endpoints": [
+    {
+      "name": "List instruction sections",
+      "method": "GET",
+      "path": "/instruction-sections",
+      "query_parameters": ["per_page"]
+    },
+    {
+      "name": "Show section",
+      "method": "GET",
+      "path": "/instruction-sections/{id}"
+    },
+    {
+      "name": "Update section",
+      "method": "POST",
+      "path": "/instruction-sections/{id}",
+      "body": {
+        "title_ar": { "type": "string", "required": false },
+        "description_ar": { "type": "string", "required": false },
+        "is_active": { "type": "boolean", "required": false },
+        "sort_order": { "type": "integer", "required": false }
       }
-    ]
-  },
+    },
+    {
+      "name": "Toggle active",
+      "method": "POST",
+      "path": "/instruction-sections/{id}/toggle",
+      "body": { "is_active": { "type": "boolean", "required": true } }
+    },
+    {
+      "name": "Delete section",
+      "method": "POST",
+      "path": "/instruction-sections/{id}/delete"
+    },
+    {
+      "name": "Upload image",
+      "method": "POST",
+      "path": "/instruction-sections/{id}/images",
+      "content_type": "multipart/form-data",
+      "body": {
+        "image": { "type": "file", "required": true },
+        "title_ar": { "type": "string", "required": false },
+        "sort_order": { "type": "integer", "required": false }
+      }
+    },
+    {
+      "name": "Delete image",
+      "method": "POST",
+      "path": "/instruction-sections/{id}/images/{imageId}/delete"
+    }
+  ],
+  "postman_collection": "postman/AQDI-Admin-Orders-Refunds-Instructions.postman_collection.json",
   "payments_filter": {
     "description": "Payments screen time filter.",
     "method": "GET",

@@ -115,6 +115,30 @@ class Contract extends Model
         });
     }
 
+    /**
+     * Active contracts (not soft-deleted).
+     */
+    public function scopeNotDeleted($query)
+    {
+        return $query->where('is_delete', 0);
+    }
+
+    /**
+     * Incomplete contracts: is_completed = 0.
+     */
+    public function scopeIncomplete($query)
+    {
+        return $query->where('is_completed', 0);
+    }
+
+    /**
+     * Completed contracts: is_completed = 1.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('is_completed', 1);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | ACCESSORS (virtual attributes)

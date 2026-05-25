@@ -105,9 +105,14 @@ use Illuminate\Support\Facades\Route;
         Route::get('/units', 'topCustomersUnits')->name('units');
     });
 
+    Route::prefix('refundable-contracts')->name('refundable-contracts.')->controller(RefundableContractController::class)->middleware('auth:sanctum')->group(function () {
+        Route::post('/', 'store')->name('store');
+    });
+
     Route::prefix('analytics/refunds')->name('analytics.refunds.')->controller(RefundableContractController::class)->group(function () {
         Route::get('/contracts', 'index')->name('contracts.index');
         Route::get('/contracts/{id}', 'show')->whereNumber('id')->name('contracts.show');
+        Route::post('/contracts/{id}', 'update')->whereNumber('id')->name('contracts.update');
     });
 
     Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {
@@ -151,6 +156,7 @@ use Illuminate\Support\Facades\Route;
         Route::get('/incomplete/list', 'incomplete')->name('incomplete');
         Route::get('/complete/list', 'complete')->name('complete');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
         Route::post('/{id}/contract-status', 'updateContractStatus')->whereNumber('id')->name('update-contract-status');
     });
 

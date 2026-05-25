@@ -19,7 +19,17 @@ class FilterContract extends Controller
 
     public function allcontracts(Request $request)
     {
-        $contractsQuery = Contract::query();
+        $contractsQuery = Contract::query()->notDeleted();
+
+        if ($request->has('is_completed')) {
+            $contractsQuery->where('is_completed', $request->boolean('is_completed') ? 1 : 0);
+        } elseif ($request->filled('status')
+            && in_array(strtolower((string) $request->status), ['incomplete', 'uncompleted', 'not_completed'], true)) {
+            $contractsQuery->incomplete();
+        } elseif ($request->filled('status')
+            && in_array(strtolower((string) $request->status), ['complete', 'completed'], true)) {
+            $contractsQuery->completed();
+        }
 
         $createdAtFilter = $request->query('created_at');
         if ($createdAtFilter) {

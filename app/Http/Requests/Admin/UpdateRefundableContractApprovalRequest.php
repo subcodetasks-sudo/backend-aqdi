@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
+
+class UpdateRefundableContractApprovalRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'admin_confirmed' => ['sometimes', 'boolean'],
+            'refund_amount' => ['sometimes', 'numeric', 'min:0'],
+            'notes' => ['nullable', 'string', 'max:5000'],
+        ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->has('admin_confirmed')
+                && ! $this->has('refund_amount')
+                && ! $this->has('notes')) {
+                $validator->errors()->add(
+                    'admin_confirmed',
+                    trans('api.refund_update_requires_field')
+                );
+            }
+        });
+    }
+}

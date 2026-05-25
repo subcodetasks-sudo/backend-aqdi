@@ -75,9 +75,16 @@ return [
     'salary_total_mismatch' => 'المجموع يجب أن يساوي الراتب الأساسي ناقص الخصم زائد المكافأة (المتوقع :expected)',
 
     'contract_updated_successfully' => 'تم تحديث العقد بنجاح',
+    'contract_update_requires_field' => 'أرسل حقل واحد على الأقل لتحديث العقد',
     'contract_not_found' => 'العقد غير موجود',
     'received_contract_not_found' => 'لا يوجد سجل استلام لهذا العقد',
     'received_contract_update_requires_field' => 'يرجى إرسال حقل واحد على الأقل: status أو date_of_received أو notes.',
     'contract_already_received' => 'تم استلام العقد بالفعل',
+    'refund_request_created' => 'تم إرسال طلب الاسترجاع بنجاح',
+    'invalid_draft_contract_number' => 'رقم مسودة العقد غير صالح',
+    'refund_contract_id_required' => 'رقم العقد أو رقم المسودة مطلوب',
+    'refund_contract_must_be_return_status' => 'العقد يجب أن يكون من قائمة المسترجع (حالة العقد = 2)',
+    'refund_request_already_exists' => 'يوجد طلب استرجاع قيد المراجعة لهذا العقد',
+    'refund_update_requires_field' => 'أرسل admin_confirmed أو refund_amount أو notes',
     'payment_type_in_use' => 'لا يمكن حذف طريقة الدفع لأنها مرتبطة بعقود',
 ];
