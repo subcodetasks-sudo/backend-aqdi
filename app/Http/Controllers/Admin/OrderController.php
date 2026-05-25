@@ -274,7 +274,8 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        $contract = Contract::with($this->contractDetailRelations())->findOrFail($id);
+        $contract = $this->findAdminContract((int) $id);
+        $contract->load($this->contractDetailRelations());
         $detail = (new AdminContractDetailResource($contract))->toArray(request());
 
         return $this->apiResponse(
@@ -490,7 +491,7 @@ class OrderController extends Controller
                 return $this->errorResponse($validator->errors(), 422);
             }
 
-            $contract = Contract::findOrFail($id);
+            $contract = $this->findAdminContract((int) $id);
             $contract->update([
                 'contract_status_id' => (int) $request->contract_status_id,
             ]);
@@ -524,24 +525,19 @@ class OrderController extends Controller
     public function update(UpdateContractRequest $request, $id)
     {
         try {
-            $contract = Contract::query()
-                ->whereKey($id)
-                ->where('is_delete', 0)
-                ->firstOrFail();
+            $contract = $this->findAdminContract((int) $id);
 
-            $validatedData = $request->validated();
-            $allowed = array_flip(UpdateContractRequest::updatableColumns());
-            $payload = array_intersect_key($validatedData, $allowed);
+            $payload = $request->updatePayload();
 
-            if ($payload === []) {
-                return $this->errorMessage(trans('api.contract_update_requires_field'), 422);
-            }
-
-            $contract->update($payload);
+            $contract->fill($payload);
+            $contract->save();
+            $contract->refresh();
             $contract->load($this->contractDetailRelations());
 
+            $detail = (new AdminContractDetailResource($contract))->toArray($request);
+
             return $this->apiResponse(
-                new AdminContractDetailResource($contract),
+                $this->buildStepBasedDetailResponse($detail),
                 trans('api.contract_updated_successfully')
             );
 
@@ -574,6 +570,14 @@ class OrderController extends Controller
      * - Same semantics for legacy `received_contract=…`.
      * Omit both → no filter.
      */
+    /**
+     * Load contract by id for admin write/show (includes soft-deleted rows).
+     */
+    private function findAdminContract(int $id): Contract
+    {
+        return Contract::query()->whereKey($id)->firstOrFail();
+    }
+
     private function applyReceivedContractPresenceToQuery($query, Request $request): void
     {
         $wantReceived = $this->parseReceivedContractQueryFilter($request);
