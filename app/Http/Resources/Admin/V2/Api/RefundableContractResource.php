@@ -21,6 +21,7 @@ class RefundableContractResource extends JsonResource
             'refund_amount' => $this->refund_amount,
             'notes' => $this->notes,
             'admin_confirmed' => (bool) $this->admin_confirmed,
+            'is_refunded' => (bool) $this->is_refunded,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             'contract' => $this->whenLoaded('contract', fn () => [

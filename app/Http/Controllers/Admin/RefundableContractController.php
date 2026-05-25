@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreRefundableContractRequest;
+use App\Http\Requests\Admin\UpdateRefundableContractApprovalRequest;
 use App\Http\Resources\Admin\V2\Api\RefundableContractListResource;
 use App\Http\Traits\Responser;
+use App\Models\Employee;
 use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Throwable;
 
@@ -60,6 +64,71 @@ class RefundableContractController extends Controller
             ], trans('api.success'));
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Submit refund request (طلب إسترجاع) — employee token.
+     *
+     * POST /api/admin/refundable-contracts
+     * Contract must be a return order (contract_status_id = 2) from GET /api/admin/orders/return
+     * Body: { "contract_id": 42, "refund_amount": 500, "notes": null }
+     * Or:   { "draft_contract_number": "000042", "refund_amount": 500 }
+     */
+    public function store(StoreRefundableContractRequest $request)
+    {
+        try {
+            if (! $request->user() instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            /** @var Employee $employee */
+            $employee = $request->user();
+
+            $record = $this->refundableService->createRefundRequest(
+                $employee,
+                $request->validated()
+            );
+
+            return $this->apiResponse(
+                (new RefundableContractListResource($record))->resolve(),
+                trans('api.refund_request_created')
+            );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Management approval (موافقة الإدارة): accept or reject.
+     * When approved, sets is_refunded (تم الاسترجاع).
+     *
+     * POST /api/admin/analytics/refunds/contracts/{id}
+     * Accept: { "admin_confirmed": true }
+     * Reject: { "admin_confirmed": false }
+     * Optional: { "refund_amount": 125.99, "notes": "..." }
+     */
+    public function update(UpdateRefundableContractApprovalRequest $request, int $id)
+    {
+        try {
+            $record = $this->refundableService->baseQuery()->find($id);
+
+            if (! $record) {
+                return $this->errorMessage(trans('api.not_found'), 404);
+            }
+
+            $record = $this->refundableService->applyAdminUpdate($record, $request->validated());
+
+            return $this->apiResponse(
+                (new RefundableContractListResource($record))->resolve(),
+                trans('api.updated_successfully')
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }

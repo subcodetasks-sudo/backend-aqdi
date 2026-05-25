@@ -10,6 +10,7 @@ use App\Http\Traits\Responser;
 use App\Models\Contract;
 use App\Models\Payment;
 use App\Models\TenantRole;
+use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -25,9 +26,17 @@ class OrderController extends Controller
 
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+            ->notDeleted()
+            ->when($request->has('is_completed'), fn ($q) =>
+                $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
+            )
             ->when($request->filled('status'), function ($q) use ($status) {
                 if (is_numeric($status)) {
                     $q->where('contract_status_id', (int) $status);
+                } elseif (in_array(strtolower((string) $status), ['incomplete', 'uncompleted', 'not_completed'], true)) {
+                    $q->incomplete();
+                } elseif (in_array(strtolower((string) $status), ['complete', 'completed'], true)) {
+                    $q->completed();
                 }
             })
             ->when($request->filled('status_name'), fn ($q) =>
@@ -67,7 +76,7 @@ class OrderController extends Controller
                 $contracts,
                 OrderResource::collection($contracts),
                 trans('api.success'),
-                ['contract_status_id' => 2]
+                ['contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID]
             );
         } catch (\Throwable $e) {
             return $this->apiResponse(
@@ -88,7 +97,9 @@ class OrderController extends Controller
 
             return $this->paginatedApiResponse(
                 $contracts,
-                OrderResource::collection($contracts)
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['is_completed' => 0, 'is_delete' => 0]
             );
 
         } catch (\Throwable $e) {
@@ -105,8 +116,8 @@ class OrderController extends Controller
     {
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
-            ->where('contract_status_id', 2)
-            ->where('is_delete', false)
+            ->notDeleted()
+            ->where('contract_status_id', RefundableContractService::RETURN_CONTRACT_STATUS_ID)
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
@@ -137,12 +148,12 @@ class OrderController extends Controller
     {
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
-            ->where('is_completed', false)
-            ->where('is_delete', false)
-            ->when($request->contract_type, fn ($q) =>
+            ->notDeleted()
+            ->incomplete()
+            ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
-            ->when($request->user_id, fn ($q) =>
+            ->when($request->filled('user_id'), fn ($q) =>
                 $q->where('user_id', $request->user_id)
             )
             ->when($request->filled('search'), fn ($q) =>
@@ -208,15 +219,17 @@ class OrderController extends Controller
      public function complete(Request $request)
     {
         try {
-            $query = Contract::where('is_completed', true)
-             ->latest();
+            $query = Contract::query()
+                ->notDeleted()
+                ->completed()
+                ->latest();
             $this->applySuccessfulPaymentAmountSelect($query);
 
-            if ($request->has('contract_type')) {
+            if ($request->filled('contract_type')) {
                 $query->where('contract_type', $request->contract_type);
             }
 
-            if ($request->has('user_id')) {
+            if ($request->filled('user_id')) {
                 $query->where('user_id', $request->user_id);
             }
 
@@ -224,15 +237,13 @@ class OrderController extends Controller
                 $query->adminSearch($request->string('search')->toString());
             }
 
-            $query->where('is_delete', false);
-
             $this->applyReceivedContractPresenceToQuery($query, $request);
 
             $sortBy = $request->get('sort_by', 'created_at');
             $sortOrder = $request->get('sort_order', 'desc');
             $query->orderBy($sortBy, $sortOrder);
 
-            $incompleteOrders = $query->with([
+            $completedOrders = $query->with([
                 ...$this->contractRelations(),
                 'propertyType',
                 'propertyUsages',
@@ -245,8 +256,10 @@ class OrderController extends Controller
             ])->paginate($this->perPageFromRequest($request, 10));
 
             return $this->paginatedApiResponse(
-                $incompleteOrders,
-                OrderResource::collection($incompleteOrders)
+                $completedOrders,
+                OrderResource::collection($completedOrders),
+                trans('api.success'),
+                ['is_completed' => 1, 'is_delete' => 0]
             );
  
         } catch (\Exception $e) {
@@ -504,12 +517,27 @@ class OrderController extends Controller
         }
     }
 
-     public function update(UpdateContractRequest $request, $id)
+    /**
+     * Partial contract update — send only fields to change (all nullable).
+     * POST /api/admin/orders/{id}
+     */
+    public function update(UpdateContractRequest $request, $id)
     {
         try {
-            $contract = Contract::findOrFail($id);
+            $contract = Contract::query()
+                ->whereKey($id)
+                ->where('is_delete', 0)
+                ->firstOrFail();
+
             $validatedData = $request->validated();
-            $contract->update($validatedData);
+            $allowed = array_flip(UpdateContractRequest::updatableColumns());
+            $payload = array_intersect_key($validatedData, $allowed);
+
+            if ($payload === []) {
+                return $this->errorMessage(trans('api.contract_update_requires_field'), 422);
+            }
+
+            $contract->update($payload);
             $contract->load($this->contractDetailRelations());
 
             return $this->apiResponse(

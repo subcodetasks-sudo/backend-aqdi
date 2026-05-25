@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\V2\Api;
 
 use App\Models\Payment;
+use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,6 +20,7 @@ class RefundableContractListResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $contract ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT) : null,
+            'draft_contract_number' => $contract ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT) : null,
             'contract_id' => $this->contract_id,
             'contract_uuid' => $uuid,
             'customer_mobile' => $contract?->user?->mobile,
@@ -29,14 +31,20 @@ class RefundableContractListResource extends JsonResource
             'contract_type_key' => $contract?->contract_type,
             'instrument_type' => $contract?->instrument_type_trans,
             'instrument_type_key' => $contract?->instrument_type,
+            'contract_status_id' => $contract?->contract_status_id,
             'contract_status' => $contract?->contractStatus ? [
                 'id' => $contract->contractStatus->id,
                 'name' => $contract->contractStatus->name,
                 'color' => $contract->contractStatus->color,
             ] : null,
+            'is_return_order' => $contract?->contract_status_id === RefundableContractService::RETURN_CONTRACT_STATUS_ID,
             'payment_amount' => $this->resolvePaymentAmount($uuid),
             'refund_amount' => (float) $this->refund_amount,
-            'is_refunded' => $this->resolveIsRefunded($uuid),
+            'is_refunded' => (bool) $this->is_refunded,
+            'refunded_status' => [
+                'refunded' => (bool) $this->is_refunded,
+                'label_ar' => $this->is_refunded ? 'تم الاسترجاع' : 'لم يتم الاسترجاع',
+            ],
             'requester' => [
                 'id' => $this->employee_id,
                 'name' => $this->employee?->name,
@@ -66,15 +74,4 @@ class RefundableContractListResource extends JsonResource
         return $amount !== null ? (float) $amount : null;
     }
 
-    private function resolveIsRefunded(?string $contractUuid): bool
-    {
-        if (! $contractUuid) {
-            return false;
-        }
-
-        return Payment::query()
-            ->where('contract_uuid', $contractUuid)
-            ->where('status', 'failed')
-            ->exists();
-    }
 }

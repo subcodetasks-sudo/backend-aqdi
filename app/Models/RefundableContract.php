@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class RefundableContract extends Model
 {
     use HasFactory;
-     protected $fillable = [
+    protected $fillable = [
         'user_id',
         'contract_id',
         'employee_id',
@@ -16,6 +16,14 @@ class RefundableContract extends Model
         'refund_amount',
         'notes',
         'admin_confirmed',
+        'is_refunded',
+    ];
+
+    protected $casts = [
+        'has_draft_contract' => 'boolean',
+        'admin_confirmed' => 'boolean',
+        'is_refunded' => 'boolean',
+        'refund_amount' => 'decimal:2',
     ];
 
      

@@ -64,10 +64,17 @@ return [
     'salary_total_mismatch' => 'Total must equal basic salary minus deduction plus bonus (expected :expected)',
 
     'contract_updated_successfully' => 'Contract updated successfully',
+    'contract_update_requires_field' => 'Send at least one field to update the contract',
     'contract_not_found' => 'Contract not found',
     'received_contract_not_found' => 'No received-contract record for this contract',
     'received_contract_update_requires_field' => 'Send at least one of: status, date_of_received, notes.',
     'contract_already_received' => 'The contract has already been received',
+    'refund_request_created' => 'Refund request submitted successfully',
+    'invalid_draft_contract_number' => 'Invalid draft contract number',
+    'refund_contract_id_required' => 'contract_id or draft_contract_number is required',
+    'refund_contract_must_be_return_status' => 'Contract must be a return order (contract_status_id = 2)',
+    'refund_request_already_exists' => 'A pending refund request already exists for this contract',
+    'refund_update_requires_field' => 'Send at least one of: admin_confirmed, refund_amount, notes',
     'payment_type_in_use' => 'Cannot delete this payment method because it is linked to contracts',
 
 ];
