@@ -22,31 +22,10 @@ class OrderController extends Controller
 
     public function orders(Request $request)
     {
-        $status = $request->get('status');
-
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
-            ->when($request->has('is_completed'), fn ($q) =>
-                $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
-            )
-            ->when($request->filled('status'), function ($q) use ($status) {
-                if (is_numeric($status)) {
-                    $q->where('contract_status_id', (int) $status);
-                } elseif (in_array(strtolower((string) $status), ['incomplete', 'uncompleted', 'not_completed'], true)) {
-                    $q->incomplete();
-                } elseif (in_array(strtolower((string) $status), ['complete', 'completed'], true)) {
-                    $q->completed();
-                }
-            })
-            ->when($request->filled('status_name'), fn ($q) =>
-                $q->whereHas('contractStatus', fn ($sq) =>
-                    $sq->where('name', 'like', '%' . $request->status_name . '%')
-                )
-            )
-            ->when($request->filled('contract_status_id'), fn ($q) =>
-                $q->where('contract_status_id', $request->contract_status_id)
-            )
+            ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
             )
@@ -150,6 +129,7 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->incomplete()
+            ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
@@ -219,41 +199,9 @@ class OrderController extends Controller
      public function complete(Request $request)
     {
         try {
-            $query = Contract::query()
-                ->notDeleted()
-                ->completed()
-                ->latest();
-            $this->applySuccessfulPaymentAmountSelect($query);
-
-            if ($request->filled('contract_type')) {
-                $query->where('contract_type', $request->contract_type);
-            }
-
-            if ($request->filled('user_id')) {
-                $query->where('user_id', $request->user_id);
-            }
-
-            if ($request->filled('search')) {
-                $query->adminSearch($request->string('search')->toString());
-            }
-
-            $this->applyReceivedContractPresenceToQuery($query, $request);
-
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortOrder = $request->get('sort_order', 'desc');
-            $query->orderBy($sortBy, $sortOrder);
-
-            $completedOrders = $query->with([
-                ...$this->contractRelations(),
-                'propertyType',
-                'propertyUsages',
-                'propertyRegion',
-                'propertyCity',
-                'unitType',
-                'unitUsage',
-                'contractTermInYears',
-                'paymentType',
-            ])->paginate($this->perPageFromRequest($request, 10));
+            $completedOrders = $this->completeContractsQuery($request)
+                ->with($this->contractRelations())
+                ->paginate($this->perPageFromRequest($request, 10));
 
             return $this->paginatedApiResponse(
                 $completedOrders,
@@ -270,6 +218,59 @@ class OrderController extends Controller
                 500
             );
         }
+    }
+
+    private function completeContractsQuery(Request $request)
+    {
+        return Contract::query()
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+            ->notDeleted()
+            ->completed()
+            ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+            ->orderBy(
+                $request->get('sort_by', 'created_at'),
+                $request->get('sort_order', 'desc')
+            );
+    }
+
+    /**
+     * Shared filters: status, status_name, contract_status_id, is_completed.
+     */
+    private function applyContractStatusFiltersToQuery($query, Request $request): void
+    {
+        $status = $request->get('status');
+
+        $query
+            ->when($request->has('is_completed'), fn ($q) =>
+                $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
+            )
+            ->when($request->filled('status'), function ($q) use ($status) {
+                if (is_numeric($status)) {
+                    $q->where('contract_status_id', (int) $status);
+                } elseif (in_array(strtolower((string) $status), ['incomplete', 'uncompleted', 'not_completed'], true)) {
+                    $q->incomplete();
+                } elseif (in_array(strtolower((string) $status), ['complete', 'completed'], true)) {
+                    $q->completed();
+                }
+            })
+            ->when($request->filled('status_name'), fn ($q) =>
+                $q->whereHas('contractStatus', fn ($sq) =>
+                    $sq->where('name', 'like', '%'.$request->status_name.'%')
+                )
+            )
+            ->when($request->filled('contract_status_id'), fn ($q) =>
+                $q->where('contract_status_id', $request->contract_status_id)
+            );
     }
 
     public function show($id)
