@@ -4,6 +4,7 @@
 
 | File | Use |
 |------|-----|
+| **`AQDI-Contracts-API.postman_collection.json`** | **V2 client API:** contract steps 1–6, listing, uncompleted |
 | **`AQDI-Admin-Selected-API.postman_collection.json`** | **Recommended:** Orders POST, refund approve/reject, instruction-sections only |
 | `AQDI-Admin-Analytics-API.postman_collection.json` | Analytics, refunds, orders, instruction sections (full set) |
 | `AQDI-Admin-Orders-Refunds-Instructions.postman_collection.json` | Larger subset with GET lists |
@@ -14,9 +15,11 @@
 
 - `admin-analytics-api-filters.en.json` — API reference / filter documentation only, not Postman format.
 
-Regenerate analytics collection after editing the filters file:
+Regenerate collections after route changes:
 
 ```bash
+php tools/generate_contracts_api_postman_collection.php
+php tools/generate_admin_postman_collection.php
 php tools/convert_analytics_filters_to_postman.php
 ```
 

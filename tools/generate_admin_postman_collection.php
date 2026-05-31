@@ -216,6 +216,13 @@ $folders = [
         req('Complete orders', 'GET', '/orders/complete/list', ['query' => ['per_page' => 20]]),
         req('Filter orders by date', 'GET', '/orders/filter', ['query' => ['created_at' => 'month', 'per_page' => 20]]),
         req('Show order (contract detail)', 'GET', '/orders/{{contract_id}}'),
+        req('Update contract (partial) — JSON', 'POST', '/orders/{{contract_id}}', [
+            'body' => [
+                'annual_rent_amount_for_the_unit' => '334',
+                'notes_edits' => 'تعديل من الأدمن',
+            ],
+            'description' => 'Send only fields to change. All contract columns optional except id, uuid, timestamps.',
+        ]),
         req('Update contract status', 'POST', '/orders/{{contract_id}}/contract-status', [
             'body' => ['contract_status_id' => 1],
         ]),

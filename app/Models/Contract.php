@@ -91,9 +91,11 @@ class Contract extends Model
         parent::boot();
     
         self::creating(function ($model) {
-            // Generate UUID
             $model->uuid = self::generateUUID();
-     
+
+            if ($model->app_or_web === null || $model->app_or_web === '') {
+                $model->app_or_web = 'app';
+            }
         });
 
         self::saving(function (Contract $model): void {
