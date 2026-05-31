@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "9b22ccca-fcdf-47fd-94b9-ffdd67368a09",
+        "_postman_id": "0fed1077-f4cc-4d26-838a-4c2a83b2fbb5",
         "name": "AQDI Admin API",
         "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login, copy data.token to employee_token",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -1399,6 +1399,47 @@
                                 "{{contract_id}}"
                             ]
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update contract (partial) — JSON",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/orders\/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{contract_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"annual_rent_amount_for_the_unit\": \"334\",\n    \"notes_edits\": \"تعديل من الأدمن\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Send only fields to change. All contract columns optional except id, uuid, timestamps."
                     },
                     "response": []
                 },
