@@ -118,7 +118,6 @@ class UserController extends Controller
 
     public function block($id)
     {
-        // Find the user
         $user = User::find($id);
 
         if ($user) {
@@ -127,6 +126,30 @@ class UserController extends Controller
             return $this->apiResponse(
                 [],
                 trans('api.user_blocked_successfull')
+            );
+        }
+
+        return $this->apiResponse(
+            [],
+            trans('api.user_not_found'),
+            404
+        );
+    }
+
+    /**
+     * Unblock user (set is_active = 1).
+     * POST /api/admin/users/{id}/unblock
+     */
+    public function unblock($id)
+    {
+        $user = User::find($id);
+
+        if ($user) {
+            $user->update(['is_active' => 1]);
+
+            return $this->apiResponse(
+                [],
+                trans('api.user_unblocked_successfull')
             );
         }
 

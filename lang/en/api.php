@@ -77,4 +77,9 @@ return [
     'refund_update_requires_field' => 'Send at least one of: admin_confirmed, refund_amount, notes',
     'payment_type_in_use' => 'Cannot delete this payment method because it is linked to contracts',
 
+    'user_blocked_successfull' => 'User blocked successfully',
+    'user_unblocked_successfull' => 'User unblocked successfully',
+    'user_not_found' => 'User not found',
+    'user_deleted_successfull' => 'User deleted successfully',
+
 ];

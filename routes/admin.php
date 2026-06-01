@@ -183,8 +183,9 @@ use Illuminate\Support\Facades\Route;
         Route::get('/new', 'newcommersUser')->name('new');
         Route::get('/contracts-complete', 'usersCompleteContracts')->name('contracts-complete');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
-        Route::post('/{id}/block', 'Block')->name('block');
-        Route::post('/{id}/delete', 'deleteUser')->name('delete');
+        Route::post('/{id}/block', 'block')->whereNumber('id')->name('block');
+        Route::post('/{id}/unblock', 'unblock')->whereNumber('id')->name('unblock');
+        Route::post('/{id}/delete', 'deleteUser')->whereNumber('id')->name('delete');
     });
 
     // Regions Management

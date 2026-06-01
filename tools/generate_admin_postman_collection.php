@@ -261,6 +261,7 @@ $folders = [
         req('New users today', 'GET', '/users/new', ['query' => ['per_page' => 20]]),
         req('Users with completed contracts', 'GET', '/users/contracts-complete'),
         req('Block user', 'POST', '/users/{{user_id}}/block'),
+        req('Unblock user', 'POST', '/users/{{user_id}}/unblock'),
         req('Delete user', 'POST', '/users/{{user_id}}/delete'),
     ],
     'Payments' => [
