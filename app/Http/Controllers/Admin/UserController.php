@@ -175,6 +175,7 @@ class UserController extends Controller
             'user',
             'receivedContract.employee',
             'acceptRetrunContractEmployee:id,name',
+            'refundableContract',
             'contractStatus',
             'contractPayments' => fn ($q) => $q->where('status', 'success'),
         ];

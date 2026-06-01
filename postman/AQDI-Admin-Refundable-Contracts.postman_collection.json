@@ -1,0 +1,351 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-refundable-contracts",
+        "name": "AQDI Admin — Refundable contracts (submit & approval)",
+        "description": "Refund requests (طلبات استرجاع) for return orders (`contract_status_id = 2`).\n\n---\n\n### 1. Submit — `StoreRefundableContractRequest`\n`POST /api/admin/refundable-contracts`  \n**Auth:** Bearer employee (`auth:sanctum`)\n\n| Field | Rules |\n|-------|--------|\n| `contract_id` | required_without draft_contract_number, integer |\n| `draft_contract_number` | required_without contract_id, string max 32 |\n| `refund_amount` | required, numeric, min 0 |\n| `notes` | optional, string max 5000 |\n\n---\n\n### 2. Management approval — `UpdateRefundableContractApprovalRequest`\n`POST /api/admin/analytics/refunds/contracts/{id}`  \n`id` = `refundable_contracts.id` (not contract id)\n\n| Field | Rules |\n|-------|--------|\n| `admin_confirmed` | sometimes, boolean (true = approve, false = reject) |\n| `refund_amount` | sometimes, numeric, min 0 |\n| `notes` | optional, string max 5000 |\n\nAt least one of: `admin_confirmed`, `refund_amount`, `notes`.\n\n---\n\n**Variables:** `baseUrl`, `employee_token`, `contract_id`, `refund_id`",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "employee_token", "value": "" },
+        { "key": "contract_id", "value": "1" },
+        { "key": "refund_id", "value": "1" }
+    ],
+    "item": [
+        {
+            "name": "00 — Auth & setup",
+            "item": [
+                {
+                    "name": "Employee login (save token)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) {",
+                                    "  pm.collectionVariables.set('employee_token', token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": { "type": "noauth" },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "employees", "login"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Return orders (pick contract_id)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/return?per_page=20",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "return"],
+                            "query": [{ "key": "per_page", "value": "20" }]
+                        },
+                        "description": "Use `id` from list as `contract_id` for submit refund."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "POST refundable-contracts (StoreRefundableContractRequest)",
+            "item": [
+                {
+                    "name": "Submit — by contract_id",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const id = json?.data?.id;",
+                                    "if (id) {",
+                                    "  pm.collectionVariables.set('refund_id', String(id));",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                { "key": "token", "value": "{{employee_token}}", "type": "string" }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_id\": {{contract_id}},\n    \"refund_amount\": 500,\n    \"notes\": \"طلب استرجاع من الموظف\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/refundable-contracts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "refundable-contracts"]
+                        },
+                        "description": "StoreRefundableContractRequest: contract_id OR draft_contract_number (not both empty). refund_amount required."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Submit — by draft_contract_number",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                { "key": "token", "value": "{{employee_token}}", "type": "string" }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"draft_contract_number\": \"000042\",\n    \"refund_amount\": 500,\n    \"notes\": null\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/refundable-contracts",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "refundable-contracts"]
+                        },
+                        "description": "Alternative to contract_id — padded draft number string."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Refunds list & show",
+            "item": [
+                {
+                    "name": "List refund requests",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts?period=today&per_page=20",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "analytics", "refunds", "contracts"],
+                            "query": [
+                                { "key": "period", "value": "today", "description": "today|week|month|year|total" },
+                                { "key": "per_page", "value": "20" },
+                                {
+                                    "key": "admin_confirmed",
+                                    "value": "false",
+                                    "description": "optional filter",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Set refund_id from contracts[].id in response."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show refund request",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "POST approval (UpdateRefundableContractApprovalRequest)",
+            "item": [
+                {
+                    "name": "Approve — admin_confirmed true",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": true\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        },
+                        "description": "موافقة الإدارة — sets is_refunded when approved."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Reject — admin_confirmed false",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": false\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Approve + update amount & notes (all fields)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"admin_confirmed\": true,\n    \"refund_amount\": 125.99,\n    \"notes\": \"تمت المراجعة والموافقة\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        },
+                        "description": "UpdateRefundableContractApprovalRequest: at least one of admin_confirmed, refund_amount, notes."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update refund_amount only",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"refund_amount\": 600\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update notes only",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json", "type": "text" },
+                            { "key": "Content-Type", "value": "application/json", "type": "text" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"notes\": \"ملاحظة إدارية\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/analytics/refunds/contracts/{{refund_id}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "admin",
+                                "analytics",
+                                "refunds",
+                                "contracts",
+                                "{{refund_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

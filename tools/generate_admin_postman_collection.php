@@ -226,13 +226,10 @@ $folders = [
         req('Update contract status', 'POST', '/orders/{{contract_id}}/contract-status', [
             'body' => ['contract_status_id' => 1],
         ]),
-        req('Accept return contract', 'POST', '/orders/{{contract_id}}/accept-return-contract', [
+        req('Return contract status (accept / reject)', 'POST', '/orders/{{contract_id}}/return-contract-status', [
             'bearer' => true,
-            'description' => 'Return order only (contract_status_id = 2). Sets accept_retrun_contract = true.',
-        ]),
-        req('Reject return contract', 'POST', '/orders/{{contract_id}}/reject-return-contract', [
-            'bearer' => true,
-            'description' => 'Return order only. Sets accept_retrun_contract = false.',
+            'body' => ['accept_retrun_contract' => true],
+            'description' => 'Return order only (contract_status_id = 2). JSON: accept_retrun_contract true = accept, false = reject.',
         ]),
     ],
     'Orders — comments (Bearer)' => [

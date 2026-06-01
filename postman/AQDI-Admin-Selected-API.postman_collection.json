@@ -2,11 +2,12 @@
     "info": {
         "_postman_id": "aqdi-admin-selected-api",
         "name": "AQDI Admin — Selected APIs (Orders POST, Refunds, Instructions)",
-        "description": "Focused collection for:\n\n- `POST /api/admin/orders/{id}` — partial contract update\n- `POST /api/admin/orders/{id}/contract-status`\n- `POST /api/admin/analytics/refunds/contracts/{id}` — موافقة / رفض\n- `instruction-sections` routes (admin.php 337-348)\n\n**Variables:** `baseUrl`, `contract_id`, `refund_id`, `instruction_section_id`, `instruction_image_id`",
+        "description": "Focused collection for:\n\n- `POST /api/admin/orders/{id}` — partial contract update\n- `POST /api/admin/orders/{id}/contract-status`\n- `POST /api/admin/orders/{id}/return-contract-status` — accept_retrun_contract JSON\n- `POST /api/admin/analytics/refunds/contracts/{id}` — موافقة / رفض\n- `instruction-sections` routes (admin.php 337-348)\n\n**Variables:** `baseUrl`, `employee_token`, `contract_id`, `refund_id`, `instruction_section_id`, `instruction_image_id`",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
         { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "employee_token", "value": "" },
         { "key": "contract_id", "value": "1" },
         { "key": "refund_id", "value": "1" },
         { "key": "instruction_section_id", "value": "1" },
@@ -78,6 +79,60 @@
                             "host": ["{{baseUrl}}"],
                             "path": ["api", "admin", "orders", "{{contract_id}}", "contract-status"]
                         }
+                    }
+                },
+                {
+                    "name": "Return contract status — accept (true)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                { "key": "token", "value": "{{employee_token}}", "type": "string" }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"accept_retrun_contract\": true\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}/return-contract-status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "{{contract_id}}", "return-contract-status"]
+                        },
+                        "description": "Return order only (contract_status_id = 2). Employee Bearer required."
+                    }
+                },
+                {
+                    "name": "Return contract status — reject (false)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                { "key": "token", "value": "{{employee_token}}", "type": "string" }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"accept_retrun_contract\": false\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}/return-contract-status",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "orders", "{{contract_id}}", "return-contract-status"]
+                        },
+                        "description": "Return order only (contract_status_id = 2). Employee Bearer required."
                     }
                 }
             ]
