@@ -260,7 +260,9 @@ $folders = [
         req('Show user (with contracts)', 'GET', '/users/{{user_id}}'),
         req('New users today', 'GET', '/users/new', ['query' => ['per_page' => 20]]),
         req('Users with completed contracts', 'GET', '/users/contracts-complete'),
-        req('Block user', 'POST', '/users/{{user_id}}/block'),
+        req('Toggle user block / unblock', 'POST', '/users/{{user_id}}/block', [
+            'description' => 'If user is active → blocks. If blocked → unblocks. Response includes is_active.',
+        ]),
         req('Delete user', 'POST', '/users/{{user_id}}/delete'),
     ],
     'Payments' => [

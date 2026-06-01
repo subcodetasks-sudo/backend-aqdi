@@ -116,24 +116,36 @@ class UserController extends Controller
       );
   }
 
+    /**
+     * Toggle user block status.
+     * POST /api/admin/users/{id}/block
+     *
+     * If active (is_active = 1) → block. If blocked (is_active = 0) → unblock.
+     */
     public function block($id)
     {
-        // Find the user
         $user = User::find($id);
 
-        if ($user) {
-            $user->update(['is_active' => 0]);
-
+        if (! $user) {
             return $this->apiResponse(
                 [],
-                trans('api.user_blocked_successfull')
+                trans('api.user_not_found'),
+                404
             );
         }
 
+        $wasActive = (int) $user->is_active === 1;
+        $user->update(['is_active' => $wasActive ? 0 : 1]);
+        $user->refresh();
+
         return $this->apiResponse(
-            [],
-            trans('api.user_not_found'),
-            404
+            [
+                'is_active' => (bool) $user->is_active,
+                'status' => (bool) $user->is_active,
+            ],
+            $wasActive
+                ? trans('api.user_blocked_successfull')
+                : trans('api.user_unblocked_successfull')
         );
     }
 

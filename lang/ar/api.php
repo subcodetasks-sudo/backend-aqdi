@@ -73,7 +73,9 @@ return [
     'coupon_activated_successfully' => 'تم تفعيل الكوبون بنجاح',
     'coupon_already_deleted' => 'الكوبون محذوف مسبقاً',
     'salary_total_mismatch' => 'المجموع يجب أن يساوي الراتب الأساسي ناقص الخصم زائد المكافأة (المتوقع :expected)',
-
+    'user_blocked_successfull' => 'تم حظر المستخدم بنجاح',
+    'user_not_found' => 'المستخدم غير موجود',
+    'user_unblocked_successfull' => 'تم إلغاء حظر المستخدم بنجاح',
     'contract_updated_successfully' => 'تم تحديث العقد بنجاح',
     'contract_update_requires_field' => 'أرسل حقل واحد على الأقل لتحديث العقد',
     'contract_not_found' => 'العقد غير موجود',
