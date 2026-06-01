@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateContractRequest;
+use App\Http\Requests\Admin\UpdateReturnContractAcceptanceRequest;
 use App\Http\Resources\Admin\V2\Api\AdminContractDetailResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
@@ -121,6 +122,7 @@ class OrderController extends Controller
             'user',
             'receivedContract.employee',
             'acceptRetrunContractEmployee:id,name',
+            'refundableContract',
             'contractStatus',
             'contractPayments' => fn ($q) => $q->where('status', 'success'),
         ];
@@ -192,6 +194,7 @@ class OrderController extends Controller
             'account',
             'receivedContract.employee',
             'acceptRetrunContractEmployee:id,name',
+            'refundableContract',
             'contractStatus',
             'contractPayments',
             'tenantRole',
@@ -336,6 +339,9 @@ class OrderController extends Controller
                 'accept_retrun_contract' => (bool) Arr::get($detail, 'accept_retrun_contract', false),
                 'accept_retrun_contract_employee_id' => Arr::get($detail, 'accept_retrun_contract_employee_id'),
                 'accept_retrun_contract_employee' => Arr::get($detail, 'accept_retrun_contract_employee'),
+                'return_contract' => (bool) Arr::get($detail, 'return_contract', false),
+                'draft_contract_number' => Arr::get($detail, 'draft_contract_number'),
+                'refund_amount' => Arr::get($detail, 'refund_amount'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
@@ -579,21 +585,18 @@ class OrderController extends Controller
      * Omit both → no filter.
      */
     /**
-     * Accept return contract (مسترجع) — employee Bearer required.
-     * POST /api/admin/orders/{id}/accept-return-contract
+     * Set return-contract acceptance (مسترجع) — employee Bearer required.
+     *
+     * POST /api/admin/orders/{id}/return-contract-status
+     * Body: { "accept_retrun_contract": true }
      */
-    public function acceptReturnContract(Request $request, int $id)
+    public function updateReturnContractAcceptance(UpdateReturnContractAcceptanceRequest $request, int $id)
     {
-        return $this->setReturnContractAcceptance($request, $id, true);
-    }
-
-    /**
-     * Reject / not accept return contract — employee Bearer required.
-     * POST /api/admin/orders/{id}/reject-return-contract
-     */
-    public function rejectReturnContract(Request $request, int $id)
-    {
-        return $this->setReturnContractAcceptance($request, $id, false);
+        return $this->setReturnContractAcceptance(
+            $request,
+            $id,
+            $request->boolean('accept_retrun_contract')
+        );
     }
 
     private function setReturnContractAcceptance(Request $request, int $id, bool $accepted)

@@ -3,6 +3,8 @@
 namespace App\Http\Resources\Admin\V2\Api;
 
 use App\Enums\ReceivedContractStatus;
+use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
+use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnOrderFields;
 use App\Models\Account;
 use App\Models\City;
 use App\Models\ContractPeriod;
@@ -29,6 +31,8 @@ use Illuminate\Support\Str;
  */
 class AdminContractDetailResource extends JsonResource
 {
+    use ResolvesContractReturnAcceptance;
+    use ResolvesContractReturnOrderFields;
     /**
      * @return array<string, mixed>
      */
@@ -55,7 +59,7 @@ class AdminContractDetailResource extends JsonResource
 
         $enriched = $this->enrichedRelations($c);
 
-        return array_merge($full, $enriched, [
+        return array_merge($full, $enriched, $this->returnOrderFields(), $this->returnAcceptanceFields(), [
             'relation_labels' => $this->relationLabels($c),
             'documentation_deadline_at' => $c->documentationDeadlineAt()?->format('Y-m-d H:i:s'),
         ]);
