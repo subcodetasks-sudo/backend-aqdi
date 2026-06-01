@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\V2\Api\AllUserResource;
+use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Payment;
 use App\Models\User;
@@ -48,6 +49,40 @@ class UserController extends Controller
         return $this->paginatedApiResponse(
             $users,
             AllUserResource::collection($users)
+        );
+    }
+
+    /**
+     * Single user with contracts.
+     * GET /api/admin/users/{id}
+     */
+    public function show(Request $request, int $id)
+    {
+        $user = $this->usersWithTotalPaidQuery()
+            ->with([
+                'realEstate',
+                'unitReal',
+                'contracts' => fn ($q) => $q->notDeleted()
+                    ->with($this->userContractRelations())
+                    ->latest(),
+            ])
+            ->find($id);
+
+        if (! $user) {
+            return $this->apiResponse(
+                null,
+                trans('api.user_not_found'),
+                false,
+                404
+            );
+        }
+
+        return $this->apiResponse(
+            [
+                'user' => new AllUserResource($user),
+                'contracts' => OrderResource::collection($user->contracts),
+            ],
+            trans('api.success')
         );
     }
 
@@ -117,6 +152,19 @@ class UserController extends Controller
                 ->whereColumn('contracts.user_id', 'users.id')
                 ->where('payments.status', 'success'),
         ]);
+    }
+
+    /**
+     * @return array<int|string, mixed>
+     */
+    private function userContractRelations(): array
+    {
+        return [
+            'user',
+            'receivedContract.employee',
+            'contractStatus',
+            'contractPayments' => fn ($q) => $q->where('status', 'success'),
+        ];
     }
 
     public function deleteUser($id)
