@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\V2\Api;
 
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
+use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
 use App\Models\ReceivedContract;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -10,6 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class OrderResource extends JsonResource
 {
     use ResolvesContractPaymentForAdmin;
+    use ResolvesContractReturnAcceptance;
 
     public function toArray(Request $request): array
     {
@@ -45,6 +47,7 @@ class OrderResource extends JsonResource
             'instrument_type_key' => $this->instrument_type,
             'is_completed' => (bool) $this->is_completed,
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            ...$this->returnAcceptanceFields(),
         ];
     }
 

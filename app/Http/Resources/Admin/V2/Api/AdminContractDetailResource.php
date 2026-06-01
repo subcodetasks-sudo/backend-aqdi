@@ -152,6 +152,7 @@ class AdminContractDetailResource extends JsonResource
             'contract_status' => $this->contractStatusSummary($c->contractStatus),
             'contract_payments' => $this->paymentsSummary($c->contractPayments),
             'tenant_role' => $this->tenantRoleSummary($c->tenantRole),
+            'accept_retrun_contract_employee' => $this->employeeSummary($c->acceptRetrunContractEmployee),
         ];
     }
 

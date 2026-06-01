@@ -158,6 +158,8 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
         Route::post('/{id}/contract-status', 'updateContractStatus')->whereNumber('id')->name('update-contract-status');
+        Route::post('/{id}/accept-return-contract', 'acceptReturnContract')->whereNumber('id')->middleware('auth:sanctum')->name('accept-return-contract');
+        Route::post('/{id}/reject-return-contract', 'rejectReturnContract')->whereNumber('id')->middleware('auth:sanctum')->name('reject-return-contract');
     });
 
     // Contract comments (employee-authenticated)
