@@ -3,7 +3,6 @@
 namespace App\Http\Resources\Admin\V2\Api\Concerns;
 
 use App\Models\RefundableContract;
-use App\Services\Admin\RefundableContractService;
 
 trait ResolvesContractReturnOrderFields
 {
@@ -17,19 +16,21 @@ trait ResolvesContractReturnOrderFields
     protected function returnOrderFields(): array
     {
         $contract = $this->resource;
-        $isReturn = (int) $contract->contract_status_id === RefundableContractService::RETURN_CONTRACT_STATUS_ID;
-
         $refund = $this->resolveRefundableContractRow();
+
         $refundAmount = $refund?->refund_amount;
+        $refundAmountValue = $refundAmount !== null && $refundAmount !== ''
+            ? round((float) $refundAmount, 2)
+            : null;
+
+        $draftContractNumber = $refund && $contract->getKey()
+            ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT)
+            : null;
 
         return [
-            'return_contract' => $isReturn,
-            'draft_contract_number' => $isReturn
-                ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT)
-                : null,
-            'refund_amount' => $refundAmount !== null && $refundAmount !== ''
-                ? round((float) $refundAmount, 2)
-                : null,
+            'draft_contract_number' => $draftContractNumber,
+            'refund_amount' => $refundAmountValue,
+            'return_contract' => $draftContractNumber !== null && $refundAmountValue !== null,
         ];
     }
 
