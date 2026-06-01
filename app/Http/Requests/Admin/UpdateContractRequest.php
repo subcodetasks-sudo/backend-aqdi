@@ -16,6 +16,8 @@ class UpdateContractRequest extends FormRequest
         'uuid',
         'created_at',
         'updated_at',
+        'accept_retrun_contract',
+        'accept_retrun_contract_employee_id',
     ];
 
     public function authorize(): bool

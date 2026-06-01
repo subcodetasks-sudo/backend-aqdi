@@ -8,10 +8,12 @@ use App\Http\Resources\Admin\V2\Api\AdminContractDetailResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
+use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\TenantRole;
 use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Validator;
@@ -118,6 +120,7 @@ class OrderController extends Controller
         return [
             'user',
             'receivedContract.employee',
+            'acceptRetrunContractEmployee:id,name',
             'contractStatus',
             'contractPayments' => fn ($q) => $q->where('status', 'success'),
         ];
@@ -188,6 +191,7 @@ class OrderController extends Controller
             'paymentType',
             'account',
             'receivedContract.employee',
+            'acceptRetrunContractEmployee:id,name',
             'contractStatus',
             'contractPayments',
             'tenantRole',
@@ -329,6 +333,9 @@ class OrderController extends Controller
                 'contract_type_key' => Arr::get($detail, 'contract_type'),
                 'instrument_type_key' => Arr::get($detail, 'instrument_type'),
                 'contract_period' => Arr::get($detail, 'contract_period.period'),
+                'accept_retrun_contract' => (bool) Arr::get($detail, 'accept_retrun_contract', false),
+                'accept_retrun_contract_employee_id' => Arr::get($detail, 'accept_retrun_contract_employee_id'),
+                'accept_retrun_contract_employee' => Arr::get($detail, 'accept_retrun_contract_employee'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
@@ -571,6 +578,68 @@ class OrderController extends Controller
      * - Same semantics for legacy `received_contract=…`.
      * Omit both → no filter.
      */
+    /**
+     * Accept return contract (مسترجع) — employee Bearer required.
+     * POST /api/admin/orders/{id}/accept-return-contract
+     */
+    public function acceptReturnContract(Request $request, int $id)
+    {
+        return $this->setReturnContractAcceptance($request, $id, true);
+    }
+
+    /**
+     * Reject / not accept return contract — employee Bearer required.
+     * POST /api/admin/orders/{id}/reject-return-contract
+     */
+    public function rejectReturnContract(Request $request, int $id)
+    {
+        return $this->setReturnContractAcceptance($request, $id, false);
+    }
+
+    private function setReturnContractAcceptance(Request $request, int $id, bool $accepted)
+    {
+        try {
+            if (! $request->user() instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            /** @var Employee $employee */
+            $employee = $request->user();
+
+            $contract = $this->findAdminContract($id);
+
+            if ((int) $contract->contract_status_id !== RefundableContractService::RETURN_CONTRACT_STATUS_ID) {
+                return $this->errorMessage(trans('api.refund_contract_must_be_return_status'), 422);
+            }
+
+            $contract->update([
+                'accept_retrun_contract' => $accepted,
+                'accept_retrun_contract_employee_id' => $employee->id,
+            ]);
+
+            $contract->load($this->contractDetailRelations());
+            $detail = (new AdminContractDetailResource($contract))->toArray($request);
+
+            return $this->apiResponse(
+                $this->buildStepBasedDetailResponse($detail),
+                $accepted
+                    ? trans('api.return_contract_accepted_successfully')
+                    : trans('api.return_contract_rejected_successfully')
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.contract_not_found'),
+                false,
+                404
+            );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
     /**
      * Load contract by id for admin write/show (includes soft-deleted rows).
      */

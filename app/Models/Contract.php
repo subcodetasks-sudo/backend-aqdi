@@ -67,6 +67,7 @@ class Contract extends Model
         'tenant_role_ids' => 'array',
         'kitchen_tank' => 'boolean',
         'furnished' => 'boolean',
+        'accept_retrun_contract' => 'boolean',
     ];
 
     protected $appends = [
@@ -558,6 +559,11 @@ class Contract extends Model
     public function contractStatus()
     {
         return $this->belongsTo(ContractStatus::class, 'contract_status_id');
+    }
+
+    public function acceptRetrunContractEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'accept_retrun_contract_employee_id');
     }
 
     public function comments()
