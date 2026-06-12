@@ -19,7 +19,22 @@ class ContractClickPayPaymentService
     {
         $contract = Contract::where('uuid', $uuid)->firstOrFail();
 
+        if (! $contract->contract_term_in_years) {
+            return response()->json([
+                'message' => trans('api.contract_period_not_set_for_payment'),
+                'success' => false,
+            ], 422);
+        }
+
         $cartAmount = $this->calculateCartAmount($contract);
+
+        if ($cartAmount <= 0) {
+            return response()->json([
+                'message' => trans('api.contract_payment_amount_invalid'),
+                'success' => false,
+                'cart_amount' => $cartAmount,
+            ], 422);
+        }
         $requestData = $this->buildClickPayPayload($contract, $cartAmount);
         $response = $this->sendClickPayPaymentRequest($requestData);
         $paymentData = $response->json();
@@ -104,10 +119,13 @@ class ContractClickPayPaymentService
         $couponDiscount = $this->resolveCouponDiscount($contract, $contractBaseTotal);
         $netContractTotal = max(0, $contractBaseTotal - $couponDiscount);
 
-        $contractPeriodPrice = (float) ContractPeriod::where('contract_type', $contract->contract_type)
-            ->where('id', $contract->contract_term_in_years)
-            ->firstOrFail()
-            ->price;
+        $contractPeriodPrice = 0.0;
+        if ($contract->contract_term_in_years) {
+            $contractPeriodPrice = (float) (ContractPeriod::query()
+                ->where('contract_type', $contract->contract_type)
+                ->where('id', $contract->contract_term_in_years)
+                ->value('price') ?? 0);
+        }
 
         return (float) max(0, $netContractTotal + max(0, $contractPeriodPrice));
     }
