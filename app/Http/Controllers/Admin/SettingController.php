@@ -68,30 +68,62 @@ class SettingController extends Controller
             ]);
 
             $setting = $this->resolveSettingRow();
-
-            if ($request->hasFile('image_banner')) {
-                if ($setting->banner) {
-                    deleteFile($setting->banner);
-                }
-                $validated['banner'] = fileUploader($request->file('image_banner'), 'settings');
-            }
-
-            if ($request->hasFile('cover')) {
-                if ($setting->cover) {
-                    deleteFile($setting->cover);
-                }
-                $validated['cover'] = fileUploader($request->file('cover'), 'settings');
-            }
-
+            $this->applyOptionalSettingImages($request, $setting, $validated);
             unset($validated['image_banner']);
 
             $setting->update($validated);
 
-            $terms = $this->resolveLegalPage('term_and_condition');
-            $privacy = $this->resolveLegalPage('privacy');
+            return $this->settingsUpdatedResponse($setting);
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Upload or replace the app image banner only.
+     *
+     * POST /api/admin/settings/image-banner
+     */
+    public function updateImageBanner(Request $request)
+    {
+        try {
+            $request->validate([
+                'image_banner' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            ]);
+
+            $setting = $this->resolveSettingRow();
+            $this->replaceSettingImage($setting, 'banner', $request->file('image_banner'));
 
             return $this->apiResponse(
-                $this->formatSettingsPayload($setting->fresh(), $terms, $privacy),
+                ['image_banner' => $this->formatImageField($setting->fresh()->banner)],
+                trans('api.updated_successfully')
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Upload or replace the app cover image only.
+     *
+     * POST /api/admin/settings/cover
+     */
+    public function updateCover(Request $request)
+    {
+        try {
+            $request->validate([
+                'cover' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            ]);
+
+            $setting = $this->resolveSettingRow();
+            $this->replaceSettingImage($setting, 'cover', $request->file('cover'));
+
+            return $this->apiResponse(
+                ['cover' => $this->formatImageField($setting->fresh()->cover)],
                 trans('api.updated_successfully')
             );
         } catch (ValidationException $e) {
@@ -104,6 +136,44 @@ class SettingController extends Controller
     private function resolveSettingRow(): Setting
     {
         return Setting::query()->first() ?? Setting::query()->create([]);
+    }
+
+    private function settingsUpdatedResponse(Setting $setting)
+    {
+        $terms = $this->resolveLegalPage('term_and_condition');
+        $privacy = $this->resolveLegalPage('privacy');
+
+        return $this->apiResponse(
+            $this->formatSettingsPayload($setting->fresh(), $terms, $privacy),
+            trans('api.updated_successfully')
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function applyOptionalSettingImages(Request $request, Setting $setting, array &$validated): void
+    {
+        if ($request->hasFile('image_banner')) {
+            $validated['banner'] = $this->replaceSettingImage($setting, 'banner', $request->file('image_banner'));
+        }
+
+        if ($request->hasFile('cover')) {
+            $validated['cover'] = $this->replaceSettingImage($setting, 'cover', $request->file('cover'));
+        }
+    }
+
+    private function replaceSettingImage(Setting $setting, string $column, $file): string
+    {
+        $currentPath = $setting->{$column};
+        if ($currentPath) {
+            deleteFile($currentPath);
+        }
+
+        $path = fileUploader($file, 'settings');
+        $setting->update([$column => $path]);
+
+        return $path;
     }
 
     private function resolveLegalPage(string $pageKey): Page
