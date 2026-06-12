@@ -1,0 +1,168 @@
+{
+    "info": {
+        "_postman_id": "aqdi-admin-payment-gateway",
+        "name": "AQDI Admin — Payment gateway (ClickPay)",
+        "description": "Admin equivalents of `routes/api.php` payment routes (lines 169–181).\n\n**Auth (employee):** Bearer `{{employee_token}}` for payment URL + list payments.\n\n**Public (gateway):** status callbacks — same body as ClickPay IPN/return.\n\n**Variables:** `baseUrl`, `employee_token`, `contract_uuid`",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        { "key": "baseUrl", "value": "http://localhost:8000" },
+        { "key": "employee_token", "value": "" },
+        { "key": "contract_uuid", "value": "123456" }
+    ],
+    "item": [
+        {
+            "name": "00 — Auth",
+            "item": [
+                {
+                    "name": "Employee login (save token)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) pm.collectionVariables.set('employee_token', token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": { "type": "noauth" },
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "employees", "login"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Employee — payment URL & records",
+            "item": [
+                {
+                    "name": "Get ClickPay payment URL",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{ "key": "token", "value": "{{employee_token}}", "type": "string" }]
+                        },
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/{{contract_uuid}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "{{contract_uuid}}"]
+                        },
+                        "description": "Same as GET /api/payment/{uuid}. Returns Payment_url / payment_url."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List payments for contract uuid",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [{ "key": "token", "value": "{{employee_token}}", "type": "string" }]
+                        },
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/{{contract_uuid}}/payments",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "{{contract_uuid}}", "payments"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Gateway callbacks & status",
+            "item": [
+                {
+                    "name": "IPN — POST status/{uuid}/success",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_result\": { \"response_status\": \"A\" },\n    \"cart_amount\": 500,\n    \"cart_id\": \"{{contract_uuid}}-1234567890\",\n    \"tran_currency\": \"SAR\",\n    \"customer_details\": { \"name\": \"Test User\" },\n    \"payment_info\": { \"payment_method\": \"card\" }\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/status/{{contract_uuid}}/success",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "status", "{{contract_uuid}}", "success"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Return — POST status/{uuid}",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            { "key": "Accept", "value": "application/json" },
+                            { "key": "Content-Type", "value": "application/json" }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"payment_result\": { \"response_status\": \"A\" },\n    \"cart_amount\": 500,\n    \"cart_id\": \"{{contract_uuid}}\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/status/{{contract_uuid}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "status", "{{contract_uuid}}"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET status/success/{uuid}",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/status/success/{{contract_uuid}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "status", "success", "{{contract_uuid}}"]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET status/error/{uuid}",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/payment-gateway/status/error/{{contract_uuid}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "admin", "payment-gateway", "status", "error", "{{contract_uuid}}"]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

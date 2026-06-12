@@ -4,6 +4,7 @@
 
 | File | Use |
 |------|-----|
+| **`AQDI-Admin-Payment-Gateway.postman_collection.json`** | **ClickPay:** payment URL, status callbacks under `/api/admin/payment-gateway` |
 | **`AQDI-Admin-Refundable-Contracts.postman_collection.json`** | **Refunds:** `POST /refundable-contracts` + `UpdateRefundableContractApprovalRequest` on analytics refunds |
 | **`AQDI-Admin-Return-Contract-Status.postman_collection.json`** | **Return orders:** `POST …/return-contract-status` with `accept_retrun_contract` JSON |
 | **`AQDI-Contracts-API.postman_collection.json`** | **V2 client API:** contract steps 1–6, listing, uncompleted |
