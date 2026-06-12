@@ -79,6 +79,8 @@ return [
     'refund_request_already_exists' => 'A pending refund request already exists for this contract',
     'refund_update_requires_field' => 'Send at least one of: admin_confirmed, refund_amount, notes',
     'payment_type_in_use' => 'Cannot delete this payment method because it is linked to contracts',
+    'contract_period_not_set_for_payment' => 'Payment is not available until contract period (step 6) is completed',
+    'contract_payment_amount_invalid' => 'Invalid payment amount — complete contract details and contract period first',
 
     'user_blocked_successfull' => 'User blocked successfully',
     'user_unblocked_successfull' => 'User unblocked successfully',

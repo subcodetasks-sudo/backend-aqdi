@@ -92,4 +92,8 @@ return [
     'refund_request_already_exists' => 'يوجد طلب استرجاع قيد المراجعة لهذا العقد',
     'refund_update_requires_field' => 'أرسل admin_confirmed أو refund_amount أو notes',
     'payment_type_in_use' => 'لا يمكن حذف طريقة الدفع لأنها مرتبطة بعقود',
+    'contract_period_not_set_for_payment' => 'لا يمكن الدفع قبل إكمال مدة العقد (الخطوة 6)',
+    'contract_payment_amount_invalid' => 'مبلغ الدفع غير صالح — تأكد من إكمال بيانات العقد ومدة العقد',
+    'contract_period_not_set_for_payment' => 'لا يمكن الدفع قبل إكمال مدة العقد (الخطوة 6)',
+    'contract_payment_amount_invalid' => 'مبلغ الدفع غير صالح — تأكد من إكمال بيانات العقد ومدة العقد',
 ];
