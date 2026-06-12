@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\RealEstateController;
 use App\Http\Controllers\Admin\ReaEstatUsageController;
 use App\Http\Controllers\Admin\RegionController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TypeRealController;
 use App\Http\Controllers\Admin\UnitRealController;
 use App\Http\Controllers\Admin\UnitTypeController;
@@ -422,6 +423,12 @@ use Illuminate\Support\Facades\Route;
         Route::delete('/{id}', 'destroy')->name('destroy');
         Route::post('/{id}/toggle-active', 'toggleActive')->name('toggle-active');
         Route::get('/statistics', 'statistics')->name('statistics');
+    });
+
+    // App settings (taxes, social, banner, terms & privacy)
+    Route::prefix('settings')->name('settings.')->controller(SettingController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'update')->name('update');
     });
 
     // App content dashboard (payment methods, legal pages, customer messages)
