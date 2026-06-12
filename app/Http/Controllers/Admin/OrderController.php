@@ -287,9 +287,36 @@ class OrderController extends Controller
         $detail = (new AdminContractDetailResource($contract))->toArray(request());
 
         return $this->apiResponse(
-            $this->buildStepBasedDetailResponse($detail),
+            array_merge(
+                $this->buildStepBasedDetailResponse($detail),
+                [
+                    'user_contracts' => $this->userContractSummariesForUser($contract->user_id),
+                ]
+            ),
             trans('api.success')
         );
+    }
+
+    /**
+     * @return array<int, array{id: int, uuid: string}>
+     */
+    private function userContractSummariesForUser(?int $userId): array
+    {
+        if (! $userId) {
+            return [];
+        }
+
+        return Contract::query()
+            ->where('user_id', $userId)
+            ->notDeleted()
+            ->orderByDesc('id')
+            ->get(['id', 'uuid'])
+            ->map(static fn (Contract $contract) => [
+                'id' => $contract->id,
+                'uuid' => (string) $contract->uuid,
+            ])
+            ->values()
+            ->all();
     }
 
     /**
