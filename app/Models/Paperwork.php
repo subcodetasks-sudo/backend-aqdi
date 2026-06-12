@@ -16,7 +16,7 @@ class Paperwork extends Model
     */
 
     protected $guarded = ['id'];
-    protected $appends = ['created_at_label', 'name_trans'];
+    protected $appends = ['created_at_label', 'name_trans', 'icon_url'];
 
     /*
     |--------------------------------------------------------------------------
@@ -32,5 +32,10 @@ class Paperwork extends Model
     public function getNameTransAttribute()
     {
         return getTransAttribute($this, 'name');
+    }
+
+    public function getIconUrlAttribute(): ?string
+    {
+        return $this->icon ? url("storage/{$this->icon}") : null;
     }
 }

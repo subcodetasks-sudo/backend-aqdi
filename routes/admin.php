@@ -429,6 +429,8 @@ use Illuminate\Support\Facades\Route;
     Route::prefix('settings')->name('settings.')->controller(SettingController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'update')->name('update');
+        Route::post('/image-banner', 'updateImageBanner')->name('image-banner.update');
+        Route::post('/cover', 'updateCover')->name('cover.update');
     });
 
     // App content dashboard (payment methods, legal pages, customer messages)
