@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\CustomerApplicationMessageController;
 use App\Http\Controllers\Admin\PageContentController;
 use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PaperworkController;
+use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RealEstateController;
@@ -128,6 +129,19 @@ use Illuminate\Support\Facades\Route;
     Route::prefix('payments')->name('payments.')->controller(PaymentController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/{id}', 'show')->name('show');
+    });
+
+    // Contract payment gateway (ClickPay) — admin equivalents of routes/api.php payment block
+    Route::prefix('payment-gateway')->name('payment-gateway.')->controller(ContractPaymentController::class)->group(function () {
+        Route::post('/status/{uuid}/success', 'updateCartByIPN')->name('callback');
+        Route::post('/status/{uuid}', 'callback')->name('return');
+        Route::get('/status/success/{uuid}', 'success')->name('status.success');
+        Route::get('/status/error/{uuid}', 'error')->name('status.error');
+
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('/{uuid}/payments', 'paymentsByContract')->name('payments');
+            Route::get('/{uuid}', 'paymentUrl')->name('show');
+        });
     });
 
     
