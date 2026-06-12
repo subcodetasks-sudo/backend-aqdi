@@ -206,25 +206,38 @@ class GeneralController extends Controller
    
    public function settings()
     {
-        $settings = Setting::first();
+        $setting = Setting::query()->first();
+        $terms = Page::query()->where('page', 'term_and_condition')->first();
+        $privacy = Page::query()->where('page', 'privacy')->first();
 
-        $settings =  [
-            "whatsapp" => $settings->whatsapp ?? '',
-            "instagram" => $settings->instagram ?? '',
-            "twitter" => $settings->twitter ?? '',
-            "snapchat" => $settings->snapchat ?? '',
-            "facebook" => 'https://www.facebook.com/?locale=ar_AR',
-            "tiktok" =>  'https://www.facebook.com/?locale=ar_AR',
-            "linkedIn"=>'https://www.linkedin.com/login/ar',
-            "whatsapp_contact" => $settings->whatsapp_contact ?? '',
-            'version'=>$settings->version,
-            'time_to_documentation_contract' => $settings->time_to_documentation_contract,
-            'open_payment'=>$settings->open_payment,
-            'is_open'=>$settings->is_open,
-            'working_hours' => $settings->working_hours,
+        $payload = [
+            'whatsapp' => $setting->whatsapp ?? '',
+            'instagram' => $setting->instagram ?? '',
+            'twitter' => $setting->twitter ?? '',
+            'snapchat' => $setting->snapchat ?? '',
+            'facebook' => $setting->facebook ?? '',
+            'tiktok' => $setting->tiktok ?? '',
+            'linkedIn' => $setting->linkedIn ?? '',
+            'whatsapp_contact' => $setting->whatsapp_contact ?? '',
+            'version' => $setting->version ?? null,
+            'time_to_documentation_contract' => $setting->time_to_documentation_contract ?? null,
+            'open_payment' => $setting->open_payment ?? null,
+            'is_open' => $setting->is_open ?? null,
+            'working_hours' => $setting->working_hours ?? null,
+            'terms' => [
+                'description' => $terms ? $terms->description_trans : '',
+            ],
+            'privacy' => [
+                'description' => $privacy ? $privacy->description_trans : '',
+            ],
+            'image_banner' => $this->settingImageUrl($setting?->banner),
         ];
 
-        return $this->apiResponse($settings, trans('api.success'));
+        return $this->apiResponse($payload, trans('api.success'));
+    }
 
-   }
+    private function settingImageUrl(?string $path): ?string
+    {
+        return $path ? url("storage/{$path}") : null;
+    }
 }
