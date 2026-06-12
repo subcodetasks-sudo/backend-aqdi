@@ -131,17 +131,14 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->name('show');
     });
 
-    // Contract payment gateway (ClickPay) — admin equivalents of routes/api.php payment block
+    // Contract payment gateway (ClickPay) — admin equivalents of routes/api.php payment block (no auth)
     Route::prefix('payment-gateway')->name('payment-gateway.')->group(function () {
         Route::post('/status/{uuid}/success', [ContractPaymentController::class, 'updateCartByIPN'])->name('callback');
         Route::post('/status/{uuid}', [ContractPaymentController::class, 'callback'])->name('return');
         Route::get('/status/success/{uuid}', [ContractPaymentController::class, 'success'])->name('status.success');
         Route::get('/status/error/{uuid}', [ContractPaymentController::class, 'error'])->name('status.error');
-
-        Route::middleware('auth:sanctum')->group(function () {
-            Route::get('/{uuid}/payments', [ContractPaymentController::class, 'paymentsByContract'])->name('payments');
-            Route::get('/{uuid}', [ContractPaymentController::class, 'paymentUrl'])->name('show');
-        });
+        Route::get('/{uuid}/payments', [ContractPaymentController::class, 'paymentsByContract'])->name('payments');
+        Route::get('/{uuid}', [ContractPaymentController::class, 'paymentUrl'])->name('show');
     });
 
     
