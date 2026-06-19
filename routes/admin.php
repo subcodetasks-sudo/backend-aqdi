@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\CustomerApplicationMessageController;
 use App\Http\Controllers\Admin\PageContentController;
 use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PaperworkController;
+use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -153,6 +154,16 @@ use Illuminate\Support\Facades\Route;
     });
 
 
+
+    // Employee-recorded contract payments (ClickPay link on create)
+    Route::prefix('contract-paid-by-employees')->name('contract-paid-by-employees.')
+        ->controller(ContractPaidByEmployeeController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        });
 
     // Received contract: which employee received the contract (`received_contracts` table)
     Route::prefix('received-contracts')->name('received-contracts.')->controller(ReceivedContractController::class)->middleware('auth:sanctum')->group(function () {

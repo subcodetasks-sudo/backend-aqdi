@@ -64,6 +64,44 @@ class ContractClickPayPaymentService
         ]);
     }
 
+    /**
+     * Request ClickPay redirect URL using a custom amount (employee-collected payment).
+     *
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string}
+     */
+    public function requestPaymentRedirectUrl(string $uuid, float $amount): array
+    {
+        $contract = Contract::where('uuid', $uuid)->firstOrFail();
+
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException(trans('api.contract_payment_amount_invalid'));
+        }
+
+        $requestData = $this->buildClickPayPayload($contract, $amount);
+        $response = $this->sendClickPayPaymentRequest($requestData);
+        $paymentData = $response->json();
+
+        if (! isset($paymentData['redirect_url'])) {
+            $gatewayError = $this->extractGatewayError($paymentData);
+
+            Log::warning('ClickPay employee payment request rejected', [
+                'contract_uuid' => $contract->uuid,
+                'amount' => $amount,
+                'status_code' => $response->status(),
+                'gateway_error' => $gatewayError,
+                'gateway_response' => $paymentData,
+            ]);
+
+            throw new \RuntimeException($gatewayError);
+        }
+
+        return [
+            'payment_url' => $paymentData['redirect_url'],
+            'cart_amount' => $amount,
+            'contract_uuid' => (string) $contract->uuid,
+        ];
+    }
+
     public function processIpn(Request $request, string $uuid): void
     {
         try {

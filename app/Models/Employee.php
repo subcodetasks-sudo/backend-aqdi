@@ -69,6 +69,11 @@ class Employee extends Authenticatable
         return $this->hasMany(RefundableContract::class);
     }
 
+    public function contractPaidByEmployees()
+    {
+        return $this->hasMany(ContractPaidByEmployee::class, 'employee_id');
+    }
+
     public function authHistory()
     {
         return $this->hasMany(AuthHistory::class);
