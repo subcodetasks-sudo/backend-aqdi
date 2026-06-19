@@ -29,6 +29,7 @@ class ContractResource extends JsonResource
             'contract_type' => $this->contract_type,
             'property_owner_id_num' => $this->property_owner_id_num,
             'is_completed' => boolval($this->is_completed),
+            'is_draft' => (bool) $this->is_draft,
             'tenant_id_num' => $this->tenant_id_num,
             'contract_ownership' => $this->contract_ownership,
             'id_num_of_property_owner_agent' => $this->id_num_of_property_owner_agent, 

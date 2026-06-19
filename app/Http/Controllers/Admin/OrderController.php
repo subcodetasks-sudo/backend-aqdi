@@ -94,6 +94,33 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Draft contracts (is_draft = true).
+     * GET /api/admin/contracts/draft
+     */
+    public function draftContracts(Request $request)
+    {
+        try {
+            $contracts = $this->draftContractsQuery($request)
+                ->with($this->orderListRelations())
+                ->paginate($this->perPageFromRequest($request));
+
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['is_draft' => true]
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
     private function returnContractsQuery(Request $request)
     {
         return Contract::query()
@@ -135,6 +162,28 @@ class OrderController extends Controller
             ->notDeleted()
             ->incomplete()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+            ->orderBy(
+                $request->get('sort_by', 'created_at'),
+                $request->get('sort_order', 'desc')
+            );
+    }
+
+    private function draftContractsQuery(Request $request)
+    {
+        return Contract::query()
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+            ->notDeleted()
+            ->draft()
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
@@ -337,6 +386,7 @@ class OrderController extends Controller
                 'copy_of_the_endowment_registration_certificate',
                 'copy_of_the_trusteeship_deed',
                 'is_completed',
+                'is_draft',
                 'status',
                 'contract_period_id',
                 'documentation_deadline_at',

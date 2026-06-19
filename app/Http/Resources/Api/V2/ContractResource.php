@@ -39,6 +39,7 @@ class ContractResource extends JsonResource
             'text_additional_terms' => $this->text_additional_terms,
             'notes_edits' => $this->notes_edits,
             'is_completed' => (bool) $this->is_completed,
+            'is_draft' => (bool) $this->is_draft,
             'step' => $this->step,
             'contract_status_id' => $this->contract_status_id,
             'contract_status_name' => optional($this->contractStatus)->name

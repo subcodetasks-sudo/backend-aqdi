@@ -161,6 +161,11 @@ use Illuminate\Support\Facades\Route;
         Route::get('{contractId}', 'show')->whereNumber('contractId')->name('show');
     });
 
+    // Contracts draft (is_draft = true)
+    Route::prefix('contracts')->name('contracts.')->controller(OrderController::class)->group(function () {
+        Route::get('/draft', 'draftContracts')->name('draft');
+    });
+
     // Orders Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
         Route::get('/', 'orders')->name('index');

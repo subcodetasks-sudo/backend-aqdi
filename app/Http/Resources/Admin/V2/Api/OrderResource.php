@@ -48,6 +48,7 @@ class OrderResource extends JsonResource
             'instrument_type' => $this->instrument_type_trans,
             'instrument_type_key' => $this->instrument_type,
             'is_completed' => (bool) $this->is_completed,
+            'is_draft' => (bool) $this->is_draft,
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             ...$this->returnAcceptanceFields(),
             ...$this->returnOrderFields(),
