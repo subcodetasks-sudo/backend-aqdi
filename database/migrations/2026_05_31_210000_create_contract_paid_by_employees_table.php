@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('contract_paid_by_employees', function (Blueprint $table) {
             $table->id();
-            $table->string('contract_uuid');
+            $table->string('contract_uuid')->nullable();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->string('customer_mobile', 32);
             $table->decimal('amount', 10, 2)->default(0);

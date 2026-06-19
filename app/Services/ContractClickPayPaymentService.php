@@ -102,6 +102,52 @@ class ContractClickPayPaymentService
         ];
     }
 
+    /**
+     * ClickPay redirect URL without a linked contract (employee-collected payment).
+     *
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string}
+     */
+    public function requestPaymentRedirectUrlWithoutContract(string $contractUuid, float $amount): array
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException(trans('api.contract_payment_amount_invalid'));
+        }
+
+        $requestData = [
+            'profile_id' => env('CLICKPAY_PROFILE_ID', '45644'),
+            'tran_type' => 'sale',
+            'tran_class' => 'ecom',
+            'cart_id' => $contractUuid.'-'.now()->timestamp,
+            'cart_description' => 'Employee payment '.$contractUuid,
+            'cart_currency' => env('CLICKPAY_CURRENCY', 'EGP'),
+            'cart_amount' => $amount,
+            'callback' => route('callback', ['uuid' => $contractUuid]),
+        ];
+
+        $response = $this->sendClickPayPaymentRequest($requestData);
+        $paymentData = $response->json();
+
+        if (! isset($paymentData['redirect_url'])) {
+            $gatewayError = $this->extractGatewayError($paymentData);
+
+            Log::warning('ClickPay employee payment (no contract) rejected', [
+                'contract_uuid' => $contractUuid,
+                'amount' => $amount,
+                'status_code' => $response->status(),
+                'gateway_error' => $gatewayError,
+                'gateway_response' => $paymentData,
+            ]);
+
+            throw new \RuntimeException($gatewayError);
+        }
+
+        return [
+            'payment_url' => $paymentData['redirect_url'],
+            'cart_amount' => $amount,
+            'contract_uuid' => $contractUuid,
+        ];
+    }
+
     public function processIpn(Request $request, string $uuid): void
     {
         try {
