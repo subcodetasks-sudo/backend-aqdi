@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreContractPaidByEmployeeRequest;
 use App\Http\Resources\Admin\V2\Api\ContractPaidByEmployeeResource;
 use App\Http\Traits\Responser;
+use App\Models\Contract;
 use App\Models\ContractPaidByEmployee;
 use App\Models\Employee;
 use App\Services\ContractClickPayPaymentService;
@@ -74,19 +75,25 @@ class ContractPaidByEmployeeController extends Controller
 
             $validated = $request->validated();
             $amount = (float) $validated['amount'];
-
-            $payment = $this->paymentService->requestPaymentRedirectUrl(
-                (string) $validated['contract_uuid'],
-                $amount
-            );
+            $contractUuid = (string) Contract::generateUUID();
 
             $record = ContractPaidByEmployee::query()->create([
-                'contract_uuid' => (string) $validated['contract_uuid'],
+                'contract_uuid' => $contractUuid,
                 'employee_id' => $employee->id,
                 'customer_mobile' => $validated['customer_mobile'],
                 'amount' => $amount,
                 'is_paid' => false,
             ]);
+
+            try {
+                $payment = $this->paymentService->requestPaymentRedirectUrlWithoutContract(
+                    $contractUuid,
+                    $amount
+                );
+            } catch (\Throwable $e) {
+                $record->delete();
+                throw $e;
+            }
 
             $record->load('employee');
 

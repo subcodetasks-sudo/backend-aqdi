@@ -14,7 +14,7 @@ class ContractPaidByEmployeeResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'contract_uuid' => (string) $this->contract_uuid,
+            'contract_uuid' => $this->contract_uuid !== null ? (string) $this->contract_uuid : null,
             'employee_id' => $this->employee_id,
             'employee_name' => $this->whenLoaded('employee', fn () => $this->employee?->name),
             'customer_mobile' => $this->customer_mobile,
