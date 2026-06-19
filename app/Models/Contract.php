@@ -68,6 +68,7 @@ class Contract extends Model
         'kitchen_tank' => 'boolean',
         'furnished' => 'boolean',
         'accept_retrun_contract' => 'boolean',
+        'is_draft' => 'boolean',
     ];
 
     protected $appends = [
@@ -140,6 +141,14 @@ class Contract extends Model
     public function scopeCompleted($query)
     {
         return $query->where('is_completed', 1);
+    }
+
+    /**
+     * Draft contracts: is_draft = 1.
+     */
+    public function scopeDraft($query)
+    {
+        return $query->where('is_draft', true);
     }
 
     /*
