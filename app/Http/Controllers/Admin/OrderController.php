@@ -429,6 +429,7 @@ class OrderController extends Controller
                 'street',
                 'postal_code',
                 'extra_figure',
+                'address_url',
                 'image_address',
                 'latitude',
                 'longitude',

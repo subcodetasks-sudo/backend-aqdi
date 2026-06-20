@@ -51,6 +51,7 @@ class RealEstateResource extends JsonResource
             'neighborhood' => $this->neighborhood,
             'number_of_floors' => $this->number_of_floors,
             'building_number' => $this->building_number,
+            'address_url' => $this->address_url,
         ];
     }
 }

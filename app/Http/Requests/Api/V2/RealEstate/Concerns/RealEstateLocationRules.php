@@ -20,6 +20,7 @@ trait RealEstateLocationRules
             'building_number' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:20',
             'extra_figure' => 'nullable|string|max:255',
+            'address_url' => 'nullable|string|max:2048',
             'image_address' => 'nullable|image',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -70,6 +71,7 @@ trait RealEstateLocationRules
             'building_number',
             'postal_code',
             'extra_figure',
+            'address_url',
         ] as $field) {
             if ($this->filled($field)) {
                 $payload[$field] = $this->input($field);

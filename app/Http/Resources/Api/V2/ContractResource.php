@@ -25,6 +25,7 @@ class ContractResource extends JsonResource
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'image_address' => $this->image_address,
+            'address_url' => $this->address_url,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'image_instrument_from_the_front' => $this->image_instrument_from_the_front,

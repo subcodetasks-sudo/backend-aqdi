@@ -17,6 +17,7 @@ trait MapsContractAddressFields
             'building_number' => $this->building_number,
             'postal_code' => $this->postal_code,
             'extra_figure' => $this->extra_figure,
+            'address_url' => $this->address_url,
         ];
     }
 }

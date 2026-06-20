@@ -107,12 +107,12 @@ class ContractController extends Controller
             'app_or_web' => 'app',
             'image_instrument_from_the_back' => $validated['image_instrument_from_the_back'] ?? null,
             'image_instrument_from_the_front' => $validated['image_instrument_from_the_front'] ?? null,
-            'property_type_id' => $validated['property_type_id'] ?? null,
-            'property_usages_id' => $validated['property_usages_id'] ?? null,
-            'age_of_the_property' => $validated['age_of_the_property'] ?? null,
-            'number_of_floors' => $validated['number_of_floors'] ?? null,
-            'number_of_units_per_floor' => $validated['number_of_units_per_floor'] ?? null,
-            'number_of_units_in_realestate' => $validated['number_of_units_in_realestate'] ?? null,
+            // 'property_type_id' => $validated['property_type_id'] ?? null,
+            // 'property_usages_id' => $validated['property_usages_id'] ?? null,
+            // 'age_of_the_property' => $validated['age_of_the_property'] ?? null,
+            // 'number_of_floors' => $validated['number_of_floors'] ?? null,
+            // 'number_of_units_per_floor' => $validated['number_of_units_per_floor'] ?? null,
+            // 'number_of_units_in_realestate' => $validated['number_of_units_in_realestate'] ?? null,
             'is_multiple_trusteeship_deed_copy' => array_key_exists('is_multiple_trusteeship_deed_copy', $validated)
                 ? (bool) $validated['is_multiple_trusteeship_deed_copy']
                 : (bool) $contract->is_multiple_trusteeship_deed_copy,
@@ -123,6 +123,7 @@ class ContractController extends Controller
         }
 
         $this->applyCoordinatesIfPresent($step1Data, $request, $validated);
+        $this->applyAddressUrlIfPresent($step1Data, $request, $validated);
 
         if ($addressError = $this->applyPropertyAddressIfPresent($step1Data, $request, $validated, $contract)) {
             return $addressError;
@@ -192,6 +193,7 @@ class ContractController extends Controller
         if (Contract::shouldSkipInitialSteps($contract->instrument_type)) {
             $skipData = ['step' => 3];
             $this->applyCoordinatesIfPresent($skipData, $request, $validated);
+            $this->applyAddressUrlIfPresent($skipData, $request, $validated);
             if ($addressError = $this->applyPropertyAddressIfPresent($skipData, $request, $validated, $contract)) {
                 return $addressError;
             }
@@ -216,6 +218,7 @@ class ContractController extends Controller
         }
 
         $this->applyCoordinatesIfPresent($data, $request, $validated);
+        $this->applyAddressUrlIfPresent($data, $request, $validated);
 
         if ($request->hasFile('image_address')) {
             $data['image_address'] = $request->file('image_address')->store('images/contracts', 'public');
@@ -701,6 +704,19 @@ class ContractController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Persist address_url only when the client sends it (avoid wiping with null).
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $validated
+     */
+    private function applyAddressUrlIfPresent(array &$payload, Request $request, array $validated = []): void
+    {
+        if ($request->filled('address_url')) {
+            $payload['address_url'] = $validated['address_url'] ?? $request->input('address_url');
+        }
     }
 
     /**

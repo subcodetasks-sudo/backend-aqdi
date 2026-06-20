@@ -19,6 +19,7 @@ trait ContractPropertyAddressRules
             'building_number' => [$presence, 'string', 'max:50'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'extra_figure' => ['nullable', 'string', 'max:255'],
+            'address_url' => ['nullable', 'string', 'max:2048'],
         ];
     }
 

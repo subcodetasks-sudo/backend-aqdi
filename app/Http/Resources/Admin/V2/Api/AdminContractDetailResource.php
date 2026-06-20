@@ -365,6 +365,7 @@ class AdminContractDetailResource extends JsonResource
                 'building_number',
                 'postal_code',
                 'real_estate_registry_number',
+                'address_url',
             ])
         );
     }

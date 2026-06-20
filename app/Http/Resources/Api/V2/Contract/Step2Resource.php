@@ -37,6 +37,7 @@ class Step2Resource extends JsonResource
             'image_address' => $this->image_address
                 ? asset('storage/'.$this->image_address)
                 : null,
+            'address_url' => $this->address_url,
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'latitude' => $this->latitude,
