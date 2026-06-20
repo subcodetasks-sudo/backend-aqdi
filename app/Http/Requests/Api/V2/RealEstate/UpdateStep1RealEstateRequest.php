@@ -62,7 +62,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
                 'nullable',
                 'integer',
             ],
-            'image_instrument' => 'nullable|image',
+            'image_instrument' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf',
             'image_address' => 'nullable|image',
             'age_of_the_property' => 'nullable|integer|min:0',
             'number_of_units_per_floor' => 'nullable|string|max:255',
@@ -83,6 +83,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك النظارة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
             'copy_of_guardians_power_of_attorney_for_agent.mimes' => 'نسخة وكالة النظار يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
+            'image_instrument.mimes' => 'ملف الصك يجب أن يكون بصيغة jpg أو jpeg أو png أو webp أو pdf.',
         ], $this->locationMessages());
     }
 

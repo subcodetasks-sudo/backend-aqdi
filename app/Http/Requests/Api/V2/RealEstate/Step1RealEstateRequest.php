@@ -50,7 +50,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
 
             'image_instrument'   => [
                 'nullable',
-                'image',
+                'file',
+                'mimes:jpg,jpeg,png,webp,pdf',
                 Rule::requiredIf(in_array($instrumentType, ['electronic', $ownerEndowment], true)),
             ],
 
@@ -125,7 +126,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             // 'number_of_units_in_realestate.required'  => 'عدد الوحدات مطلوب.',
             // 'number_of_units_in_realestate.string'    => 'عدد الوحدات يجب أن يكون نصًا.',
             'image_instrument.required'               => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
-            'image_instrument.image'                  => 'حقل صورة الصك يجب أن يكون صورة.',
+            'image_instrument.mimes'                  => 'ملف الصك يجب أن يكون بصيغة jpg أو jpeg أو png أو webp أو pdf.',
             'copy_of_the_endowment_registration_certificate.required' => 'صورة من شهادة تسجيل الوقف مطلوبة.',
             'copy_of_the_trusteeship_deed.required' => 'صورة من صك النظارة مطلوبة.',
             'copy_of_guardians_power_of_attorney_for_agent.required' => 'صورة من وكالة النظار للوكيل مطلوبة عند وجود أكثر من ناظر.',

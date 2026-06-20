@@ -113,7 +113,7 @@ final class ContractV2ValidationMessages
         'copy_of_the_owner_record.mimes' => 'نسخة السجل يجب أن تكون بصيغة jpg أو jpeg أو png أو pdf.',
         'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg أو jpeg أو png أو pdf.',
         'image_instrument.required' => 'صورة الصك مطلوبة.',
-        'image_instrument.image' => 'صورة الصك يجب أن تكون ملف صورة.',
+        'image_instrument.mimes' => 'ملف الصك يجب أن يكون بصيغة jpg أو jpeg أو png أو webp أو pdf.',
         'image_address.image' => 'صورة العنوان يجب أن تكون ملف صورة.',
         'property_type_id.required_if' => 'نوع العقار مطلوب عند اختيار صك إلكتروني أو سجل عقاري.',
         'property_usages_id.required_if' => 'استخدام العقار مطلوب عند اختيار صك إلكتروني أو سجل عقاري.',

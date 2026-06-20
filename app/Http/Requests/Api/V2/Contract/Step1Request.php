@@ -63,7 +63,8 @@ class Step1Request extends BaseApiV2Request
             // ],
             'image_instrument' => [
                 'nullable',
-                'image',
+                'file',
+                'mimes:jpg,jpeg,png,webp,pdf',
                 Rule::requiredIf(
                     in_array(
                         $effectiveInstrumentType,
