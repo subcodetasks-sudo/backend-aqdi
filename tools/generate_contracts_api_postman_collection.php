@@ -210,11 +210,21 @@ $folders = [
                 'additional_terms' => false,
             ],
         ]),
+        req('Set contract draft', 'POST', '/contract/draft', [
+            'body' => [
+                'id' => '{{contract_id}}',
+                'is_draft' => true,
+            ],
+            'description' => 'Set whether the contract is saved as a draft (true) or not (false). Call after step 6 or when the client is ready to choose.',
+        ]),
     ],
     'Uncompleted contracts' => [
-        req('Check uncompleted contract', 'GET', '/contract/check-uncompleted-contract'),
+        req('Check uncompleted contract', 'GET', '/contract/check-uncompleted-contract', [
+            'description' => 'Returns whether the authenticated user has an incomplete contract. When check=true, response includes contract_id, uuid, and current step.',
+        ]),
         req('Get uncompleted contract step', 'POST', '/contract/uncompleted-contract', [
             'body' => ['uuid' => '{{contract_uuid}}'],
+            'description' => 'Resume an incomplete contract by uuid. Returns current step plus saved data for all previous steps (step1…step6 resources, same shape as step endpoints). Skips steps 1–2 for lease_renewal/sublease_agreement; skips step 4 for lease_renewal.',
         ]),
     ],
     'Contracts listing' => [

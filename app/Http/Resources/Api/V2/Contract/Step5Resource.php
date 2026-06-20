@@ -31,6 +31,7 @@ class Step5Resource extends JsonResource
             'unit_area' => $this->unit_area,
             'tootal_rooms' => $this->tootal_rooms,
             'The_number_of_halls' => $this->The_number_of_halls,
+            'number_of_councils' => $this->number_of_councils,
             'The_number_of_kitchens' => $this->The_number_of_kitchens,
             'The_number_of_toilets' => $this->The_number_of_toilets,
             'window_ac' => $this->window_ac,

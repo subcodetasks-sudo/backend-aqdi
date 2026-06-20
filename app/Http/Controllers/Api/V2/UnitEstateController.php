@@ -103,7 +103,7 @@ class UnitEstateController extends Controller
         $rules = [
             'real_estates_units_id' => 'required|exists:real_estates,id',
             'unit_type_id' => 'required|exists:unit_types,id',
-            'unit_usage_id' => 'required|exists:unit_usages,id',
+            'unit_usage_id' => 'nullable|exists:unit_usages,id',
             'unit_number' => 'required|string',
             'floor_number' => 'required|integer',
             'unit_area' => 'required|numeric',
@@ -165,7 +165,7 @@ class UnitEstateController extends Controller
         $rules = [
             'real_estates_units_id' => 'sometimes|exists:real_estates,id',
             'unit_type_id' => 'sometimes|exists:unit_types,id',
-            'unit_usage_id' => 'sometimes|exists:unit_usages,id',
+            'unit_usage_id' => 'nullable|sometimes|exists:unit_usages,id',
             'unit_number' => 'sometimes|string|max:255',
             'floor_number' => 'sometimes|integer|max:15',
             'unit_area' => 'sometimes|numeric',

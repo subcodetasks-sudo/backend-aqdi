@@ -84,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/step4', 'step4');
         Route::post('/step5', 'step5');
         Route::post('/step6', 'step6');
+        Route::post('/draft', 'setDraft')->name('draft');
     });
 
     Route::prefix('contract')->name('v2.contract.')->controller(V2UncompeleteContractController::class)->group(function () {

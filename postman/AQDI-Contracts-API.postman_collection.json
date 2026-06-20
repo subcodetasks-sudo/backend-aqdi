@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "9ce36010-66b0-42dc-bfc5-3013cbe1817a",
+        "_postman_id": "755c8bbe-93fa-4f70-8f51-6939e21354a5",
         "name": "AQDI Contracts API (V2)",
         "description": "Contract endpoints from routes\/api_v2.php.\n\nBase path: `{{baseUrl}}\/api\/v2`\n\nRequires `auth:sanctum` Bearer token (except public routes).\n\n1. Set `baseUrl` and `token`\n2. Run Start contract → save `contract_id` \/ `uuid` from response",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -40,7 +40,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"instrument_type\": \"paper\",\n    \"is_real\": false\n}",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"instrument_type\": \"old_handwritten\",\n    \"is_real\": false\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -333,6 +333,47 @@
                         }
                     },
                     "response": []
+                },
+                {
+                    "name": "Set contract draft",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/draft",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "draft"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"is_draft\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Set whether the contract is saved as a draft (true) or not (false). Call after step 6 or when the client is ready to choose."
+                    },
+                    "response": []
                 }
             ]
         },
@@ -361,7 +402,8 @@
                                 "contract",
                                 "check-uncompleted-contract"
                             ]
-                        }
+                        },
+                        "description": "Returns whether the authenticated user has an incomplete contract. When check=true, response includes contract_id, uuid, and current step."
                     },
                     "response": []
                 },
@@ -401,7 +443,8 @@
                                     "language": "json"
                                 }
                             }
-                        }
+                        },
+                        "description": "Resume an incomplete contract by uuid. Returns current step plus saved data for all previous steps (step1…step6 resources, same shape as step endpoints). Skips steps 1–2 for lease_renewal\/sublease_agreement; skips step 4 for lease_renewal."
                     },
                     "response": []
                 }

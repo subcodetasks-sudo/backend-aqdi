@@ -1,0 +1,106 @@
+{
+    "info": {
+        "_postman_id": "aqdi-uncompleted-contract-v2",
+        "name": "AQDI API V2 — Uncompleted Contract",
+        "description": "Resume incomplete contracts.\n\nBase path: `{{baseUrl}}/api/v2`\n\nRequires `auth:sanctum` Bearer token.\n\n**Flow**\n1. Set `baseUrl` and `token`\n2. Run **Check uncompleted contract** (optional)\n3. Set `contract_uuid` from the check response or from **Start contract**\n4. Run **Get uncompleted contract step** to load current step and all previous step data",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "aqdi-blade"
+    },
+    "item": [
+        {
+            "name": "Check uncompleted contract",
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{baseUrl}}/api/v2/contract/check-uncompleted-contract",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v2",
+                        "contract",
+                        "check-uncompleted-contract"
+                    ]
+                },
+                "description": "Returns whether the user has an incomplete contract.\n\nExample when found:\n```json\n{\n  \"message\": \"...\",\n  \"code\": 200,\n  \"success\": true,\n  \"data\": {\n    \"check\": true,\n    \"contract_id\": 123,\n    \"uuid\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"step\": 4\n  }\n}\n```\n\nExample when none:\n```json\n{\n  \"data\": { \"check\": false }\n}\n```"
+            },
+            "response": []
+        },
+        {
+            "name": "Get uncompleted contract step",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Accept",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"uuid\": \"{{contract_uuid}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{baseUrl}}/api/v2/contract/uncompleted-contract",
+                    "host": [
+                        "{{baseUrl}}"
+                    ],
+                    "path": [
+                        "api",
+                        "v2",
+                        "contract",
+                        "uncompleted-contract"
+                    ]
+                },
+                "description": "Load saved contract progress by uuid.\n\nReturns the current step and data for all **previous** completed steps using the same resources as the step endpoints (`Step1Resource` … `Step5Resource`; step 6 uses `{ contract, price_contract_term }`).\n\nExample (contract at step 4):\n```json\n{\n  \"message\": \"...\",\n  \"code\": 200,\n  \"success\": true,\n  \"data\": {\n    \"step\": 4,\n    \"contract_id\": 123,\n    \"uuid\": \"550e8400-e29b-41d4-a716-446655440000\",\n    \"step1\": { \"...\": \"Step1Resource fields\" },\n    \"step2\": { \"...\": \"Step2Resource fields\" },\n    \"step3\": { \"...\": \"Step3Resource fields\" }\n  }\n}\n```\n\nErrors: `404` contract not found, `400` if contract is already completed."
+            },
+            "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "default"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "secret"
+        },
+        {
+            "key": "contract_uuid",
+            "value": "",
+            "type": "default"
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    }
+}

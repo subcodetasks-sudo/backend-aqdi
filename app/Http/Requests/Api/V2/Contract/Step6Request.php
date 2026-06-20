@@ -61,7 +61,6 @@ class Step6Request extends BaseApiV2Request
             'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
             'tenant_role_ids' => 'nullable|array',
             'tenant_role_ids.*' => 'integer|exists:tenant_roles,id',
-            'is_draft'=>'nullable',
         ];
     }
 

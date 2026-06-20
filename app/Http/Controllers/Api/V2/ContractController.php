@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\Contract\ContractTypeRequest;
+use App\Http\Requests\Api\V2\Contract\SetContractDraftRequest;
 use App\Http\Requests\Api\V2\Contract\Step1Request;
 use App\Http\Requests\Api\V2\Contract\Step2Request;
 use App\Http\Requests\Api\V2\Contract\Step3Request;
@@ -493,12 +494,12 @@ class ContractController extends Controller
         $data = [
             'step' => 6,
             'unit_type_id' => $request->unit_type_id,
-            'unit_usage_id' => $request->unit_usage_id,
             'unit_number' => $request->unit_number,
             'floor_number' => $request->floor_number,
             'unit_area' => $request->unit_area,
             'tootal_rooms' => $request->tootal_rooms,
             'The_number_of_halls' => $request->The_number_of_halls,
+            'number_of_councils' => $request->number_of_councils,
             'The_number_of_kitchens' => $request->The_number_of_kitchens,
             'The_number_of_toilets' => $request->The_number_of_toilets,
             'window_ac' => $request->window_ac,
@@ -511,6 +512,10 @@ class ContractController extends Controller
             'electricity_meter' => (int) $request->boolean('electricity_meter'),
             'water_meter' => (int) $request->boolean('water_meter'),
         ];
+
+        if ($request->exists('unit_usage_id')) {
+            $data['unit_usage_id'] = $request->input('unit_usage_id');
+        }
 
         $contract->update($data);
 
@@ -539,7 +544,6 @@ class ContractController extends Controller
             'additional_terms' => $request->additional_terms ?? 0,
             'text_additional_terms' => $request->text_additional_terms,
             'tenant_roles' => $request->boolean('tenant_roles'),
-            'is_draft'=>$request->is_draft,
             'step' => 7,
         ];
 
@@ -565,6 +569,27 @@ class ContractController extends Controller
                 'contract' => new ContractResource($contract->fresh(['realEstate'])),
                 'price_contract_term' => $contract->contractTermInYears->price ?? null,
             ],
+        ]);
+    }
+
+    public function setDraft(SetContractDraftRequest $request)
+    {
+        $user = auth()->user();
+        $contract = Contract::where('user_id', $user->id)->findOrFail($request->id);
+
+        if ($contract->is_completed) {
+            return $this->errorMessage(trans('api.completed_contract'));
+        }
+
+        $contract->update([
+            'is_draft' => $request->boolean('is_draft'),
+        ]);
+
+        return response()->json([
+            'message' => trans('api.success'),
+            'code' => 200,
+            'success' => true,
+            'data' => new ContractResource($contract->fresh(['realEstate'])),
         ]);
     }
 

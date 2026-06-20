@@ -453,6 +453,7 @@ class OrderController extends Controller
                 'unit_area',
                 'tootal_rooms',
                 'The_number_of_halls',
+                'number_of_councils',
                 'The_number_of_kitchens',
                 'The_number_of_the_toilet',
                 'window_ac',
