@@ -14,7 +14,6 @@ class Step6Request extends BaseApiV2Request
 
         ContractStartingDateInput::prepareRequest($this);
 
-        // صلاحيات المستخدم (أدوار المستأجر): الافتراضي false؛ يُقبل true/false أو 1/0 أو نصوص شائعة.
         if (! array_key_exists('tenant_roles', $this->all())) {
             $this->merge(['tenant_roles' => false]);
         } else {
@@ -62,6 +61,7 @@ class Step6Request extends BaseApiV2Request
             'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
             'tenant_role_ids' => 'nullable|array',
             'tenant_role_ids.*' => 'integer|exists:tenant_roles,id',
+            'is_draft'=>'nullable',
         ];
     }
 
