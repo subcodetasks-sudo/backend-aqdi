@@ -40,27 +40,27 @@ class Step1Request extends BaseApiV2Request
         return [
             'id' => 'required|exists:contracts,id',
              'instrument_type' => ['nullable', Rule::in(Contract::instrumentTypes())],
-             'number_of_floors' => [
-                 Rule::requiredIf(! Contract::shouldSkipInitialSteps($effectiveInstrumentType)),
-             ],
-             'property_type_id' => [
-                 'nullable',
-                 'required_if:instrument_type,electronic,strong_argument',
-                 Rule::exists('rea_estat_types', 'id'),
-             ],
-            'property_usages_id' => 'required_if:instrument_type,electronic,strong_argument',
-            'number_of_units_in_realestate' => [
-                Rule::requiredIf(function () {
-                    if (! in_array($this->input('instrument_type'), ['electronic', 'strong_argument'], true)) {
-                        return false;
-                    }
-                    $contract = Contract::query()->find($this->input('id'));
+            //  'number_of_floors' => [
+            //      Rule::requiredIf(! Contract::shouldSkipInitialSteps($effectiveInstrumentType)),
+            //  ],
+            //  'property_type_id' => [
+            //      'nullable',
+            //      'required_if:instrument_type,electronic,strong_argument',
+            //      Rule::exists('rea_estat_types', 'id'),
+            //  ],
+            // 'property_usages_id' => 'required_if:instrument_type,electronic,strong_argument',
+            // 'number_of_units_in_realestate' => [
+            //     Rule::requiredIf(function () {
+            //         if (! in_array($this->input('instrument_type'), ['electronic', 'strong_argument'], true)) {
+            //             return false;
+            //         }
+            //         $contract = Contract::query()->find($this->input('id'));
 
-                    return $contract && ! $contract->real_id;
-                }),
-                'nullable',
-                'integer',
-            ],
+            //         return $contract && ! $contract->real_id;
+            //     }),
+            //     'nullable',
+            //     'integer',
+            // ],
             'image_instrument' => [
                 'nullable',
                 'image',
@@ -112,11 +112,11 @@ class Step1Request extends BaseApiV2Request
         return $this->contractV2ArabicMessages([
             'id',
             'instrument_type',
-            'number_of_floors',
-            'property_type_id',
-            'property_usages_id',
-            'number_of_units_in_realestate',
-            'number_of_units_per_floor',
+            // 'number_of_floors',
+            // 'property_type_id',
+            // 'property_usages_id',
+            // 'number_of_units_in_realestate',
+            // 'number_of_units_per_floor',
             'image_instrument',
             'image_address',
             'address_url',

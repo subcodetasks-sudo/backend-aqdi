@@ -38,15 +38,15 @@ class Step1RealEstateRequest extends BaseApiV2Request
         return array_merge([
             'real_id'            => 'nullable|exists:contracts,id',
             'instrument_type'    => ['nullable', Rule::in(RealEstate::instrumentTypes())],
-            'number_of_floors'   => 'required',
+            // 'number_of_floors'   => 'required',
             'contract_type'    => 'required|in:housing,commercial',
             'contract_ownership' => 'nullable|in:owner,tenant',
-            'property_type_id'   => 'required|exists:rea_estat_types,id',
-            'property_usages_id' => [
-                'nullable',
-                Rule::requiredIf(in_array($instrumentType, ['electronic', 'strong_argument', $ownerEndowment], true)),
-                'exists:rea_estat_usages,id',
-            ],
+            // 'property_type_id'   => 'required|exists:rea_estat_types,id',
+            // 'property_usages_id' => [
+            //     'nullable',
+            //     Rule::requiredIf(in_array($instrumentType, ['electronic', 'strong_argument', $ownerEndowment], true)),
+            //     'exists:rea_estat_usages,id',
+            // ],
 
             'image_instrument'   => [
                 'nullable',
@@ -57,14 +57,14 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'instrument_history' => 'nullable|date',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
-            'age_of_the_property'            => 'nullable|integer|min:0',
-            'number_of_units_per_floor'      => 'nullable|string|max:255',
-            'number_of_units_in_realestate'  => [
-                'nullable',
-                'string',
-                'max:255',
-                Rule::requiredIf($instrumentType === $ownerEndowment),
-            ],
+            // 'age_of_the_property'            => 'nullable|integer|min:0',
+            // 'number_of_units_per_floor'      => 'nullable|string|max:255',
+            // 'number_of_units_in_realestate'  => [
+            //     'nullable',
+            //     'string',
+            //     'max:255',
+            //     Rule::requiredIf($instrumentType === $ownerEndowment),
+            // ],
             'copy_of_the_endowment_registration_certificate' => [
                 'nullable',
                 'file',
@@ -115,15 +115,15 @@ class Step1RealEstateRequest extends BaseApiV2Request
     public function messages(): array
     {
         return array_merge([
-            'property_type_id.required'               => 'نوع العقار مطلوب.',
-            'property_type_id.exists'                 => 'نوع العقار غير موجود.',
+            // 'property_type_id.required'               => 'نوع العقار مطلوب.',
+            // 'property_type_id.exists'                 => 'نوع العقار غير موجود.',
             'contract_type.required'                  => 'نوع العقد مطلوب.',
             'contract_type.in'                        => 'نوع العقد يجب أن يكون سكني أو تجاري.',
             'instrument_type.in'                      => 'نوع الصك غير صالح.',
-            'number_of_floors.required'               => 'عدد الأدوار مطلوب.',
-            'property_usages_id.required_if'          => 'استخدام العقار مطلوب.',
-            'number_of_units_in_realestate.required'  => 'عدد الوحدات مطلوب.',
-            'number_of_units_in_realestate.string'    => 'عدد الوحدات يجب أن يكون نصًا.',
+            // 'number_of_floors.required'               => 'عدد الأدوار مطلوب.',
+            // 'property_usages_id.required_if'          => 'استخدام العقار مطلوب.',
+            // 'number_of_units_in_realestate.required'  => 'عدد الوحدات مطلوب.',
+            // 'number_of_units_in_realestate.string'    => 'عدد الوحدات يجب أن يكون نصًا.',
             'image_instrument.required'               => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
             'image_instrument.image'                  => 'حقل صورة الصك يجب أن يكون صورة.',
             'copy_of_the_endowment_registration_certificate.required' => 'صورة من شهادة تسجيل الوقف مطلوبة.',
@@ -144,11 +144,11 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'user_id'                        => $userId,
             'contract_type'                  => $this->input('contract_type'),
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
-            'property_type_id'               => $this->input('property_type_id'),
-            'property_usages_id'             => $this->input('property_usages_id'),
-            'number_of_floors'               => $this->input('number_of_floors'),
-            'age_of_the_property'            => $this->input('age_of_the_property'),
-            'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
+            // 'property_type_id'               => $this->input('property_type_id'),
+            // 'property_usages_id'             => $this->input('property_usages_id'),
+            // 'number_of_floors'               => $this->input('number_of_floors'),
+            // 'age_of_the_property'            => $this->input('age_of_the_property'),
+            // 'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
             'step'                           => 1,
         ], $this->locationAttributesForPayload());
 
