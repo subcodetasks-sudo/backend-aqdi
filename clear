@@ -1,26 +1,25 @@
 
-   INFO  Caching the framework bootstrap files.  
+   UnexpectedValueException 
 
-  config ................................................................................................... 10ms DONE
-  routes ................................................................................................... 21ms FAIL
+  Invalid route action: [error].
 
-   LogicException 
+  at vendor/laravel/framework/src/Illuminate/Routing/RouteAction.php:92
+     88▕      */
+     89▕     protected static function makeInvokable($action)
+     90▕     {
+     91▕         if (! method_exists($action, '__invoke')) {
+  ➜  92▕             throw new UnexpectedValueException("Invalid route action: [{$action}].");
+     93▕         }
+     94▕ 
+     95▕         return $action.'@__invoke';
+     96▕     }
 
-  Unable to prepare route [api/v2/status/{uuid}/success] for serialization. Another route has already been assigned name [callback].
+      [2m+8 vendor frames [22m
 
-  at vendor/laravel/framework/src/Illuminate/Routing/AbstractRouteCollection.php:247
-    243▕             $route->name($this->generateRouteName());
-    244▕ 
-    245▕             $this->add($route);
-    246▕         } elseif (! is_null($symfonyRoutes->get($name))) {
-  ➜ 247▕             throw new LogicException("Unable to prepare route [{$route->uri}] for serialization. Another route has already been assigned name [{$name}].");
-    248▕         }
-    249▕ 
-    250▕         $symfonyRoutes->add($route->getName(), $route->toSymfonyRoute());
-    251▕
+  9   routes/admin.php:139
+      Illuminate\Support\Facades\Facade::__callStatic()
+      [2m+3 vendor frames [22m
 
-      [2m+34 vendor frames [22m
-
-  35  artisan:35
-      Illuminate\Foundation\Console\Kernel::handle()
+  13  routes/admin.php:135
+      Illuminate\Routing\RouteRegistrar::group()
 
