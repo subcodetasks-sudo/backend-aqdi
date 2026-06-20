@@ -15,7 +15,6 @@ class PaperworkResource extends JsonResource
         return [
             'id'   => $this->id,
             'name' => $this->name_trans,
-            'icon' => $this->icon ?: icon_url(),
-        ];
+           'icon' => $this->icon ? asset($this->icon) : asset('images/default-icon.png'),        ];
     }
 }
