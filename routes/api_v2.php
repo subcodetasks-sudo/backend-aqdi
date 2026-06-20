@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TenantRoleController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
+use App\Http\Controllers\Api\V2\UncompeleteContractController as V2UncompeleteContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
 use App\Http\Controllers\Api\V2\RealEstateControllor as V2RealEstateControllor;
 use App\Http\Controllers\Api\V2\SavedRealEstateController as V2SavedRealEstateController;
@@ -83,6 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/step4', 'step4');
         Route::post('/step5', 'step5');
         Route::post('/step6', 'step6');
+    });
+
+    Route::prefix('contract')->name('v2.contract.')->controller(V2UncompeleteContractController::class)->group(function () {
         Route::get('/check-uncompleted-contract', 'checkUncompletedContract');
         Route::post('/uncompleted-contract', 'getUncompletedContractStep');
     });
