@@ -536,6 +536,7 @@ class ContractController extends Controller
             'additional_terms' => $request->additional_terms ?? 0,
             'text_additional_terms' => $request->text_additional_terms,
             'tenant_roles' => $request->boolean('tenant_roles'),
+            'is_draft'=>$request->is_draft,
             'step' => 7,
         ];
 
