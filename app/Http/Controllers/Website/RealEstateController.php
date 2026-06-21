@@ -73,7 +73,6 @@ class RealEstateController extends Controller
         'contract_ownership' => 'required',  
         'property_owner_is_deceased' => 'required|in:1', 
         'instrument_type' => ['nullable', Rule::in($instrumentTypes)],
-        'instrument_number' => 'nullable|string|max:255|required_if:instrument_type,electronic',  
         'instrument_history' => 'nullable|date|required_if:instrument_type,electronic',  
         'date_first_registration' => 'nullable|date|required_if:instrument_type,strong_argument',  
         'real_estate_registry_number' => 'nullable|string|required_if:instrument_type,strong_argument',
@@ -87,7 +86,6 @@ class RealEstateController extends Controller
         'contract_ownership.required' => 'اختر صاحب العقار',
         'property_owner_is_deceased.required' => 'اختر حالة المتوفي',
         'instrument_type.in' => 'نوع الصك غير صالح',
-        'instrument_number.string' => 'رقم الصك يجب أن يكون نصاً',
         'instrument_history.date' => 'تاريخ الصك غير صالح',
         'date_first_registration.date' => 'تاريخ التسجيل الأول غير صالح',
         'property_type_id.exists' => 'نوع العقار غير صالح',
@@ -99,7 +97,6 @@ class RealEstateController extends Controller
     $selectedContractOwner = $request->input('contract_ownership');
     $selectedOwnerDeceased = $request->input('property_owner_is_deceased');
     $instrumentType = $request->input('instrument_type');
-    $documentNumber = $request->input('instrument_number');
     $instrumentHistory = $request->input('instrument_history');
     $dateFirstRegistration = $request->input('date_first_registration');
     $propertyType = $request->input('property_type_id');
@@ -116,7 +113,7 @@ class RealEstateController extends Controller
     $realEstate->contract_ownership = $selectedContractOwner;  
     $realEstate->property_owner_is_deceased = $selectedOwnerDeceased;  
     $realEstate->instrument_type = $instrumentType; 
-    $realEstate->instrument_number = $documentNumber;
+    $realEstate->instrument_number = null;
     $realEstate->instrument_history = $instrumentHistory; 
     $realEstate->date_first_registration = $dateFirstRegistration; 
     $realEstate->property_type_id = $propertyType; 
@@ -324,7 +321,6 @@ class RealEstateController extends Controller
             // 'contract_ownership' => 'required',  
              
             'instrument_type' => ['nullable', Rule::in($instrumentTypes)],
-            'instrument_number' => 'nullable|string|max:255|required_if:instrument_type,electronic',  
             'instrument_history' => 'nullable|date|required_if:instrument_type,electronic',  
             'date_first_registration' => 'nullable|date|required_if:instrument_type,strong_argument',  
             'real_estate_registry_number' => 'nullable|string|required_if:instrument_type,strong_argument',
@@ -341,7 +337,7 @@ class RealEstateController extends Controller
         // Update the real estate record
         $realEstate->update([
               'instrument_type' => $request->input('instrument_type'),
-            'instrument_number' => $request->input('instrument_number'),
+            'instrument_number' => null,
             'instrument_history' => $request->input('instrument_history'),
             'date_first_registration' => $request->input('date_first_registration'),
             'real_estate_registry_number' => $request->input('real_estate_registry_number'),

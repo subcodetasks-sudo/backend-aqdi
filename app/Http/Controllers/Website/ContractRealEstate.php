@@ -261,6 +261,7 @@ class ContractRealEstate extends Controller
                     'contract_ownership' => $request->contract_ownership,
                     'property_owner_is_deceased' => $request->property_owner_is_deceased,
                     'instrument_type' => $request->instrument_type,
+                    'instrument_number' => null,
                     'property_type_id' => $request->property_type_id,
                     'property_usages_id' => $request->property_usages_id,
                     'building_number' => $request->building_number,
@@ -272,7 +273,6 @@ class ContractRealEstate extends Controller
         
                  
                 if ($request->instrument_type == 'electronic') {
-                    $data['instrument_number'] = $request->instrument_number;
                     $data['instrument_history'] = $request->instrument_history ? date('Y-m-d', strtotime($request->instrument_history)) : null;
                 } elseif ($request->instrument_type == 'strong_argument') {
                     $data['date_first_registration'] = $request->date_first_registration;

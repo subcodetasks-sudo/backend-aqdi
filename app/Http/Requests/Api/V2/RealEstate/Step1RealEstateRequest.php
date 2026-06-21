@@ -144,6 +144,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
         $payload = array_merge([
             'user_id'                        => $userId,
             'contract_type'                  => $this->input('contract_type'),
+            'instrument_number'              => null,
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
             // 'property_type_id'               => $this->input('property_type_id'),
             // 'property_usages_id'             => $this->input('property_usages_id'),

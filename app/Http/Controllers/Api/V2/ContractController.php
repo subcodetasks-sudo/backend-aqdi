@@ -127,6 +127,7 @@ class ContractController extends Controller
 
         $step1Data = [
             'app_or_web' => 'app',
+            'instrument_number' => null,
             'image_instrument_from_the_back' => $validated['image_instrument_from_the_back'] ?? null,
             'image_instrument_from_the_front' => $validated['image_instrument_from_the_front'] ?? null,
             // 'property_type_id' => $validated['property_type_id'] ?? null,

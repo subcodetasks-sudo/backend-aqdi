@@ -169,7 +169,7 @@ class ContractController extends Controller{
                 'neighborhood' => $request->neighborhood,
                 'building_number' => $request->building_number,
                 'postal_code' => $request->postal_code,
-                'instrument_number'=>$request->instrument_number,
+                'instrument_number' => null,
                 'instrument_type'=>$request->instrument_type,
                 'real_estate_registry_number'=>$request->real_estate_registry_number,
                 'instrument_history'=>$request->instrument_history,
