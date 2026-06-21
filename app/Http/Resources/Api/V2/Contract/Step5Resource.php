@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Api\V2\Contract;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class Step5Resource extends JsonResource
 {
+    use MapsContractStatusFields;
     use WithContractDocumentationDeadline;
 
     private function asBool(mixed $value): bool
@@ -43,6 +45,7 @@ class Step5Resource extends JsonResource
             'type_furnished' => $this->type_furnished,
             'electricity_meter' => $this->asBool($this->electricity_meter),
             'water_meter' => $this->asBool($this->water_meter),
+            ...$this->contractStatusFields(),
             'step' => $this->step,
         ];
     }

@@ -196,7 +196,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $data = array_merge([
             'name_real_estate' => $form->input('name_real_estate'),
             'contract_type' => $form->input('contract_type'),
-            'instrument_number' => $form->input('instrument_number'),
+            // 'instrument_number' => $form->input('instrument_number'),
             'instrument_history' => $form->input('instrument_history'),
             'real_estate_registry_number' => $form->input('real_estate_registry_number'),
             'date_first_registration' => $form->input('date_first_registration'),

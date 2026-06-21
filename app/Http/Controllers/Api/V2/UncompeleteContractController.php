@@ -63,7 +63,7 @@ class UncompeleteContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
-        $contract->loadMissing(['realEstate', 'contractTermInYears']);
+        $contract->loadMissing(['realEstate', 'contractTermInYears', 'contractStatus']);
 
         $previousSteps = $this->buildPreviousStepsData($contract);
 

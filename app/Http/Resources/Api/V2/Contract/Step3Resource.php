@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V2\Contract;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
 use Illuminate\Http\Request;
@@ -9,6 +10,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class Step3Resource extends JsonResource
 {
+    use MapsContractStatusFields;
+
     public function toArray(Request $request): array
     {
         $ownerDobStored = $this->property_owner_dob;
@@ -49,6 +52,7 @@ class Step3Resource extends JsonResource
                 ? asset('storage/' . $this->copy_of_the_authorization_or_agency)
                 : null,
             'notes_edits' => $this->notes_edits,
+            ...$this->contractStatusFields(),
             'step' => $this->step,
         ];
     }

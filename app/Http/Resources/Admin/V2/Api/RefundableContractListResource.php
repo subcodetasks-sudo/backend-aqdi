@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Admin\V2\Api;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Models\Payment;
 use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
@@ -9,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class RefundableContractListResource extends JsonResource
 {
+    use MapsContractStatusFields;
     /**
      * @return array<string, mixed>
      */
@@ -31,14 +33,12 @@ class RefundableContractListResource extends JsonResource
             'contract_type_key' => $contract?->contract_type,
             'instrument_type' => $contract?->instrument_type_trans,
             'instrument_type_key' => $contract?->instrument_type,
-            'contract_status_id' => $contract?->contract_status_id,
+            ...self::contractStatusFieldsFor($contract, 'قيد التنفيذ'),
             'contract_status' => $contract?->contractStatus ? [
                 'id' => $contract->contractStatus->id,
                 'name' => $contract->contractStatus->name,
                 'color' => $contract->contractStatus->color,
             ] : null,
-
-            'contract_status_name' => $contract?->contractStatus->name ? 'قيد التنفيذ' ,
             'is_return_order' => $contract?->contract_status_id === RefundableContractService::RETURN_CONTRACT_STATUS_ID,
             'payment_amount' => $this->resolvePaymentAmount($uuid),
             'refund_amount' => (float) $this->refund_amount,

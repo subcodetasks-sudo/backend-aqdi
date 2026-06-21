@@ -201,7 +201,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step1Resource($contract->fresh(['realEstate'])),
+            'data' => new Step1Resource($contract->fresh(['realEstate', 'contractStatus'])),
         ], 200);
     }
  
@@ -225,7 +225,7 @@ class ContractController extends Controller
                 'message' => trans('api.success'),
                 'code' => 200,
                 'success' => true,
-                'data' => new Step2Resource($contract->fresh()),
+                'data' => new Step2Resource($contract->fresh(['contractStatus'])),
             ]);
         }
 
@@ -252,7 +252,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step2Resource($contract->fresh()),
+            'data' => new Step2Resource($contract->fresh(['contractStatus'])),
         ]);
     }
 
@@ -282,7 +282,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step3Resource($contract->fresh()),
+            'data' => new Step3Resource($contract->fresh(['contractStatus'])),
         ]);
     }
 
@@ -445,7 +445,7 @@ class ContractController extends Controller
                 'message' => trans('api.success'),
                 'code' => 200,
                 'success' => true,
-                'data' => new Step4Resource($contract->fresh()),
+                'data' => new Step4Resource($contract->fresh(['contractStatus'])),
             ]);
         }
 
@@ -504,7 +504,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step4Resource($contract->fresh()),
+            'data' => new Step4Resource($contract->fresh(['contractStatus'])),
         ]);
     }
 
@@ -544,7 +544,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step5Resource($contract->fresh()),
+            'data' => new Step5Resource($contract->fresh(['contractStatus'])),
         ]);
     }
 
@@ -587,7 +587,7 @@ class ContractController extends Controller
             'code' => 200,
             'success' => true,
             'data' => [
-                'contract' => new ContractResource($contract->fresh(['realEstate'])),
+                'contract' => new ContractResource($contract->fresh(['realEstate', 'contractStatus'])),
                 'price_contract_term' => $contract->contractTermInYears->price ?? null,
             ],
         ]);
@@ -610,7 +610,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new ContractResource($contract->fresh(['realEstate'])),
+            'data' => new ContractResource($contract->fresh(['realEstate', 'contractStatus'])),
         ]);
     }
 

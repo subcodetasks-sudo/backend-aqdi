@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V2\Contract;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Support\HijriDobParts;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use Illuminate\Http\Request;
@@ -9,6 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class Step4Resource extends JsonResource
 {
+    use MapsContractStatusFields;
     use WithContractDocumentationDeadline;
 
     public function toArray(Request $request): array
@@ -39,6 +41,7 @@ class Step4Resource extends JsonResource
             'dob_of_property_tenant_agent_day' => $tenantAgentDob['day'],
             'dob_of_property_tenant_agent_month' => $tenantAgentDob['month'],
             'dob_of_property_tenant_agent_year' => $tenantAgentDob['year'],
+            ...$this->contractStatusFields(),
             'step' => $this->step,
         ];
     }

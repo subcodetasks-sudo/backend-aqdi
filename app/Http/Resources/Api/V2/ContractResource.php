@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources\Api\V2;
 
+use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class ContractResource extends JsonResource
 {
+    use MapsContractStatusFields;
     use WithContractDocumentationDeadline;
 
     public function toArray(Request $request): array
