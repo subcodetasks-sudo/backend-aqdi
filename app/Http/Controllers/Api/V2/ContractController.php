@@ -62,6 +62,27 @@ class ContractController extends Controller
         return $this->apiResponse(new ContractResource($contract), trans('api.success'));
     }
 
+    public function destroy($id)
+    {
+        $user = auth()->user();
+        $contract = Contract::query()
+            ->where('user_id', $user->id)
+            ->notDeleted()
+            ->find($id);
+
+        if (! $contract) {
+            return $this->errorMessage(trans('api.contract_not_found'), 404);
+        }
+
+        if ($contract->is_completed) {
+            return $this->errorMessage(trans('api.completed_contract'));
+        }
+
+        $contract->update(['is_delete' => true]);
+
+        return $this->successMessage(trans('api.deleted_successfully'), 200);
+    }
+
     public function start(ContractTypeRequest $request)
     {
         $validated = $request->validated();

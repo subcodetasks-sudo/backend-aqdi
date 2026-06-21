@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "755c8bbe-93fa-4f70-8f51-6939e21354a5",
+        "_postman_id": "7ace1b58-7c9d-4caf-97f0-2feab57c28be",
         "name": "AQDI Contracts API (V2)",
         "description": "Contract endpoints from routes\/api_v2.php.\n\nBase path: `{{baseUrl}}\/api\/v2`\n\nRequires `auth:sanctum` Bearer token (except public routes).\n\n1. Set `baseUrl` and `token`\n2. Run Start contract → save `contract_id` \/ `uuid` from response",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -501,6 +501,33 @@
                                 "{{contract_id}}"
                             ]
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete contract",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contracts\/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contracts",
+                                "{{contract_id}}"
+                            ]
+                        },
+                        "description": "Soft-deletes the contract (sets is_delete). Only the contract owner can delete. Completed contracts cannot be deleted."
                     },
                     "response": []
                 },

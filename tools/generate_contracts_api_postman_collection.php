@@ -230,6 +230,9 @@ $folders = [
     'Contracts listing' => [
         req('List my contracts', 'GET', '/contracts'),
         req('Show contract', 'GET', '/contracts/{{contract_id}}'),
+        req('Delete contract', 'DELETE', '/contracts/{{contract_id}}', [
+            'description' => 'Soft-deletes the contract (sets is_delete). Only the contract owner can delete. Completed contracts cannot be deleted.',
+        ]),
         req('Get contracts by uuid', 'GET', '/getContracts/{{contract_uuid}}'),
         req('Search contracts', 'GET', '/search/{{search_term}}'),
         req('Financial summary', 'GET', '/financial/{{contract_uuid}}'),

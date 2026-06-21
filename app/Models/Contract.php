@@ -167,7 +167,7 @@ class Contract extends Model
     {
       
         $contractsToDelete = $this->where('is_delete', 0)
-            ->where('step', '>', 6)
+            // ->where('step', '>', 6)
             ->where(function ($query) {
                 $query->where('is_completed', 0)
                     ->orderBy('updated_at', 'desc')

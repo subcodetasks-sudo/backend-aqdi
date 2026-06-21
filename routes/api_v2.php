@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::controller(V2ContractController::class)->group(function () {
         Route::get('/contracts', 'index');
         Route::get('/contracts/{id}', 'show');
+        Route::delete('/contracts/{id}', 'destroy');
         Route::get('/getContracts/{uuid}', 'getContracts');
         Route::get('/search/{searchTerm}', 'search');
         Route::get('/financial/{uuid}', 'financial');
