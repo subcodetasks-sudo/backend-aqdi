@@ -37,6 +37,8 @@ class RefundableContractListResource extends JsonResource
                 'name' => $contract->contractStatus->name,
                 'color' => $contract->contractStatus->color,
             ] : null,
+
+            'contract_status_name' => $contract?->contractStatus->name ?? 'قيد التنفيذ' ,
             'is_return_order' => $contract?->contract_status_id === RefundableContractService::RETURN_CONTRACT_STATUS_ID,
             'payment_amount' => $this->resolvePaymentAmount($uuid),
             'refund_amount' => (float) $this->refund_amount,
