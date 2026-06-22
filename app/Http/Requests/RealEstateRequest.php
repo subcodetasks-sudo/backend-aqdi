@@ -27,7 +27,7 @@ class RealEstateRequest extends FormRequest
             return [
                 'instrument_type' => 'required|in:electronic,strong_argument',
                 'instrument_number' => [Rule::requiredIf($this->input('instrument_type') == 'electronic')],
-                 'instrument_history' => ['nullable', 'date', Rule::requiredIf($this->input('instrument_type') == 'electronic')],
+                 'instrument_history' => ['nullable', 'date'],
                  'real_estate_registry_number' => [Rule::requiredIf($this->input('instrument_type') == 'strong_argument')],
                 'date_first_registration' => [Rule::requiredIf($this->input('instrument_type') == 'strong_argument')],
                 'name_owner' => 'required',

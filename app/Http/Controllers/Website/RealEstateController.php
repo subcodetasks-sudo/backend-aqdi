@@ -73,7 +73,7 @@ class RealEstateController extends Controller
         'contract_ownership' => 'required',  
         'property_owner_is_deceased' => 'required|in:1', 
         'instrument_type' => ['nullable', Rule::in($instrumentTypes)],
-        'instrument_history' => 'nullable|date|required_if:instrument_type,electronic',  
+        'instrument_history' => 'nullable|date',
         'date_first_registration' => 'nullable|date|required_if:instrument_type,strong_argument',  
         'real_estate_registry_number' => 'nullable|string|required_if:instrument_type,strong_argument',
         'property_type_id' => 'nullable|exists:rea_estat_types,id', 
@@ -321,7 +321,7 @@ class RealEstateController extends Controller
             // 'contract_ownership' => 'required',  
              
             'instrument_type' => ['nullable', Rule::in($instrumentTypes)],
-            'instrument_history' => 'nullable|date|required_if:instrument_type,electronic',  
+            'instrument_history' => 'nullable|date',
             'date_first_registration' => 'nullable|date|required_if:instrument_type,strong_argument',  
             'real_estate_registry_number' => 'nullable|string|required_if:instrument_type,strong_argument',
             
