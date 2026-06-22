@@ -196,16 +196,16 @@ class RealEstateControllor extends ApiRealEstateControllor
         $data = array_merge([
             'name_real_estate' => $form->input('name_real_estate'),
             'contract_type' => $form->input('contract_type'),
-            'instrument_number' => null,
+            // 'instrument_number' => null,
             'real_estate_registry_number' => $form->input('real_estate_registry_number'),
             'date_first_registration' => $form->input('date_first_registration'),
             'property_owner_is_deceased' => $form->input('property_owner_is_deceased'),
-            'number_of_units_in_realestate' => $form->input('number_of_units_in_realestate'),
-            'property_type_id' => $form->input('property_type_id'),
-            'property_usages_id' => $form->input('property_usages_id'),
-            'number_of_floors' => $form->input('number_of_floors'),
-            'age_of_the_property' => $form->input('age_of_the_property'),
-            'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
+            // 'number_of_units_in_realestate' => $form->input('number_of_units_in_realestate'),
+            // 'property_type_id' => $form->input('property_type_id'),
+            // 'property_usages_id' => $form->input('property_usages_id'),
+            // 'number_of_floors' => $form->input('number_of_floors'),
+            // 'age_of_the_property' => $form->input('age_of_the_property'),
+            // 'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
             'step' => 1,
         ], $form->locationAttributesForPayload());
 
