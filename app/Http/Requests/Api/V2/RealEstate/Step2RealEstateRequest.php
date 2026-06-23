@@ -14,6 +14,24 @@ class Step2RealEstateRequest extends BaseApiV2Request
 {
     protected function prepareForValidation(): void
     {
+        parent::prepareForValidation();
+
+        if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
+            $this->merge(['add_legal_agent_of_owner' => false]);
+        } else {
+            $add = $this->input('add_legal_agent_of_owner');
+            if ($add === null || $add === '') {
+                $this->merge(['add_legal_agent_of_owner' => false]);
+            } elseif (is_string($add)) {
+                $v = strtolower(trim($add));
+                if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
+                    $this->merge(['add_legal_agent_of_owner' => true]);
+                } elseif (in_array($v, ['0', 'false', 'no', 'off'], true)) {
+                    $this->merge(['add_legal_agent_of_owner' => false]);
+                }
+            }
+        }
+
         if (! $this->filled('property_owner_dob_day') && $this->filled('property_owner_dob_hijri_day')) {
             $this->merge([
                 'property_owner_dob_day' => $this->input('property_owner_dob_hijri_day'),
@@ -91,7 +109,7 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_dob_year' => ['nullable'],
             'property_owner_mobile' => 'required|min:10|regex:/^05[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
-            'add_legal_agent_of_owner' => 'required',
+            'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|min:10',
             'dob_of_property_owner_agent_day' => 'nullable',
             'dob_of_property_owner_agent_month' => 'nullable',
@@ -143,7 +161,6 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_id_num.min' => 'رقم هوية المالك لا يقل عن 10 أرقام.',
             'property_owner_mobile.required' => 'رقم جوال المالك مطلوب.',
             'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-            'add_legal_agent_of_owner.required' => 'تحديد وجود وكيل قانوني مطلوب.',
             'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
         ];
     }

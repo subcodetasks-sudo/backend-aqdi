@@ -16,6 +16,22 @@ class Step3Request extends BaseApiV2Request
     {
         parent::prepareForValidation();
 
+        if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
+            $this->merge(['add_legal_agent_of_owner' => false]);
+        } else {
+            $add = $this->input('add_legal_agent_of_owner');
+            if ($add === null || $add === '') {
+                $this->merge(['add_legal_agent_of_owner' => false]);
+            } elseif (is_string($add)) {
+                $v = strtolower(trim($add));
+                if (in_array($v, ['1', 'true', 'yes', 'on'], true)) {
+                    $this->merge(['add_legal_agent_of_owner' => true]);
+                } elseif (in_array($v, ['0', 'false', 'no', 'off'], true)) {
+                    $this->merge(['add_legal_agent_of_owner' => false]);
+                }
+            }
+        }
+
         foreach ([
             'property_owner_dob_day',
             'property_owner_dob_month',
@@ -169,7 +185,7 @@ class Step3Request extends BaseApiV2Request
             'property_owner_dob_year' => 'required',
             'property_owner_mobile' => 'required|min:10|regex:/^05[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
-            'add_legal_agent_of_owner' => 'required',
+            'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10',
             'dob_of_property_owner_agent_day' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'dob_of_property_owner_agent_month' => 'nullable|required_if:add_legal_agent_of_owner,1',

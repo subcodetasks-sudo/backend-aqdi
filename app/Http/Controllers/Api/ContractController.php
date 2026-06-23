@@ -439,7 +439,7 @@ class ContractController extends Controller
             'The_number_of_halls' => 'nullable|integer',
             'The_number_of_kitchens' => 'nullable|integer',
             'The_number_of_toilets' => 'nullable|integer',
-            'window_ac' => 'required|integer',
+            'window_ac' => 'nullable|integer',
             'split_ac' => 'required|integer',
             'electricity_meter_number' => 'nullable|string|max:255',
             'water_meter_number' => 'nullable|string|max:255',

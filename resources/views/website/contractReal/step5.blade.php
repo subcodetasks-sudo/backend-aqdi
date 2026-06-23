@@ -117,7 +117,7 @@
     <div class="row-state">
         <div class="form-group-state">
             <label for="window-ac" class="label-state">مكيف شباك</label>
-            <select id="window-ac" class="select-state" required name="window_ac">
+            <select id="window-ac" class="select-state" name="window_ac">
                 <option value="" disabled selected>اختر عدد مكيفات الشباك</option>
                 <option value="0" @if(old('window_ac', $unit->window_ac) == 0) selected @endif>لا يوجد</option>
                 @for ($i = 1; $i <= 10; $i++)
