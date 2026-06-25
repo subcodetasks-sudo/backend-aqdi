@@ -226,7 +226,7 @@ class AuthController extends Controller
         $rules = [
             'fname' => 'required|string|max:255',
             'mobile' => 'required|string|max:15|unique:users,mobile',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:8',
             'fcm_token' => 'sometimes',
         ];
@@ -252,8 +252,11 @@ class AuthController extends Controller
             return $this->errorMessage('يرجى الانتظار قبل طلب رمز تحقق جديد.', 429);
         }
 
-        $data = $request->only(['fname', 'mobile', 'email']);
+        $data = $request->only(['fname', 'mobile']);
         $data['mobile'] = $formattedMobile;
+        if ($request->filled('email')) {
+            $data['email'] = $request->email;
+        }
         $data['password'] = bcrypt($request->password);
 
         $verificationCode = rand(1000, 9999);
