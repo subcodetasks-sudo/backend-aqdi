@@ -20,6 +20,56 @@ class AuthController extends Controller
 {
     use Responser;
 
+    private function normalizeSaudiMobile(string $mobile): string
+    {
+        if (str_starts_with($mobile, '00966')) {
+            $national = substr($mobile, 5);
+        } elseif (str_starts_with($mobile, '966')) {
+            $national = substr($mobile, 3);
+        } elseif (str_starts_with($mobile, '0')) {
+            $national = ltrim($mobile, '0');
+        } else {
+            $national = $mobile;
+        }
+
+        return '00966' . $national;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function mobileLookupVariants(string $mobile): array
+    {
+        $formattedMobile = $this->normalizeSaudiMobile($mobile);
+
+        if (str_starts_with($mobile, '00966')) {
+            $national = substr($mobile, 5);
+        } elseif (str_starts_with($mobile, '966')) {
+            $national = substr($mobile, 3);
+        } elseif (str_starts_with($mobile, '0')) {
+            $national = ltrim($mobile, '0');
+        } else {
+            $national = $mobile;
+        }
+
+        return array_values(array_unique(array_filter([
+            $mobile,
+            $formattedMobile,
+            '966' . $national,
+            '0' . $national,
+            $national,
+        ])));
+    }
+
+    private function recentSmsLog(string $type, string $mobile, int $minutes = 2): ?SmsLog
+    {
+        return SmsLog::query()
+            ->whereIn('phone_number', $this->mobileLookupVariants($mobile))
+            ->where('type', $type)
+            ->where('sent_at', '>=', now()->subMinutes($minutes))
+            ->first();
+    }
+
     public function handleGoogleCallback(Request $request)
     {
         $rules = [
@@ -52,72 +102,7 @@ class AuthController extends Controller
         }
     }
 
-    //    public function login(Request $request)
-    // {
-    //     $rules = [
-    //         'mobile' => 'required|exists:users,mobile',
-    //         'password' => 'required',
-    //         'fcm_token' => 'sometimes',
-    //     ];
-
-    //     $this->validate($request, $rules);
-
-    //     // Format the mobile number
-    //     $mobile = $request->mobile;
-    //     if (str_starts_with($mobile, '00966')) {
-    //         $mobile = substr($mobile, 5);
-    //     } elseif (str_starts_with($mobile, '966')) {
-    //         $mobile = substr($mobile, 3);
-    //     } elseif (str_starts_with($mobile, '0')) {
-    //         $mobile = ltrim($mobile, '0');
-    //     }
-
-    //     $formattedMobile = '00966' . $mobile;
-
-    //     $user = User::where('mobile', $formattedMobile)->first();
-
-
-    //     if (!$user->isVerified()) {
-    //         $verificationCode = rand(1000, 9999);
-    //         $user->verification_code = $verificationCode;
-    //         $user->save();
-
-
-    //         $recipients = $user->mobile;
-    //         $sender = 'AqdiCo';
-    //         $smsId = '25489';
-    //         $smsResult = $this->sendSmsMessage($body, $recipients, $sender, $smsId);
-
-    //          $result = [
-    //             'user' => new UserResource($user),
-    //         ];
-    //         return $this->apiResponse($result, trans('api.unverified_account'));
-    //     }
-
-    //     // Check if the user is active
-    //     if (!$user->isActive()) {
-    //         return $this->errorMessage(trans('api.block_account'));
-    //     }
-
-
-    //     if (Hash::check($request->password, $user->password)) {
-    //         if ($request->has('fcm_token')) {
-    //             $user->fcm_token = $request->fcm_token;
-    //             $user->save();
-    //         }
-
-    //         $user->refresh();
-    //         $result = [
-    //             'user' => new UserResource($user),
-    //             'token' => $user->createToken('user_token')->plainTextToken,
-    //         ];
-
-    //         return $this->apiResponse($result, trans('api.login_success'));
-    //     }
-
-
-    //     return $this->errorMessage(trans('api.credentials_error'));
-    // }
+    
 
 
 
@@ -131,28 +116,18 @@ class AuthController extends Controller
 
         $this->validate($request, $rules);
 
-        // Format the mobile number
-        $mobile = $request->mobile;
-        if (str_starts_with($mobile, '00966')) {
-            $mobile = substr($mobile, 5);
-        } elseif (str_starts_with($mobile, '966')) {
-            $mobile = substr($mobile, 3);
-        } elseif (str_starts_with($mobile, '0')) {
-            $mobile = ltrim($mobile, '0');
+        $formattedMobile = $this->normalizeSaudiMobile($request->mobile);
+
+        $user = User::whereIn('mobile', $this->mobileLookupVariants($request->mobile))->first();
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.credentials_error'));
         }
 
-        $formattedMobile = '00966' . $mobile;
-
-        $user = User::where('mobile', $formattedMobile)->first();
-
         if (!$user->isVerified()) {
-            $otpType = 'login_account_verification';  // OTP type for verification during login/signup
-
-            // Check recent OTP sent to this user of the same type
-            $recentOtp = SmsLog::where('phone_number', $user->mobile)
-                ->where('type', $otpType)
-                ->where('sent_at', '>=', now()->subMinutes(2))
-                ->first();
+            $otpType = 'login_account_verification';   
+ 
+            $recentOtp = $this->recentSmsLog($otpType, $formattedMobile);
 
             if ($recentOtp) {
 
@@ -223,7 +198,7 @@ class AuthController extends Controller
 
             SmsLog::create([
                 'user_id' => auth()->id() ?? null,
-                'phone_number' => $recipients,
+                'phone_number' => $this->normalizeSaudiMobile((string) $recipients),
                 'message' => $body,
                 'sms_id' => $smsId,
                 'type' => $type,
@@ -234,7 +209,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             SmsLog::create([
                 'user_id' => auth()->id() ?? null,
-                'phone_number' => $recipients,
+                'phone_number' => $this->normalizeSaudiMobile((string) $recipients),
                 'message' => 'SMS Error: ' . $e->getMessage(),
                 'sms_id' => $smsId,
                 'type' => $type,
@@ -245,23 +220,7 @@ class AuthController extends Controller
     }
 
 
-    // public function sendSmsMessage($body, $recipients, $sender, $smsId){
-
-
-    //     $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';
-    //     $taqnyt = new TaqnyatSms($bearer);
-
-    //     try 
-    //     {
-    //         $message = $taqnyt->sendMsg($body, $recipients, $sender, $smsId);
-    //         return $message ? true : false;
-    //     }
-
-    //      catch (\Exception $e) {
-    //         return 'SMS Error: ' . $e->getMessage();
-    //     }
-    // }
-
+  
     public function signup(Request $request)
     {
         $rules = [
@@ -275,19 +234,16 @@ class AuthController extends Controller
         $this->validate($request, $rules);
 
         $otpType = 'signup';
-        $mobile = $request->mobile;
+        $formattedMobile = $this->normalizeSaudiMobile($request->mobile);
 
         // Check if the same mobile received an OTP of this type recently (last 5 minutes)
-        $recentOtp = SmsLog::where('phone_number', $mobile)
-            ->where('type', $otpType)
-            ->where('sent_at', '>=', now()->subMinutes(2))
-            ->first();
+        $recentOtp = $this->recentSmsLog($otpType, $formattedMobile);
 
         if ($recentOtp) {
             // Log blocked resend
             SmsLog::create([
                 'user_id' => null,
-                'phone_number' => $mobile,
+                'phone_number' => $formattedMobile,
                 'message' => 'Resend blocked: cooldown not expired',
                 'type' => $otpType,
                 'sms_id' => null,
@@ -297,6 +253,7 @@ class AuthController extends Controller
         }
 
         $data = $request->only(['fname', 'mobile', 'email']);
+        $data['mobile'] = $formattedMobile;
         $data['password'] = bcrypt($request->password);
 
         $verificationCode = rand(1000, 9999);
@@ -343,27 +300,9 @@ class AuthController extends Controller
         ];
         $this->validate($request, $rules);
 
-        $mobile = $request->mobile;
+        $formattedMobile = $this->normalizeSaudiMobile($request->mobile);
 
-        if (str_starts_with($mobile, '00966')) {
-            $mobile = substr($mobile, 5);
-        } elseif (str_starts_with($mobile, '966')) {
-            $mobile = substr($mobile, 3);
-        } elseif (str_starts_with($mobile, '0')) {
-            $mobile = ltrim($mobile, '0');
-        }
-
-        $formattedMobile = '00966' . $mobile;
-
-        $candidateMobiles = array_values(array_unique(array_filter([
-            $request->mobile,
-            $formattedMobile,
-            '966' . $mobile,
-            '0' . $mobile,
-            $mobile,
-        ])));
-
-        $user = User::whereIn('mobile', $candidateMobiles)->first();
+        $user = User::whereIn('mobile', $this->mobileLookupVariants($request->mobile))->first();
 
         if (!$user) {
             return $this->errorMessage(trans('api.user_not_found'), 404);
@@ -375,17 +314,14 @@ class AuthController extends Controller
 
         $otpType = 'resend_account_verification';
 
-        // Check if an OTP of this type was sent recently (within last 5 minutes)
-        $recentOtp = SmsLog::where('phone_number', $formattedMobile)
-            ->where('type', $otpType)
-            ->where('sent_at', '>=', now()->subMinutes(2))
-            ->first();
+        // Check if an OTP of this type was sent recently (within last 2 minutes)
+        $recentOtp = $this->recentSmsLog($otpType, $formattedMobile);
 
         if ($recentOtp) {
             // Log blocked resend
             SmsLog::create([
-                'user_id' => null,
-                'phone_number' => $mobile,
+                'user_id' => $user->id,
+                'phone_number' => $formattedMobile,
                 'message' => 'Resend blocked: cooldown not expired',
                 'type' => $otpType,
                 'sms_id' => null,
@@ -398,78 +334,21 @@ class AuthController extends Controller
         $user->verification_code = rand(1000, 9999);
         $user->save();
 
-        $recipients = '966' . $mobile;
+        $recipients = $user->mobile;
         $body = "كود تأكيد حسابك الخاص في عقدي هو: " . $user->verification_code;
         $sender = 'AqdiCo';
         $smsId = '25489';
 
         $smsResult = $this->sendSmsMessage($body, $recipients, $sender, $smsId, $otpType);
 
-        // Log the SMS send action
         if ($smsResult === true) {
-            SmsLog::create([
-                'phone_number' => $formattedMobile,
-                'type' => $otpType,
-                'sent_at' => now(),
-            ]);
             return $this->successMessage(trans('api.send_otp_success'));
-        } else {
-            return $this->errorMessage($smsResult ?: trans('api.error_sending_sms'));
         }
+
+        return $this->errorMessage($smsResult ?: trans('api.error_sending_sms'));
     }
 
-
-
-    // public function forgotPassword(Request $request)
-    // {
-    //     // Validation rules
-    //     $rules = [
-    //         'mobile' => 'required',
-    //     ];
-    //     $this->validate($request, $rules);
-
-
-    //     $mobile = $request->mobile;
-
-
-    //     if (str_starts_with($mobile, '00966')) {
-
-    //         $mobile = substr($mobile, 5);
-    //     } elseif (str_starts_with($mobile, '966')) {
-
-    //         $mobile = substr($mobile, 3);
-    //     } elseif (str_starts_with($mobile, '0')) {
-
-    //         $mobile = ltrim($mobile, '0');
-    //     }
-
-    //     $formattedMobile = '00966' . $mobile;
-
-
-    //     $recipients = '966' . $mobile;
-
-
-    //     $user = User::where('mobile', $formattedMobile)->firstOrFail();
-
-
-    //     $user->reset_password_code = User::generateResetPasswordCode();
-    //     $user->save();
-
-    //     // SMS body
-    //     $sender = 'AqdiCo';
-    //     $smsId = '25489';
-
-
-    //     // Send SMS
-    //     $smsResult = $this->sendSmsMessage($body, $recipients, $sender, $smsId);
-
-    //     if ($smsResult === true) {
-    //         return $this->successMessage(trans('api.send_reset_password_code_success'));
-    //     } else {
-    //         return $this->errorMessage($smsResult ?: trans('api.send_reset_password_code_failed'));
-    //     }
-    // }
-
+ 
 
     public function forgotPassword(Request $request)
     {
@@ -479,34 +358,21 @@ class AuthController extends Controller
         ];
         $this->validate($request, $rules);
 
-        $mobile = $request->mobile;
+        $formattedMobile = $this->normalizeSaudiMobile($request->mobile);
 
-        if (str_starts_with($mobile, '00966')) {
-            $mobile = substr($mobile, 5);
-        } elseif (str_starts_with($mobile, '966')) {
-            $mobile = substr($mobile, 3);
-        } elseif (str_starts_with($mobile, '0')) {
-            $mobile = ltrim($mobile, '0');
-        }
-
-        $formattedMobile = '00966' . $mobile;
-        $recipients = '966' . $mobile;
-
-        $user = User::where('mobile', $formattedMobile)->firstOrFail();
+        $user = User::whereIn('mobile', $this->mobileLookupVariants($request->mobile))->firstOrFail();
+        $recipients = $user->mobile;
 
         $otpType = 'forgot_password';
 
         // Check cooldown: prevent resending if sent within last 2 minutes
-        $recentOtp = SmsLog::where('phone_number', $formattedMobile)
-            ->where('type', $otpType)
-            ->where('sent_at', '>=', now()->subMinutes(2))
-            ->first();
+        $recentOtp = $this->recentSmsLog($otpType, $formattedMobile);
 
         if ($recentOtp) {
             // Log blocked resend
             SmsLog::create([
-                'user_id' => null,
-                'phone_number' => $mobile,
+                'user_id' => $user->id,
+                'phone_number' => $formattedMobile,
                 'message' => 'Resend blocked: cooldown not expired',
                 'type' => $otpType,
                 'sms_id' => null,
