@@ -7,7 +7,8 @@
 | **`AQDI-Admin-Payment-Gateway.postman_collection.json`** | **ClickPay:** payment URL, status callbacks under `/api/admin/payment-gateway` |
 | **`AQDI-Admin-Refundable-Contracts.postman_collection.json`** | **Refunds:** `POST /refundable-contracts` + `UpdateRefundableContractApprovalRequest` on analytics refunds |
 | **`AQDI-Admin-Return-Contract-Status.postman_collection.json`** | **Return orders:** `POST …/return-contract-status` with `accept_retrun_contract` JSON |
-| **`AQDI-Contracts-API.postman_collection.json`** | **V2 client API:** contract steps 1–6, listing, uncompleted |
+| **`AQDI-API-V2.postman_collection.json`** | **Full V2 API:** auth, contracts, real estate, units, coupons, payment, public lookups |
+| **`AQDI-Contracts-API.postman_collection.json`** | **V2 contracts only:** steps 1–6, listing, uncompleted (subset of full V2) |
 | **`AQDI-Uncompleted-Contract-API.postman_collection.json`** | **V2 resume flow:** check + load incomplete contract by uuid |
 | **`AQDI-Admin-Selected-API.postman_collection.json`** | **Recommended:** Orders POST, refund approve/reject, instruction-sections only |
 | `AQDI-Admin-Analytics-API.postman_collection.json` | Analytics, refunds, orders, instruction sections (full set) |
@@ -22,6 +23,7 @@
 Regenerate collections after route changes:
 
 ```bash
+php tools/generate_api_v2_postman_collection.php
 php tools/generate_contracts_api_postman_collection.php
 php tools/generate_admin_postman_collection.php
 php tools/convert_analytics_filters_to_postman.php

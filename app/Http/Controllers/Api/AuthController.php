@@ -355,7 +355,19 @@ class AuthController extends Controller
 
         $formattedMobile = '00966' . $mobile;
 
-        $user = User::where('mobile', $formattedMobile)->firstOrFail();
+        $candidateMobiles = array_values(array_unique(array_filter([
+            $request->mobile,
+            $formattedMobile,
+            '966' . $mobile,
+            '0' . $mobile,
+            $mobile,
+        ])));
+
+        $user = User::whereIn('mobile', $candidateMobiles)->first();
+
+        if (!$user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
 
         if ($user->isVerified()) {
             return $this->errorMessage(trans('api.verified_account'), 409);
