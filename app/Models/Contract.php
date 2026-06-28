@@ -23,6 +23,51 @@ class Contract extends Model
         'sublease_agreement',
     ];
 
+    public const CONTRACT_TYPES = [
+        'housing',
+        'commercial',
+    ];
+
+    public static function contractTypes(): array
+    {
+        return self::CONTRACT_TYPES;
+    }
+
+    /**
+     * @return list<array{key: string, name: string, name_ar: string, name_en: string}>
+     */
+    public static function contractTypeOptions(): array
+    {
+        return array_map(
+            static fn (string $key): array => [
+                'key' => $key,
+                'name' => self::contractTypeLabel($key),
+                'name_ar' => self::contractTypeLabel($key, 'ar'),
+                'name_en' => self::contractTypeLabel($key, 'en'),
+            ],
+            self::contractTypes()
+        );
+    }
+
+    public static function contractTypeLabel(string $contractType, ?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+
+        if ($locale === 'en') {
+            return match ($contractType) {
+                'housing' => 'Housing',
+                'commercial' => 'Commercial',
+                default => $contractType,
+            };
+        }
+
+        return match ($contractType) {
+            'housing' => 'سكني',
+            'commercial' => 'تجاري',
+            default => $contractType,
+        };
+    }
+
     public static function instrumentTypes(): array
     {
         return RealEstate::instrumentTypes();
@@ -406,28 +451,17 @@ class Contract extends Model
 
     public function getContractTypeTransAttribute()
     {
-        $locale = app()->getLocale();
-        $contract_type = $this->contract_type;
-
-        if ($locale == 'en') {
-            return match ($contract_type) {
-                'housing' => 'Housing',
-                'commercial' => 'Commercial',
-                default => $contract_type,
-            };
-        } else {
-            return match ($contract_type) {
-                'housing' => 'سكني',
-                'commercial' => 'تجاري',
-                default => $contract_type,
-            };
-        }
+        return self::contractTypeLabel((string) $this->contract_type);
     }
 
     public function getInstrumentTypeTransAttribute()
     {
-        $instrumentType = (string) $this->instrument_type;
-        $locale = app()->getLocale();
+        return self::instrumentTypeLabel((string) $this->instrument_type);
+    }
+
+    public static function instrumentTypeLabel(string $instrumentType, ?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
 
         if ($locale === 'en') {
             return match ($instrumentType) {
@@ -464,6 +498,20 @@ class Contract extends Model
             'lease_renewal' => 'تجديد عقد إيجار',
             default => $instrumentType,
         };
+    }
+
+    /**
+     * @return list<array{key: string, name_ar: string}>
+     */
+    public static function instrumentTypeOptions(): array
+    {
+        return array_map(
+            static fn (string $key): array => [
+                'key' => $key,
+                'name_ar' => self::instrumentTypeLabel($key, 'ar'),
+            ],
+            self::instrumentTypes()
+        );
     }
 
     public function getDraftBeforePaidPathAttribute()

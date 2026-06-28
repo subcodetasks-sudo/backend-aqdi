@@ -32,6 +32,7 @@ class Step2RealEstateResource extends JsonResource
                 'property_owner_mobile' => $this->property_owner_mobile,
                 'property_owner_iban' => $this->property_owner_iban,
                 'add_legal_agent_of_owner' => $this->add_legal_agent_of_owner,
+                'legal_agent' => $this->legalAgentPayload($agentDob),
                 'id_num_of_property_owner_agent' => $this->id_num_of_property_owner_agent,
                 'dob_of_property_owner_agent' => $this->dob_of_property_owner_agent,
                 'type_dob_property_owner_agent' => $this->type_dob_property_owner_agent,
@@ -45,11 +46,47 @@ class Step2RealEstateResource extends JsonResource
                 'agency_instrument_date_of_property_owner_day' => $agencyDate['day'],
                 'agency_instrument_date_of_property_owner_month' => $agencyDate['month'],
                 'agency_instrument_date_of_property_owner_year' => $agencyDate['year'],
-                'copy_of_the_authorization_or_agency' => $this->copy_of_the_authorization_or_agency
-                    ? asset('storage/'.$this->copy_of_the_authorization_or_agency)
-                    : null,
+                'copy_of_the_authorization_or_agency' => $this->authorizationOrAgencyUrl(),
                 'step' => $this->step,
             ]
         );
+    }
+
+    /**
+     * @param  array{day: int|null, month: int|null, year: int|null}  $agentDob
+     * @return array<string, mixed>|null
+     */
+    private function legalAgentPayload(array $agentDob): ?array
+    {
+        if (! $this->hasLegalAgent()) {
+            return null;
+        }
+
+        return [
+            'id_num_of_property_owner_agent' => $this->id_num_of_property_owner_agent,
+            'type_dob_property_owner_agent' => $this->type_dob_property_owner_agent ?? 'hijri',
+            'dob_of_property_owner_agent' => $this->dob_of_property_owner_agent,
+            'dob_of_property_owner_agent_day' => $agentDob['day'],
+            'dob_of_property_owner_agent_month' => $agentDob['month'],
+            'dob_of_property_owner_agent_year' => $agentDob['year'],
+            'mobile_of_property_owner_agent' => $this->mobile_of_property_owner_agent,
+            'copy_of_the_authorization_or_agency' => $this->authorizationOrAgencyUrl(),
+        ];
+    }
+
+    private function hasLegalAgent(): bool
+    {
+        $add = $this->add_legal_agent_of_owner;
+
+        return in_array((string) $add, ['1', 'true'], true)
+            || $add === 1
+            || $add === true;
+    }
+
+    private function authorizationOrAgencyUrl(): ?string
+    {
+        return $this->copy_of_the_authorization_or_agency
+            ? asset('storage/'.$this->copy_of_the_authorization_or_agency)
+            : null;
     }
 }

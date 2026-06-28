@@ -119,30 +119,56 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'agency_instrument_date_of_property_owner_day' => 'nullable',
             'agency_instrument_date_of_property_owner_month' => 'nullable|integer|between:1,12',
             'agency_instrument_date_of_property_owner_year' => 'nullable|integer|min:1900|max:2100',
-            'copy_of_the_authorization_or_agency' => 'nullable|mimes:jpg,jpeg,png,pdf',
+            'copy_of_the_authorization_or_agency' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
         ];
+    }
+
+    private function wantsLegalAgent(): bool
+    {
+        $add = $this->input('add_legal_agent_of_owner');
+
+        return in_array((string) $add, ['1', 'true'], true)
+            || $add === 1
+            || $add === true;
     }
 
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
-            $add = $this->input('add_legal_agent_of_owner');
-            $hasAgent = in_array((string) $add, ['1', 'true'], true)
-                || $add === 1
-                || $add === true;
-            if (! $hasAgent) {
+            if ($validator->errors()->isNotEmpty()) {
                 return;
             }
+
+            if (! $this->wantsLegalAgent()) {
+                return;
+            }
+
+            if (! $this->filled('id_num_of_property_owner_agent')) {
+                $validator->errors()->add('id_num_of_property_owner_agent', 'رقم هوية وكيل المالك مطلوب.');
+            }
+
+            if (! $this->filled('dob_of_property_owner_agent_day')
+                || ! $this->filled('dob_of_property_owner_agent_month')
+                || ! $this->filled('dob_of_property_owner_agent_year')) {
+                $validator->errors()->add('dob_of_property_owner_agent_day', 'تاريخ ميلاد وكيل المالك مطلوب.');
+            }
+
+            if (! $this->filled('mobile_of_property_owner_agent')) {
+                $validator->errors()->add('mobile_of_property_owner_agent', 'رقم جوال وكيل المالك مطلوب.');
+            }
+
             if ($this->hasFile('copy_of_the_authorization_or_agency')) {
                 return;
             }
+
             $realEstate = RealEstate::query()->find($this->input('id'));
             if ($realEstate?->copy_of_the_authorization_or_agency) {
                 return;
             }
+
             $validator->errors()->add(
                 'copy_of_the_authorization_or_agency',
-                'نسخة من التوكيل أو الوكالة مطلوبة عند وجود وكيل للمالك.'
+                'إرفاق صورة الوكالة مطلوب عند إضافة وكيل للمالك.'
             );
         });
     }
@@ -161,7 +187,9 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_id_num.min' => 'رقم هوية المالك لا يقل عن 10 أرقام.',
             'property_owner_mobile.required' => 'رقم جوال المالك مطلوب.',
             'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-            'copy_of_the_authorization_or_agency.mimes' => 'نسخة التوكيل يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
+            'id_num_of_property_owner_agent.min' => 'رقم هوية وكيل المالك لا يقل عن 10 أرقام.',
+            'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
+            'copy_of_the_authorization_or_agency.mimes' => 'صورة الوكالة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
         ];
     }
 }

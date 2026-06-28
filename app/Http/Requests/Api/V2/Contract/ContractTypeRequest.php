@@ -29,7 +29,7 @@ class ContractTypeRequest extends BaseApiV2Request
     public function rules(): array
     {
         return [
-            'contract_type' => ['required', Rule::in(['housing', 'commercial'])],
+            'contract_type' => ['required', Rule::in(Contract::contractTypes())],
             'instrument_type' => ['nullable', Rule::in(Contract::instrumentTypes())],
             'is_real' => 'nullable|boolean',
             'real_id' => [

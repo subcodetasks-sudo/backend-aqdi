@@ -17,6 +17,7 @@ use App\Http\Resources\UnitUsageResource;
 use App\Http\Traits\Responser;
 use App\Models\BankAccount;
 use App\Models\City;
+use App\Models\Contract;
 use App\Models\ContractPeriod;
 use App\Models\Page;
 use App\Models\Paperwork;
@@ -63,6 +64,11 @@ class GeneralController extends Controller
         $regions = Region::orderBy('id', 'desc')->get();
 
         return $this->apiResponse(RegionResource::collection($regions), trans('api.success'));
+    }
+
+    public function instrumentTypes()
+    {
+        return $this->apiResponse(Contract::instrumentTypeOptions(), trans('api.success'));
     }
 
     public function termsAndConditions()

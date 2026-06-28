@@ -156,7 +156,7 @@ class UnitEstateController extends Controller
             'user_id' => $user->id,
         ];
     
-        $realEstateUnit = UnitsReal::create($data);
+        $realEstateUnit = UnitsReal::create(UnitsReal::attributesForApi($data));
     
         return response()->json([
             'message' => trans('api.created_success'),
@@ -212,7 +212,7 @@ class UnitEstateController extends Controller
         $data['user_id'] = auth()->id();
     
         try {
-            $units->update($data);
+            $units->update(UnitsReal::attributesForApi($data));
             return $this->apiResponse( $data,trans('api.success'), 200);
         } catch (ModelNotFoundException $e) {
             return $this->errorMessage(trans('api.not_have_unit'), 404);
