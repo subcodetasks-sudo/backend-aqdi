@@ -59,7 +59,7 @@ trait RealEstateLocationRules
     /**
      * @return array<string, mixed>
      */
-    protected function locationAttributesForPayload(): array
+    public function locationAttributesForPayload(): array
     {
         $payload = [];
 

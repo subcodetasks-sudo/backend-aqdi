@@ -193,67 +193,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $user = Auth::user();
         $realEstate = RealEstate::where('user_id', $user->id)->findOrFail($form->input('id'));
 
-        $data = array_merge([
-            'name_real_estate' => $form->input('name_real_estate'),
-            // 'instrument_number' => null,
-            'real_estate_registry_number' => $form->input('real_estate_registry_number'),
-            'date_first_registration' => $form->input('date_first_registration'),
-            'property_owner_is_deceased' => $form->input('property_owner_is_deceased'),
-            // 'number_of_units_in_realestate' => $form->input('number_of_units_in_realestate'),
-            // 'property_type_id' => $form->input('property_type_id'),
-            // 'property_usages_id' => $form->input('property_usages_id'),
-            // 'number_of_floors' => $form->input('number_of_floors'),
-            // 'age_of_the_property' => $form->input('age_of_the_property'),
-            // 'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
-            'step' => 1,
-        ], $form->locationAttributesForPayload());
-
-        if ($form->filled('contract_type')) {
-            $data['contract_type'] = $form->input('contract_type');
-        }
-
-        if ($form->filled('instrument_type')) {
-            $data['instrument_type'] = $form->input('instrument_type');
-        }
-
-        if ($form->filled('contract_ownership')) {
-            $data['contract_ownership'] = $form->input('contract_ownership');
-        }
-
-        if ($form->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
-            $data['is_multiple_trusteeship_deed_copy'] = $form->boolean('is_multiple_trusteeship_deed_copy');
-        }
-
-        if ($form->input('instrument_type') === 'electronic' && $form->filled('instrument_history')) {
-            $data['instrument_history'] = date('Y-m-d', strtotime((string) $form->input('instrument_history')));
-            $data['type_instrument_history'] = $form->input('type_instrument_history', 'hijri');
-        }
-
-        if ($form->input('instrument_type') === 'strong_argument' && $form->filled('date_first_registration')) {
-            $data['type_date_first_registration'] = $form->input('type_date_first_registration', 'hijri');
-        }
-
-        if ($request->hasFile('image_instrument')) {
-            $data['image_instrument'] = $request->file('image_instrument')->store('images/real_estates', 'public');
-        }
-        if ($request->hasFile('image_address')) {
-            $data['image_address'] = $request->file('image_address')->store('images/real_estates', 'public');
-        }
-
-        if ($request->hasFile('copy_of_the_endowment_registration_certificate')) {
-            $data['copy_of_the_endowment_registration_certificate'] = $request->file('copy_of_the_endowment_registration_certificate')
-                ->store('real_estates/endowment-registration-certificates', 'public');
-        }
-        if ($request->hasFile('copy_of_the_trusteeship_deed')) {
-            $data['copy_of_the_trusteeship_deed'] = $request->file('copy_of_the_trusteeship_deed')
-                ->store('real_estates/trusteeship-deeds', 'public');
-        }
-        if ($request->hasFile('copy_of_guardians_power_of_attorney_for_agent')) {
-            $data['copy_of_guardians_power_of_attorney_for_agent'] = $request->file('copy_of_guardians_power_of_attorney_for_agent')
-                ->store('real_estates/guardians-power-of-attorney', 'public');
-        }
-
-        $realEstate->update($data);
+        $realEstate->update($form->attributesForUpdate());
 
         return response()->json([
             'message' => trans('api.updated_success'),

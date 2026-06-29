@@ -144,4 +144,70 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             }
         });
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function attributesForUpdate(): array
+    {
+        $data = array_merge([
+            'name_real_estate' => $this->input('name_real_estate'),
+            'real_estate_registry_number' => $this->input('real_estate_registry_number'),
+            'date_first_registration' => $this->input('date_first_registration'),
+            'property_owner_is_deceased' => $this->input('property_owner_is_deceased'),
+            'step' => 1,
+        ], $this->locationAttributesForPayload());
+
+        if ($this->filled('contract_type')) {
+            $data['contract_type'] = $this->input('contract_type');
+        }
+
+        if ($this->filled('instrument_type')) {
+            $data['instrument_type'] = $this->input('instrument_type');
+        }
+
+        if ($this->filled('contract_ownership')) {
+            $data['contract_ownership'] = $this->input('contract_ownership');
+        }
+
+        if ($this->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
+            $data['is_multiple_trusteeship_deed_copy'] = $this->boolean('is_multiple_trusteeship_deed_copy');
+        }
+
+        if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
+            $data['instrument_history'] = date('Y-m-d', strtotime((string) $this->input('instrument_history')));
+            $data['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
+        }
+
+        if ($this->input('instrument_type') === 'strong_argument' && $this->filled('date_first_registration')) {
+            $data['type_date_first_registration'] = $this->input('type_date_first_registration', 'hijri');
+        }
+
+        if ($this->hasFile('image_instrument')) {
+            $data['image_instrument'] = $this->file('image_instrument')
+                ->store('images/real_estates', 'public');
+        }
+
+        if ($this->hasFile('image_address')) {
+            $data['image_address'] = $this->file('image_address')
+                ->store('images/real_estates', 'public');
+        }
+
+        if ($this->hasFile('copy_of_the_endowment_registration_certificate')) {
+            $data['copy_of_the_endowment_registration_certificate'] = $this->file('copy_of_the_endowment_registration_certificate')
+                ->store('real_estates/endowment-registration-certificates', 'public');
+        }
+
+        if ($this->hasFile('copy_of_the_trusteeship_deed')) {
+            $data['copy_of_the_trusteeship_deed'] = $this->file('copy_of_the_trusteeship_deed')
+                ->store('real_estates/trusteeship-deeds', 'public');
+        }
+
+        if ($this->hasFile('copy_of_guardians_power_of_attorney_for_agent')) {
+            $data['copy_of_guardians_power_of_attorney_for_agent'] = $this->file('copy_of_guardians_power_of_attorney_for_agent')
+                ->store('real_estates/guardians-power-of-attorney', 'public');
+        }
+
+        return $data;
+    }
 }
