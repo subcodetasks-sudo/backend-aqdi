@@ -15,7 +15,9 @@ class UnitResource extends JsonResource
             'unit_number' => $this->unit_number,
             'unit_type_id' => $this->unit_type_id,
             'unit_type_name' => optional($this->unitType)->name_ar,
-            'contract_type' => optional($this->unitType)->contract_type,
+            'contract_type' => $this->contract_type
+                ?? optional($this->realEstate)->contract_type
+                ?? optional($this->unitType)->contract_type,
             'unit_usage_id' => $this->unit_usage_id,
             'unit_usage_name' => optional($this->unitUsage)->name_ar,
             'floor_number' => $this->floor_number,

@@ -39,7 +39,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'real_id'            => 'nullable|exists:contracts,id',
             'instrument_type'    => ['nullable', Rule::in(RealEstate::instrumentTypes())],
             // 'number_of_floors'   => 'required',
-            'contract_type'    => 'required|in:housing,commercial',
+            'contract_type'    => 'nullable|in:housing,commercial',
             'contract_ownership' => 'nullable|in:owner,tenant',
             // 'property_type_id'   => 'required|exists:rea_estat_types,id',
             // 'property_usages_id' => [
@@ -143,7 +143,6 @@ class Step1RealEstateRequest extends BaseApiV2Request
     {
         $payload = array_merge([
             'user_id'                        => $userId,
-            'contract_type'                  => $this->input('contract_type'),
             'instrument_number'              => null,
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
             // 'property_type_id'               => $this->input('property_type_id'),
@@ -153,6 +152,10 @@ class Step1RealEstateRequest extends BaseApiV2Request
             // 'number_of_units_per_floor'      => $this->input('number_of_units_per_floor'),
             'step'                           => 1,
         ], $this->locationAttributesForPayload());
+
+        if ($this->filled('contract_type')) {
+            $payload['contract_type'] = $this->input('contract_type');
+        }
 
         if ($this->filled('instrument_type')) {
             $payload['instrument_type'] = $this->input('instrument_type');

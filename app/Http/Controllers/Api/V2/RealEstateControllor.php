@@ -54,7 +54,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $user = auth()->user();
         $data = RealEstate::query()
             ->where('user_id', $user->id)
-            ->with(['propertyType', 'propertyUsages'])
+            ->with($this->realEstateEagerLoads())
             ->get();
         return $this->apiResponse(RealEstateResource::collection($data), trans('api.real_estate'));
     }
@@ -64,7 +64,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $user = auth()->user();
         $realEstates = RealEstate::query()
             ->where('user_id', $user->id)
-            ->with(['propertyType', 'propertyUsages'])
+            ->with($this->realEstateEagerLoads())
             ->get();
 
         if (! $realEstates) {
@@ -79,7 +79,7 @@ class RealEstateControllor extends ApiRealEstateControllor
         $user = auth()->user();
         $realEstate = RealEstate::query()
             ->where('user_id', $user->id)
-            ->with(['propertyType', 'propertyUsages'])
+            ->with($this->realEstateEagerLoads())
             ->findOrFail($id);
         return $this->apiResponse(new RealEstateResource($realEstate), trans('api.real_estate'), 200);
     }
@@ -195,7 +195,6 @@ class RealEstateControllor extends ApiRealEstateControllor
 
         $data = array_merge([
             'name_real_estate' => $form->input('name_real_estate'),
-            'contract_type' => $form->input('contract_type'),
             // 'instrument_number' => null,
             'real_estate_registry_number' => $form->input('real_estate_registry_number'),
             'date_first_registration' => $form->input('date_first_registration'),
@@ -208,6 +207,10 @@ class RealEstateControllor extends ApiRealEstateControllor
             // 'number_of_units_per_floor' => $form->input('number_of_units_per_floor'),
             'step' => 1,
         ], $form->locationAttributesForPayload());
+
+        if ($form->filled('contract_type')) {
+            $data['contract_type'] = $form->input('contract_type');
+        }
 
         if ($form->filled('instrument_type')) {
             $data['instrument_type'] = $form->input('instrument_type');

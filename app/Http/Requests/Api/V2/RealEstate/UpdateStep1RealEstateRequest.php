@@ -35,7 +35,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'id' => 'required|exists:real_estates,id',
             'name_real_estate' => 'nullable|string|max:255',
             'contract_ownership' => 'nullable|in:owner,tenant',
-            'contract_type' => 'required|in:housing,commercial',
+            'contract_type' => 'nullable|in:housing,commercial',
             'instrument_history' => 'nullable|date',
             'real_estate_registry_number' => [Rule::requiredIf($instrumentType === 'strong_argument')],
             'date_first_registration' => [Rule::requiredIf($instrumentType === 'strong_argument')],

@@ -3,41 +3,36 @@
 namespace App\Http\Resources\Api\V2\RealEstate;
 
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
 
-class RealEstateResource extends JsonResource
+class RealEstateResource extends Step2RealEstateResource
 {
     public function toArray(Request $request): array
     {
-        return [
-         
-            'id' => $this->id,
-            'uuid' => $this->uuid,
-            'name_real_estate' => $this->name_real_estate,
-            'instrument_type' => $this->instrument_type,
-            'contract_type' => $this->contract_type,
-            'created_at'=>$this->created_at,
-            'property_type_id' => $this->property_type_id,
-            'property_type_name' => optional($this->propertyType)->name_trans
-                ?? optional($this->propertyType)->name_ar,
-            'property_usages_id' => $this->property_usages_id,
-            'property_usages_name' => optional($this->propertyUsages)->name_trans
-                ?? optional($this->propertyUsages)->name_ar,
-             'number_of_floors' => $this->number_of_floors,
-            'number_of_units_in_realestate' => $this->number_of_units_in_realestate,
-            'image_instrument' => $this->image_instrument 
-                ? asset('storage/' . $this->image_instrument) 
-                : null,
+        return array_merge(parent::toArray($request), $this->additionalAttributes());
+    }
 
-            'image_address' => $this->image_address 
-                ? asset('storage/' . $this->image_address) 
-                : null,
-            'address_url' => $this->address_url,
-            'age_of_the_property' => $this->age_of_the_property,
-            'number_of_units_per_floor' => $this->number_of_units_per_floor,
-            'latitude' => $this->latitude,
-            'longitude' => $this->longitude,
-            'step' => $this->step,
+    /**
+     * @return array<string, mixed>
+     */
+    private function additionalAttributes(): array
+    {
+        $attributes = $this->resource->getAttributes();
+
+        $extras = [
+            'user_id' => $this->user_id,
+            'type_real_estate_other' => $this->type_real_estate_other,
+            'unit_number' => $this->unit_number,
+            'is_deleted' => $this->is_deleted ?? 0,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
+
+        foreach (['uuid', 'dob_hijri', 'national_num', 'DOB', 'mobile', 'iban_bank'] as $column) {
+            if (array_key_exists($column, $attributes)) {
+                $extras[$column] = $this->{$column};
+            }
+        }
+
+        return $extras;
     }
 }
