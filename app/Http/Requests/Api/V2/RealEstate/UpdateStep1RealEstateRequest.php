@@ -36,6 +36,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'name_real_estate' => 'nullable|string|max:255',
             'contract_ownership' => 'nullable|in:owner,tenant',
             'contract_type' => 'nullable|in:housing,commercial',
+            'property_owner_is_deceased' => 'nullable|boolean',
             'instrument_history' => 'nullable|date',
             'real_estate_registry_number' => [Rule::requiredIf($instrumentType === 'strong_argument')],
             'date_first_registration' => [Rule::requiredIf($instrumentType === 'strong_argument')],
@@ -154,9 +155,14 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'name_real_estate' => $this->input('name_real_estate'),
             'real_estate_registry_number' => $this->input('real_estate_registry_number'),
             'date_first_registration' => $this->input('date_first_registration'),
-            'property_owner_is_deceased' => $this->input('property_owner_is_deceased'),
             'step' => 1,
         ], $this->locationAttributesForPayload());
+
+        if ($this->exists('property_owner_is_deceased')) {
+            $data['property_owner_is_deceased'] = $this->input('property_owner_is_deceased') === null
+                ? null
+                : $this->boolean('property_owner_is_deceased');
+        }
 
         if ($this->filled('contract_type')) {
             $data['contract_type'] = $this->input('contract_type');
