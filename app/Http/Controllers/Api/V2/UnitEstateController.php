@@ -15,6 +15,11 @@ class UnitEstateController extends Controller
 {
     use Responser;
 
+    private function unitEagerLoads(): array
+    {
+        return ['unitType', 'unitUsage', 'realEstate'];
+    }
+
     private function normalizeUnitBooleanFlags(Request $request): void
     {
         $keys = ['kitchen_tank', 'furnished', 'type_furnished', 'electricity_meter', 'water_meter'];
@@ -57,7 +62,10 @@ class UnitEstateController extends Controller
     {
         $userReal = RealEstate::findOrFail($id);
         $user = Auth::user();
-        $units = UnitsReal::where('real_estates_units_id', $userReal->id)->where('user_id', $user->id)->get();
+        $units = UnitsReal::where('real_estates_units_id', $userReal->id)
+            ->where('user_id', $user->id)
+            ->with($this->unitEagerLoads())
+            ->get();
 
         return $this->apiResponse(UnitResource::collection($units), trans('api.units'));
     }
@@ -70,6 +78,7 @@ class UnitEstateController extends Controller
             $userReal = RealEstate::findOrFail($id);
             $units = UnitsReal::where('real_estates_units_id', $userReal->id)
                 ->where('user_id', $user->id)
+                ->with($this->unitEagerLoads())
                 ->get();
 
             return $this->apiResponse(UnitResource::collection($units), trans('api.units'), 200);
@@ -86,6 +95,7 @@ class UnitEstateController extends Controller
             $user = auth()->user();
             $userUnit = UnitsReal::where('id', $id)
                 ->where('user_id', $user->id)
+                ->with($this->unitEagerLoads())
                 ->firstOrFail();
 
             return $this->apiResponse(new UnitResource($userUnit), trans('تفاصيل الوحده'), 200);
@@ -156,7 +166,7 @@ class UnitEstateController extends Controller
             'message' => trans('api.created_success'),
             'code' => 201,
             'success' => true,
-            'data' => new UnitResource($realEstateUnit),
+            'data' => new UnitResource($realEstateUnit->load($this->unitEagerLoads())),
         ]);
     }
 
@@ -223,7 +233,7 @@ class UnitEstateController extends Controller
 
         try {
             $units->update(UnitsReal::attributesForApi($data));
-            return $this->apiResponse(new UnitResource($units->fresh()), trans('api.success'), 200);
+            return $this->apiResponse(new UnitResource($units->fresh($this->unitEagerLoads())), trans('api.success'), 200);
         } catch (ModelNotFoundException $e) {
             return $this->errorMessage(trans('api.not_have_unit'), 404);
         } catch (\Exception $e) {

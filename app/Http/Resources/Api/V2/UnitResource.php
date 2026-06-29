@@ -9,17 +9,22 @@ class UnitResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $attributes = $this->resource->getAttributes();
+
+        $data = [
             'id' => $this->id,
+            'user_id' => $this->user_id,
             'real_estates_units_id' => $this->real_estates_units_id,
             'unit_number' => $this->unit_number,
             'unit_type_id' => $this->unit_type_id,
-            'unit_type_name' => optional($this->unitType)->name_ar,
+            'unit_type_name' => optional($this->unitType)->name_trans
+                ?? optional($this->unitType)->name_ar,
             'contract_type' => $this->contract_type
                 ?? optional($this->realEstate)->contract_type
                 ?? optional($this->unitType)->contract_type,
             'unit_usage_id' => $this->unit_usage_id,
-            'unit_usage_name' => optional($this->unitUsage)->name_ar,
+            'unit_usage_name' => optional($this->unitUsage)->name_trans
+                ?? optional($this->unitUsage)->name_ar,
             'floor_number' => $this->floor_number,
             'unit_area' => $this->unit_area,
             'tootal_rooms' => $this->tootal_rooms,
@@ -35,7 +40,23 @@ class UnitResource extends JsonResource
             'type_furnished' => (bool) $this->type_furnished,
             'electricity_meter' => (bool) $this->electricity_meter,
             'water_meter' => (bool) $this->water_meter,
+            'sub_delay' => $this->sub_delay,
+            'property_city_id' => $this->property_city_id,
+            'Number_parking_spaces' => $this->Number_parking_spaces,
+            'Gasmeter' => $this->Gasmeter,
+            'number_of_unit_air_conditioners' => $this->number_of_unit_air_conditioners,
+            'Services' => $this->Services,
+            'is_deleted' => $this->is_deleted ?? 0,
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
+
+        foreach (['real_estates_units', 'unit_usage', 'number_of_rooms', 'The_number_of_the_toilet'] as $column) {
+            if (array_key_exists($column, $attributes)) {
+                $data[$column] = $this->{$column};
+            }
+        }
+
+        return $data;
     }
 }
-
