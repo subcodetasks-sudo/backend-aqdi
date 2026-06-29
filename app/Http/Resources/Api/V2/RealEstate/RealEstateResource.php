@@ -13,6 +13,7 @@ class RealEstateResource extends JsonResource
          
             'id' => $this->id,
             'uuid' => $this->uuid,
+            'name_real_estate' => $this->name_real_estate,
             'instrument_type' => $this->instrument_type,
             'contract_type' => $this->contract_type,
             'created_at'=>$this->created_at,
