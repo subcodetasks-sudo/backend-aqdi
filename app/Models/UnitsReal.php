@@ -21,7 +21,7 @@ class UnitsReal extends Model
             'The_number_of_halls', 'The_number_of_kitchens', 'property_city_id', 'unit_area','water_meter_number','electricity_meter_number',
             'unit_number','unit_usage_id','unit_type_id','floor_number', 'real_estates_units_id','Number_parking_spaces',
             'kitchen_tank', 'furnished', 'type_furnished', 'electricity_meter', 'water_meter',
-            'number_of_rooms', 'The_number_of_the_toilet',
+            'number_of_rooms', 'The_number_of_the_toilet', 'Services', 'is_deleted',
     ];
 
     /**
@@ -48,6 +48,14 @@ class UnitsReal extends Model
             if (! Schema::hasColumn($table, $column)) {
                 unset($data[$column]);
             }
+        }
+
+        if (Schema::hasColumn($table, 'Services') && ! array_key_exists('Services', $data)) {
+            $data['Services'] = 0;
+        }
+
+        if (Schema::hasColumn($table, 'is_deleted') && ! array_key_exists('is_deleted', $data)) {
+            $data['is_deleted'] = 0;
         }
 
         return $data;
