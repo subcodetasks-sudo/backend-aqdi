@@ -501,19 +501,149 @@ class Contract extends Model
     }
 
     /**
-     * @return list<array{key: string, name_ar: string}>
+     * @return list<array{type: string, key: string, name_ar: string, images: list<array{key: string, name_ar: string, name_en: string}>, conditional_images: list<array{key: string, name_ar: string, name_en: string, when: array<string, mixed>}>, required_images: list<array{key: string, name_ar: string, name_en: string}>, conditional_required_images: list<array{key: string, name_ar: string, name_en: string, when: array<string, mixed>}>}>
      */
     public static function instrumentTypeOptions(): array
     {
-        return array_map(
-            static fn (string $key): array => [
+        return array_map(static function (string $key): array {
+            $requirements = self::instrumentTypeImageRequirements($key);
+
+            return [
+                'type' => $key,
                 'key' => $key,
                 'name_ar' => self::instrumentTypeLabel($key, 'ar'),
+                'images' => $requirements['required_images'],
+                'conditional_images' => $requirements['conditional_required_images'],
+                'required_images' => $requirements['required_images'],
+                'conditional_required_images' => $requirements['conditional_required_images'],
+            ];
+        }, self::instrumentTypes());
+    }
+
+    /**
+     * @return array{
+     *     required_images: list<array{key: string, name_ar: string, name_en: string}>,
+     *     conditional_required_images: list<array{key: string, name_ar: string, name_en: string, when: array<string, mixed>}>
+     * }
+     */
+    public static function instrumentTypeImageRequirements(?string $instrumentType): array
+    {
+        $requirements = [
+            'required_images' => self::requiredImagesForInstrumentType($instrumentType),
+            'conditional_required_images' => self::conditionalRequiredImagesForInstrumentType($instrumentType),
+        ];
+
+        return array_merge($requirements, [
+            'type' => $instrumentType,
+            'images' => $requirements['required_images'],
+            'conditional_images' => $requirements['conditional_required_images'],
+        ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function deedFrontBackImageFields(): array
+    {
+        return [
+            'image_instrument_from_the_front',
+            'image_instrument_from_the_back',
+        ];
+    }
+
+    /**
+     * Deed image fields required for a given instrument type.
+     *
+     * @return list<string>
+     */
+    public static function deedImageFieldsForInstrumentType(?string $instrumentType): array
+    {
+        if ($instrumentType === null || $instrumentType === '') {
+            return [];
+        }
+
+        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
+
+        if (in_array($canonical, ['electronic', 'lease_renewal'], true)
+            || $instrumentType === 'electronic_deed_from_the_ministry_of_justice') {
+            return ['image_instrument'];
+        }
+
+        return self::deedFrontBackImageFields();
+    }
+
+    /**
+     * @return list<array{key: string, name_ar: string, name_en: string}>
+     */
+    public static function requiredImagesForInstrumentType(?string $instrumentType): array
+    {
+        if ($instrumentType === null || $instrumentType === '') {
+            return [];
+        }
+
+        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
+        $ownerEndowment = RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT;
+
+        $fields = self::deedImageFieldsForInstrumentType($instrumentType);
+
+        if ($canonical === $ownerEndowment) {
+            $fields = array_merge($fields, [
+                'copy_of_the_endowment_registration_certificate',
+                'copy_of_the_trusteeship_deed',
+            ]);
+        }
+
+        return array_map(
+            static fn (string $field): array => [
+                'key' => $field,
+                'name_ar' => self::instrumentImageFieldLabel($field, 'ar'),
+                'name_en' => self::instrumentImageFieldLabel($field, 'en'),
             ],
-            self::instrumentTypes()
+            array_values(array_unique($fields))
         );
     }
 
+    /**
+     * @return list<array{key: string, name_ar: string, name_en: string, when: array<string, mixed>}>
+     */
+    public static function conditionalRequiredImagesForInstrumentType(?string $instrumentType): array
+    {
+        if ($instrumentType === null || $instrumentType === '') {
+            return [];
+        }
+
+        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
+
+        if ($canonical !== RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
+            return [];
+        }
+
+        return [[
+            'key' => 'copy_of_guardians_power_of_attorney_for_agent',
+            'name_ar' => self::instrumentImageFieldLabel('copy_of_guardians_power_of_attorney_for_agent', 'ar'),
+            'name_en' => self::instrumentImageFieldLabel('copy_of_guardians_power_of_attorney_for_agent', 'en'),
+            'when' => ['is_multiple_trusteeship_deed_copy' => true],
+        ]];
+    }
+
+    public static function instrumentImageFieldLabel(string $field, ?string $locale = null): string
+    {
+        $locale ??= app()->getLocale();
+
+        $labels = [
+            'image_instrument' => ['ar' => 'صورة الصك', 'en' => 'Deed image'],
+            'image_instrument_from_the_front' => ['ar' => 'صورة الصك من الأمام', 'en' => 'Deed front image'],
+            'image_instrument_from_the_back' => ['ar' => 'صورة الصك من الخلف', 'en' => 'Deed back image'],
+            'copy_of_the_endowment_registration_certificate' => ['ar' => 'شهادة تسجيل الوقف', 'en' => 'Endowment registration certificate'],
+            'copy_of_the_trusteeship_deed' => ['ar' => 'صك النظارة', 'en' => 'Trusteeship deed'],
+            'copy_of_guardians_power_of_attorney_for_agent' => ['ar' => 'وكالة النظار للوكيل', 'en' => 'Guardians power of attorney'],
+            'image_address' => ['ar' => 'صورة العنوان', 'en' => 'Address image'],
+        ];
+
+        $lang = $locale === 'en' ? 'en' : 'ar';
+
+        return $labels[$field][$lang] ?? $field;
+    }
     public function getDraftBeforePaidPathAttribute()
     {
         return isset($this->draft_before_paid) ? getFilePath($this->draft_before_paid) : '';

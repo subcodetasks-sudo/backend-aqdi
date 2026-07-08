@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('customer_mobile', 32);
             $table->decimal('amount', 10, 2)->default(0);
             $table->boolean('is_paid')->default(false);
+            $table->text('notes')->nullable();
             $table->timestamps();
 
             $table->index('contract_uuid');

@@ -135,8 +135,6 @@ class ContractController extends Controller
         $step1Data = [
             'app_or_web' => 'app',
             'instrument_number' => null,
-            'image_instrument_from_the_back' => $validated['image_instrument_from_the_back'] ?? null,
-            'image_instrument_from_the_front' => $validated['image_instrument_from_the_front'] ?? null,
             // 'property_type_id' => $validated['property_type_id'] ?? null,
             // 'property_usages_id' => $validated['property_usages_id'] ?? null,
             // 'age_of_the_property' => $validated['age_of_the_property'] ?? null,
@@ -183,6 +181,22 @@ class ContractController extends Controller
             $contract->update([
                 'image_instrument' => $validated['image_instrument'],
             ]);
+        }
+
+        foreach (['image_instrument_from_the_front', 'image_instrument_from_the_back'] as $deedImageField) {
+            if ($request->hasFile($deedImageField)) {
+                $contract->update([
+                    $deedImageField => $request->file($deedImageField)->store('images/contracts', 'public'),
+                ]);
+            } elseif (
+                array_key_exists($deedImageField, $validated)
+                && is_string($validated[$deedImageField])
+                && $validated[$deedImageField] !== ''
+            ) {
+                $contract->update([
+                    $deedImageField => $validated[$deedImageField],
+                ]);
+            }
         }
 
         if ($request->hasFile('copy_of_the_endowment_registration_certificate')) {

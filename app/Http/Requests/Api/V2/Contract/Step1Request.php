@@ -36,6 +36,7 @@ class Step1Request extends BaseApiV2Request
     public function rules(): array
     {
         $effectiveInstrumentType = $this->effectiveInstrumentType();
+        $deedImageFields = Contract::deedImageFieldsForInstrumentType($effectiveInstrumentType);
 
         return [
             'id' => 'required|exists:contracts,id',
@@ -65,13 +66,7 @@ class Step1Request extends BaseApiV2Request
                 'nullable',
                 'file',
                 'mimes:jpg,jpeg,png,webp,pdf',
-                Rule::requiredIf(
-                    in_array(
-                        $effectiveInstrumentType,
-                        ['electronic', 'electronic_deed_from_the_ministry_of_justice', 'lease_renewal'],
-                        true
-                    )
-                ),
+                Rule::requiredIf(in_array('image_instrument', $deedImageFields, true)),
             ],
             'image_address' => 'nullable|image',
             'address_url' => 'nullable|string|max:2048',
@@ -88,8 +83,18 @@ class Step1Request extends BaseApiV2Request
             'longitude' => 'nullable|numeric',
             'lat' => 'nullable|numeric',
             'lng' => 'nullable|numeric',
-            'image_instrument_from_the_back'=>'nullable',
-            'image_instrument_from_the_front'=>'nullable',
+            'image_instrument_from_the_back' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,webp,pdf',
+                Rule::requiredIf(in_array('image_instrument_from_the_back', $deedImageFields, true)),
+            ],
+            'image_instrument_from_the_front' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,webp,pdf',
+                Rule::requiredIf(in_array('image_instrument_from_the_front', $deedImageFields, true)),
+            ],
             ...$this->contractPropertyAddressRules(),
         ];
     }

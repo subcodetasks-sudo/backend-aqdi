@@ -5,6 +5,7 @@ namespace App\Http\Resources\Api\V2\Contract;
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractAddressFields;
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
+use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -41,6 +42,7 @@ class Step1Resource extends JsonResource
             'real_units_id' => $this->real_units_id,
             'instrument_type' => $this->instrument_type,
             'instrument_type_trans' => $this->instrument_type_trans,
+            ...Contract::instrumentTypeImageRequirements($this->instrument_type),
             'number_of_units_in_realestate' => $this->number_of_units_in_realestate,
             'number_of_floors' => $this->number_of_floors,
             'property_type_id' => $this->property_type_id,

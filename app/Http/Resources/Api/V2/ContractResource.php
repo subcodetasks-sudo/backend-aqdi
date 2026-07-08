@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V2;
 
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
+use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,6 +24,7 @@ class ContractResource extends JsonResource
             'property_owner_id_num' => $this->property_owner_id_num,
             'tenant_id_num' => $this->tenant_id_num,
             'instrument_type' => $this->instrument_type,
+            ...Contract::instrumentTypeImageRequirements($this->instrument_type),
             'image_instrument' => $this->image_instrument,
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,

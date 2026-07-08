@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Interfaces\PaymentGatewayInterface;
 use App\Models\Contract;
+use App\Models\ContractPaidByEmployee;
 use App\Models\ContractPeriod;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
@@ -113,6 +114,11 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             if ($status === 'paid') {
                 $this->persistPayment($request, $verified, $uuid, 'success');
 
+                ContractPaidByEmployee::query()
+                    ->where('contract_uuid', $uuid)
+                    ->where('is_paid', false)
+                    ->update(['is_paid' => true]);
+
                 $contract = Contract::where('uuid', $uuid)->first();
                 if ($contract) {
                     $contract->is_completed = true;
@@ -138,7 +144,15 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     public function paymentStatusPayload(string $uuid, string $result): array
     {
-        $contract = Contract::where('uuid', $uuid)->firstOrFail();
+        $contract = Contract::where('uuid', $uuid)->first();
+        $employeePaidRecord = ContractPaidByEmployee::query()
+            ->where('contract_uuid', $uuid)
+            ->first();
+
+        if (! $contract && ! $employeePaidRecord) {
+            abort(404, trans('api.contract_not_found'));
+        }
+
         $payment = Payment::query()
             ->matchingContractUuid($uuid)
             ->latest('id')
@@ -146,9 +160,17 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
         return [
             'result' => $result,
-            'contract_uuid' => (string) $contract->uuid,
-            'contract_id' => $contract->id,
-            'is_completed' => (bool) $contract->is_completed,
+            'contract_uuid' => $uuid,
+            'contract_id' => $contract?->id,
+            'is_completed' => $contract ? (bool) $contract->is_completed : false,
+            'employee_paid_record' => $employeePaidRecord ? [
+                'id' => $employeePaidRecord->id,
+                'employee_id' => $employeePaidRecord->employee_id,
+                'customer_mobile' => $employeePaidRecord->customer_mobile,
+                'amount' => (float) $employeePaidRecord->amount,
+                'is_paid' => (bool) $employeePaidRecord->is_paid,
+                'notes' => $employeePaidRecord->notes,
+            ] : null,
             'payment' => $payment ? [
                 'id' => $payment->id,
                 'amount' => $payment->amount,
