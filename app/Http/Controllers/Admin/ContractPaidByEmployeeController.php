@@ -83,6 +83,7 @@ class ContractPaidByEmployeeController extends Controller
                 'customer_mobile' => $validated['customer_mobile'],
                 'amount' => $amount,
                 'is_paid' => false,
+                'notes' => $validated['notes'] ?? null,
             ]);
 
             try {

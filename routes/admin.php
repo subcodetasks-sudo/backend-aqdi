@@ -454,7 +454,6 @@ use Illuminate\Support\Facades\Route;
         Route::get('/overview', 'overview')->name('overview');
     });
 
-    // Payment methods (طرق الدفع)
     Route::prefix('payment-types')->name('payment-types.')->controller(PaymentTypeController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
@@ -463,7 +462,6 @@ use Illuminate\Support\Facades\Route;
         Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
     });
 
-    // Customer application messages (رسائل التطبيق للعميل)
     Route::prefix('customer-messages')->name('customer-messages.')->controller(CustomerApplicationMessageController::class)->group(function () {
         Route::get('/overview', 'overview')->name('overview');
         Route::get('/all', 'all')->name('all');
@@ -475,7 +473,6 @@ use Illuminate\Support\Facades\Route;
         Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
     });
 
-    // Terms, conditions & privacy (الشروط والأحكام / سياسة الخصوصية)
     Route::prefix('content')->name('content.')->controller(PageContentController::class)->group(function () {
         Route::get('/legal-pages', 'legalPages')->name('legal-pages');
         Route::get('/terms-and-conditions', 'termsAndConditions')->name('terms.show');

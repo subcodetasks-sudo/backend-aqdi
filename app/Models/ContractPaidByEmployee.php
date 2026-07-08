@@ -15,6 +15,7 @@ class ContractPaidByEmployee extends Model
         'customer_mobile',
         'amount',
         'is_paid',
+        'notes',
     ];
 
     protected $casts = [

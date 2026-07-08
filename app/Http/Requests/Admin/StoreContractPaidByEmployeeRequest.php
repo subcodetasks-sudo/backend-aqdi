@@ -26,6 +26,7 @@ class StoreContractPaidByEmployeeRequest extends FormRequest
         return [
             'customer_mobile' => ['required', 'string', 'max:32'],
             'amount' => ['required', 'numeric', 'min:0.01'],
+            'notes' => ['nullable', 'string', 'max:20000'],
         ];
     }
 }

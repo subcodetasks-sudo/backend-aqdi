@@ -20,6 +20,7 @@ class ContractPaidByEmployeeResource extends JsonResource
             'customer_mobile' => $this->customer_mobile,
             'amount' => (float) $this->amount,
             'is_paid' => (bool) $this->is_paid,
+            'notes' => $this->notes,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];
