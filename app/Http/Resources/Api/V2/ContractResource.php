@@ -45,11 +45,11 @@ class ContractResource extends JsonResource
             'is_draft' => (bool) $this->is_draft,
             'step' => $this->step,
             'contract_status_id' => $this->contract_status_id,
-            'contract_status_name' => optional($this->contractStatus)->name ??'قيد المراجعة'
+            'contract_status_name' => optional($this->contractStatus)->name
                 ? trans(optional($this->contractStatus)->name)
-                : null,
-                'contract_status_color' => optional($this->contractStatus)->color ??'#000000',
-                'contract_status_icon' => optional($this->contractStatus)->icon ??'<i class="fa fa-check"></i>',
+                : 'قيد المراجعة',
+            'contract_status_color' => optional($this->contractStatus)->color ?? '#000000',
+            'contract_status_icon' => optional($this->contractStatus)->icon ?? '<i class="fa fa-check"></i>',
             'number_of_units_in_realestate' => $this->numberOfUnitsInRealestate(),
             'created_at' => optional($this->created_at)->format('Y-m-d'),
         ]);
