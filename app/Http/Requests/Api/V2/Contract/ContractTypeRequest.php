@@ -69,7 +69,9 @@ class ContractTypeRequest extends BaseApiV2Request
             }
 
             $real = RealEstate::query()->find($this->input('real_id'));
-            if (! $real || $real->number_of_units_in_realestate === null || $real->number_of_units_in_realestate === '') {
+            if (! $real || ! $real->hasResolvableUnitsCount(
+                $this->filled('real_units_id') ? (int) $this->input('real_units_id') : null
+            )) {
                 $validator->errors()->add(
                     'number_of_units_in_realestate',
                     'عدد الوحدات غير محدد في العقار المرتبط بالعقد.'

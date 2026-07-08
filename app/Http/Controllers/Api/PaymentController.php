@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\Responser;
-use App\Services\ContractClickPayPaymentService;
+use App\Interfaces\PaymentGatewayInterface;
 use Illuminate\Http\Request;
 use TaqnyatSms;
 
@@ -13,7 +13,7 @@ class PaymentController extends Controller
     use Responser;
 
     public function __construct(
-        protected ContractClickPayPaymentService $paymentService
+        protected PaymentGatewayInterface $paymentService
     ) {}
 
     public function index(Request $request, $uuid)

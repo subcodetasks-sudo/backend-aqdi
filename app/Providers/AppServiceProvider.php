@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Interfaces\PaymentGatewayInterface;
 use App\Routing\UnicodeJsonResponseFactory;
+use App\Services\MoyasarPaymentService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Routing\ResponseFactory as ResponseFactoryContract;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -26,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(ResponseFactoryContract::class, 'Illuminate\Routing\ResponseFactory');
+
+        $this->app->bind(PaymentGatewayInterface::class, MoyasarPaymentService::class);
     }
 
     /**

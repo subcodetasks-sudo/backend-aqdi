@@ -40,7 +40,7 @@ class ContractController extends Controller
         $contracts = Contract::where('user_id', $user->id)
             ->with(['realEstate', 'contractStatus'])
             ->orderBy('created_at', 'desc')
-            // ->where('step', '>', '6')
+           
             ->where('is_delete', 0)
             ->paginate(10);
 
@@ -96,6 +96,13 @@ class ContractController extends Controller
             $instrumentType = RealEstate::query()
                 ->whereKey($validated['real_id'])
                 ->value('instrument_type');
+        }
+
+        if (! empty($validated['real_id'])) {
+            $realEstate = RealEstate::query()->find($validated['real_id']);
+            $realEstate?->syncNumberOfUnitsInRealestate(
+                ! empty($validated['real_units_id']) ? (int) $validated['real_units_id'] : null
+            );
         }
 
         $contract = Contract::create([

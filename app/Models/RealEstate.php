@@ -98,6 +98,37 @@ class RealEstate extends Model
       return $this->hasMany(UnitsReal::class,'real_estates_units_id');        
     }
 
+    public function hasResolvableUnitsCount(?int $realUnitsId = null): bool
+    {
+        if ($this->number_of_units_in_realestate !== null && $this->number_of_units_in_realestate !== '') {
+            return true;
+        }
+
+        if ($realUnitsId && $this->units()->whereKey($realUnitsId)->exists()) {
+            return true;
+        }
+
+        return $this->units()->exists();
+    }
+
+    public function syncNumberOfUnitsInRealestate(?int $realUnitsId = null): void
+    {
+        if ($this->number_of_units_in_realestate !== null && $this->number_of_units_in_realestate !== '') {
+            return;
+        }
+
+        $count = $this->units()->count();
+        if ($count > 0) {
+            $this->update(['number_of_units_in_realestate' => (string) $count]);
+
+            return;
+        }
+
+        if ($realUnitsId && $this->units()->whereKey($realUnitsId)->exists()) {
+            $this->update(['number_of_units_in_realestate' => '1']);
+        }
+    }
+
 
     public function propertyType()
     {

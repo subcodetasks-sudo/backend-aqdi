@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreContractPaidByEmployeeRequest;
 use App\Http\Resources\Admin\V2\Api\ContractPaidByEmployeeResource;
 use App\Http\Traits\Responser;
+use App\Interfaces\PaymentGatewayInterface;
 use App\Models\Contract;
 use App\Models\ContractPaidByEmployee;
 use App\Models\Employee;
-use App\Services\ContractClickPayPaymentService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -19,7 +19,7 @@ class ContractPaidByEmployeeController extends Controller
     use Responser;
 
     public function __construct(
-        protected ContractClickPayPaymentService $paymentService
+        protected PaymentGatewayInterface $paymentService
     ) {}
 
     /**

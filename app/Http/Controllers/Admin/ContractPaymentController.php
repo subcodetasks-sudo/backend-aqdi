@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\PaymentDataAdminResource;
 use App\Http\Traits\Responser;
+use App\Interfaces\PaymentGatewayInterface;
 use App\Models\Payment;
-use App\Services\ContractClickPayPaymentService;
 use Illuminate\Http\Request;
 
 class ContractPaymentController extends Controller
@@ -14,7 +14,7 @@ class ContractPaymentController extends Controller
     use Responser;
 
     public function __construct(
-        protected ContractClickPayPaymentService $paymentService
+        protected PaymentGatewayInterface $paymentService
     ) {}
 
     /**

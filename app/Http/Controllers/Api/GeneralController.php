@@ -71,6 +71,11 @@ class GeneralController extends Controller
         return $this->apiResponse(Contract::instrumentTypeOptions(), trans('api.success'));
     }
 
+    public function contractTypes()
+    {
+        return $this->apiResponse(Contract::contractTypeOptions(), trans('api.success'));
+    }
+
     public function termsAndConditions()
     {
         $termsConditions = Page::where('page', 'term_and_condition')->first();

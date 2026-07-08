@@ -22,6 +22,7 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/cities', 'cities');
     Route::get('/regions', 'regions');
     Route::get('/instrument-types', 'instrumentTypes');
+    Route::get('/contract-types', 'contractTypes');
     Route::get('/terms-and-conditions', 'termsAndConditions');
     Route::get('/privacy', 'privacy');
     Route::get('/common-questions', 'commonQuestions');

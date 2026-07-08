@@ -1,0 +1,52 @@
+<?php
+
+namespace App\Interfaces;
+
+use App\Models\Contract;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+/**
+ * Contract for a payment gateway integration.
+ *
+ * Any gateway (Moyasar, ClickPay, ...) implementing this interface can be swapped
+ * in through the container without touching the controllers that consume it.
+ */
+interface PaymentGatewayInterface
+{
+    /**
+     * Build a hosted-payment redirect response for a contract.
+     */
+    public function createPaymentUrlResponse(string $uuid): JsonResponse;
+
+    /**
+     * Request a redirect URL for a contract using a custom amount.
+     *
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string}
+     */
+    public function requestPaymentRedirectUrl(string $uuid, float $amount): array;
+
+    /**
+     * Request a redirect URL for a standalone (contract-less) payment.
+     *
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string}
+     */
+    public function requestPaymentRedirectUrlWithoutContract(string $contractUuid, float $amount): array;
+
+    /**
+     * Handle a gateway callback / webhook and persist the payment outcome.
+     */
+    public function processIpn(Request $request, string $uuid): void;
+
+    /**
+     * Build the payment status payload returned to the client.
+     *
+     * @return array<string, mixed>
+     */
+    public function paymentStatusPayload(string $uuid, string $result): array;
+
+    /**
+     * Calculate the payable amount for a contract (services + period + coupons).
+     */
+    public function calculateCartAmount(Contract $contract): float;
+}
