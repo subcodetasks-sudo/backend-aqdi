@@ -37,6 +37,13 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     {
         $contract = Contract::where('uuid', $uuid)->firstOrFail();
 
+        if (! $this->contractCanBePaid($contract)) {
+            return response()->json([
+                'message' => trans('api.completed_contract'),
+                'success' => false,
+            ], 422);
+        }
+
         if (! $contract->contract_term_in_years) {
             return response()->json([
                 'message' => trans('api.contract_period_not_set_for_payment'),
@@ -87,6 +94,10 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     {
         $contract = Contract::where('uuid', $uuid)->firstOrFail();
 
+        if (! $this->contractCanBePaid($contract)) {
+            throw new \InvalidArgumentException(trans('api.completed_contract'));
+        }
+
         if ($amount <= 0) {
             throw new \InvalidArgumentException(trans('api.contract_payment_amount_invalid'));
         }
@@ -116,6 +127,22 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             }
 
             if ($status === 'paid') {
+                $contract = Contract::where('uuid', $uuid)->first();
+
+                if ($this->hasSuccessfulPayment($uuid)) {
+                    ContractPaidByEmployee::query()
+                        ->where('contract_uuid', $uuid)
+                        ->where('is_paid', false)
+                        ->update(['is_paid' => true]);
+
+                    if ($contract && ! $contract->is_completed) {
+                        $contract->is_completed = true;
+                        $contract->save();
+                    }
+
+                    return;
+                }
+
                 $this->persistPayment($request, $verified, $uuid, 'success');
 
                 ContractPaidByEmployee::query()
@@ -123,7 +150,6 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                     ->where('is_paid', false)
                     ->update(['is_paid' => true]);
 
-                $contract = Contract::where('uuid', $uuid)->first();
                 if ($contract) {
                     $contract->is_completed = true;
                     $contract->save();
@@ -350,6 +376,18 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         return (float) ($coupon->type_coupon === 'ratio'
             ? ($totalContractPrice * $coupon->value_coupon / 100)
             : $coupon->value_coupon);
+    }
+
+    private function contractCanBePaid(Contract $contract): bool
+    {
+        return ! $contract->is_completed && ! $this->hasSuccessfulPayment((string) $contract->uuid);
+    }
+
+    private function hasSuccessfulPayment(string $contractUuid): bool
+    {
+        return Payment::query()
+            ->successfulMatchingContractUuid($contractUuid)
+            ->exists();
     }
 
     /**

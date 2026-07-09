@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Contract;
 use App\Models\ContractPaidByEmployee;
 use App\Models\Employee;
 use App\Models\Payment;
@@ -84,6 +85,7 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
             $table->id();
             $table->string('uuid')->nullable();
             $table->boolean('is_completed')->default(false);
+            $table->string('app_or_web')->nullable();
             $table->timestamps();
         });
     }
@@ -176,5 +178,97 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
         $this->assertFalse($payload['is_completed']);
         $this->assertTrue($payload['employee_paid_record']['is_paid']);
         $this->assertSame('paid in branch', $payload['employee_paid_record']['notes']);
+    }
+
+    public function test_completed_contract_cannot_request_payment_again(): void
+    {
+        $contract = Contract::query()->create([
+            'is_completed' => true,
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(trans('api.completed_contract'));
+
+        app(MoyasarPaymentService::class)->requestPaymentRedirectUrl((string) $contract->uuid, 500);
+    }
+
+    public function test_contract_with_successful_payment_cannot_request_payment_again(): void
+    {
+        $contract = Contract::query()->create([
+            'is_completed' => false,
+        ]);
+
+        Payment::query()->create([
+            'amount' => 500,
+            'contract_uuid' => (string) $contract->uuid,
+            'tran_currency' => 'SAR',
+            'status' => 'success',
+            'payment_date' => now(),
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(trans('api.completed_contract'));
+
+        app(MoyasarPaymentService::class)->requestPaymentRedirectUrl((string) $contract->uuid, 500);
+    }
+
+    public function test_duplicate_paid_ipn_does_not_create_duplicate_success_payment_rows(): void
+    {
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/payments/pay_duplicate' => Http::response([
+                'id' => 'pay_duplicate',
+                'status' => 'paid',
+                'amount' => 50000,
+                'currency' => 'SAR',
+                'source' => ['type' => 'creditcard'],
+                'metadata' => ['contract_uuid' => '999999'],
+            ], 200),
+        ]);
+
+        $employee = Employee::query()->create([
+            'name' => 'Duplicate IPN Employee',
+            'email' => 'duplicate-ipn@test.local',
+            'password' => Hash::make('secret'),
+            'is_active' => true,
+        ]);
+
+        Contract::query()->create([
+            'uuid' => '999999',
+            'is_completed' => true,
+        ]);
+
+        ContractPaidByEmployee::query()->create([
+            'contract_uuid' => '999999',
+            'employee_id' => $employee->id,
+            'customer_mobile' => '0555555555',
+            'amount' => 500,
+            'is_paid' => false,
+        ]);
+
+        Payment::query()->create([
+            'amount' => 500,
+            'contract_uuid' => '999999',
+            'tran_currency' => 'SAR',
+            'status' => 'success',
+            'payment_date' => now(),
+        ]);
+
+        app(MoyasarPaymentService::class)->processIpn(new Request([
+            'id' => 'pay_duplicate',
+            'status' => 'paid',
+        ]), '999999');
+
+        $this->assertSame(
+            1,
+            Payment::query()->where('contract_uuid', '999999')->where('status', 'success')->count()
+        );
+        $this->assertTrue(
+            (bool) ContractPaidByEmployee::query()->where('contract_uuid', '999999')->value('is_paid')
+        );
     }
 }
