@@ -139,16 +139,25 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     
- Route::withoutMiddleware(function () {
-        Route::post('/status/{uuid}/success', [PaymentController::class, 'updateCartByIPN'])->name('callback')->withoutMiddleware('auth:sanctum');
-        Route::post('/status/{uuid}', [PaymentController::class, 'Callback'])->name('return')->withoutMiddleware('auth:sanctum');
-        Route::get('/status/success/{uuid}', [PaymentController::class, 'success'])->name('status.success')->withoutMiddleware('auth:sanctum');
-        Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])->name('status.error')->withoutMiddleware('auth:sanctum');
-        
-        // Payment Details (requires authentication)
-        Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
-            ->withoutMiddleware('auth:sanctum')
-            ->name('payment.show');
-    });
 });
+
+Route::post('/status/{uuid}/success', [PaymentController::class, 'updateCartByIPN'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('callback');
+
+Route::post('/status/{uuid}', [PaymentController::class, 'Callback'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('return');
+
+Route::get('/status/success/{uuid}', [PaymentController::class, 'success'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('status.success');
+
+Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('status.error');
+
+Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('payment.show');
 
