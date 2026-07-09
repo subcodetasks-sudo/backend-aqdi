@@ -174,6 +174,8 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     public function paymentStatusPayload(string $uuid, string $result): array
     {
+        $this->syncGatewayPaymentStatus($uuid);
+
         $contract = Contract::where('uuid', $uuid)->first();
         $employeePaidRecord = ContractPaidByEmployee::query()
             ->where('contract_uuid', $uuid)
@@ -208,6 +210,54 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 'payment_method' => $payment->payment_method,
                 'payment_date' => $payment->payment_date,
             ] : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function syncGatewayPaymentStatus(string $uuid): array
+    {
+        $gatewayPayment = $this->fetchLatestPaymentByContractUuid($uuid);
+
+        if ($gatewayPayment === null) {
+            return [
+                'contract_uuid' => $uuid,
+                'synced' => false,
+                'reason' => 'gateway_payment_not_found',
+            ];
+        }
+
+        $gatewayStatus = (string) ($gatewayPayment['status'] ?? '');
+        $metadata = is_array($gatewayPayment['metadata'] ?? null) ? $gatewayPayment['metadata'] : [];
+        $contractUuid = (string) ($metadata['contract_uuid'] ?? $uuid);
+
+        if ($gatewayStatus === 'paid') {
+            $this->persistPaymentFromGateway($gatewayPayment, $contractUuid, 'success');
+            $this->markContractAsCompleted($contractUuid);
+
+            return [
+                'contract_uuid' => $contractUuid,
+                'synced' => true,
+                'status' => 'success',
+            ];
+        }
+
+        if (in_array($gatewayStatus, ['failed', 'voided', 'refunded'], true)) {
+            $this->persistPaymentFromGateway($gatewayPayment, $contractUuid, 'failed');
+
+            return [
+                'contract_uuid' => $contractUuid,
+                'synced' => true,
+                'status' => 'failed',
+            ];
+        }
+
+        return [
+            'contract_uuid' => $uuid,
+            'synced' => false,
+            'reason' => 'gateway_status_not_final',
+            'gateway_status' => $gatewayStatus,
         ];
     }
 
@@ -334,6 +384,37 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         return $response['success'] && is_array($response['data']) ? $response['data'] : null;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchLatestPaymentByContractUuid(string $contractUuid): ?array
+    {
+        $response = $this->buildRequest('GET', '/v1/payments', [
+            'metadata[contract_uuid]' => $contractUuid,
+        ], 'query');
+
+        if (! $response['success'] || ! isset($response['data']) || ! is_array($response['data'])) {
+            return null;
+        }
+
+        $rows = array_is_list($response['data'])
+            ? $response['data']
+            : ($response['data']['payments'] ?? $response['data']['data'] ?? []);
+
+        if (! is_array($rows) || $rows === []) {
+            return null;
+        }
+
+        usort($rows, static function (mixed $a, mixed $b): int {
+            $aCreated = is_array($a) ? strtotime((string) ($a['created_at'] ?? '')) : 0;
+            $bCreated = is_array($b) ? strtotime((string) ($b['created_at'] ?? '')) : 0;
+
+            return $bCreated <=> $aCreated;
+        });
+
+        return is_array($rows[0] ?? null) ? $rows[0] : null;
+    }
+
     private function resolvePaymentId(Request $request): ?string
     {
         $id = $request->input('data.id') ?? $request->input('id');
@@ -369,6 +450,44 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             'status' => $status,
             'payment_date' => now(),
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $gatewayPayment
+     */
+    private function persistPaymentFromGateway(array $gatewayPayment, string $uuid, string $status): void
+    {
+        $source = is_array($gatewayPayment['source'] ?? null) ? $gatewayPayment['source'] : [];
+        $metadata = is_array($gatewayPayment['metadata'] ?? null) ? $gatewayPayment['metadata'] : [];
+        $contractUuid = (string) ($metadata['contract_uuid'] ?? $uuid);
+
+        if (Payment::query()->matchingContractUuid($contractUuid)->where('status', $status)->exists()) {
+            return;
+        }
+
+        Payment::create([
+            'name' => $metadata['name'] ?? null,
+            'amount' => isset($gatewayPayment['amount']) ? (float) $gatewayPayment['amount'] / 100 : 0,
+            'contract_uuid' => $contractUuid,
+            'tran_currency' => $gatewayPayment['currency'] ?? $this->currency,
+            'payment_method' => $source['type'] ?? null,
+            'status' => $status,
+            'payment_date' => now(),
+        ]);
+    }
+
+    private function markContractAsCompleted(string $uuid): void
+    {
+        $contract = Contract::where('uuid', $uuid)->first();
+        if ($contract && ! $contract->is_completed) {
+            $contract->is_completed = true;
+            $contract->save();
+        }
+
+        ContractPaidByEmployee::query()
+            ->where('contract_uuid', $uuid)
+            ->where('is_paid', false)
+            ->update(['is_paid' => true]);
     }
 
     private function resolveCouponDiscount(Contract $contract, float $totalContractPrice): float

@@ -46,6 +46,13 @@ interface PaymentGatewayInterface
     public function paymentStatusPayload(string $uuid, string $result): array;
 
     /**
+     * Sync local payment/contract state from the gateway using contract metadata.
+     *
+     * @return array<string, mixed>
+     */
+    public function syncGatewayPaymentStatus(string $uuid): array;
+
+    /**
      * Calculate the payable amount for a contract (services + period + coupons).
      */
     public function calculateCartAmount(Contract $contract): float;

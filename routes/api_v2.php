@@ -161,3 +161,7 @@ Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
     ->name('payment.show');
 
+Route::get('/payment/sync/{uuid}', [PaymentController::class, 'syncFromGateway'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('payment.sync');
+

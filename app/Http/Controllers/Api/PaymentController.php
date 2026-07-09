@@ -56,6 +56,14 @@ class PaymentController extends Controller
         );
     }
 
+    public function syncFromGateway(string $uuid)
+    {
+        return $this->apiResponse(
+            $this->paymentService->syncGatewayPaymentStatus((string) $uuid),
+            trans('api.success')
+        );
+    }
+
     public function sendSmsMessage($body, $recipients, $sender, $smsId)
     {
         $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';

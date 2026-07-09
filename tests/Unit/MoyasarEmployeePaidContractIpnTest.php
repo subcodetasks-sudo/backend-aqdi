@@ -287,4 +287,40 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
             'status' => 'failed',
         ]);
     }
+
+    public function test_gateway_sync_by_metadata_marks_contract_as_completed(): void
+    {
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        $contract = Contract::query()->create([
+            'is_completed' => false,
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/payments*' => Http::response([
+                [
+                    'id' => 'gateway_paid_1',
+                    'status' => 'paid',
+                    'amount' => 57400,
+                    'currency' => 'SAR',
+                    'created_at' => now()->toIso8601String(),
+                    'metadata' => ['contract_uuid' => (string) $contract->uuid],
+                    'source' => ['type' => 'creditcard'],
+                ],
+            ], 200),
+        ]);
+
+        $payload = app(MoyasarPaymentService::class)->syncGatewayPaymentStatus((string) $contract->uuid);
+
+        $this->assertTrue($payload['synced']);
+        $this->assertSame('success', $payload['status']);
+        $this->assertTrue((bool) $contract->fresh()->is_completed);
+        $this->assertDatabaseHas('payments', [
+            'contract_uuid' => (string) $contract->uuid,
+            'status' => 'success',
+        ]);
+    }
 }
