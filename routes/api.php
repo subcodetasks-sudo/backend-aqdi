@@ -173,8 +173,7 @@ Route::withoutMiddleware([CheckApi::class, ApiLocalization::class])->group(funct
     Route::get('/status/success/{uuid}', [PaymentController::class, 'success'])->name('status.success');
     Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])->name('status.error');
     
-    // Payment Details (requires authentication)
+    // Payment Details
     Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
-        ->middleware('auth:sanctum')
         ->name('payment.show');
 });
