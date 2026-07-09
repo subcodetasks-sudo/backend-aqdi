@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\ContractPeriodController;
 use App\Http\Controllers\Admin\ContractCommentController;
 use App\Http\Controllers\Admin\ContractStatusController;
 use App\Http\Controllers\Admin\ContractWhatsAppController;
+use App\Http\Controllers\Admin\ContentPageController;
 use App\Http\Controllers\Admin\CouponAdminController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ReceivedContractController;
@@ -479,6 +480,11 @@ use Illuminate\Support\Facades\Route;
         Route::post('/terms-and-conditions', 'updateTermsAndConditions')->name('terms.update');
         Route::get('/privacy', 'privacy')->name('privacy.show');
         Route::post('/privacy', 'updatePrivacy')->name('privacy.update');
+    });
+
+    Route::prefix('content-pages')->name('content-pages.')->controller(ContentPageController::class)->group(function () {
+        Route::get('/{pageKey}', 'show')->name('show');
+        Route::post('/{pageKey}', 'upsert')->name('upsert');
     });
 
     // Ads Management
