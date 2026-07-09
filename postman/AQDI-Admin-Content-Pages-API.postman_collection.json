@@ -1,0 +1,728 @@
+{
+    "info": {
+        "_postman_id": "331a5b2e-1a6e-40d2-b98c-78703ec5f5d2",
+        "name": "AQDI Admin — Content Pages API",
+        "description": "Unified admin CMS endpoints for `home` and `about` pages.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`\n\n**POST body:** `multipart/form-data` with nested keys and optional files.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "employee_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "pageKey",
+            "value": "home",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Auth",
+            "description": "احصل على token ثم خزنه في employee_token تلقائيًا.",
+            "item": [
+                {
+                    "name": "Employee login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) {",
+                                    "  pm.collectionVariables.set(\"employee_token\", token);",
+                                    "  pm.environment.set(\"employee_token\", token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Home",
+            "item": [
+                {
+                    "name": "Get home page content",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/content-pages/home",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "content-pages",
+                                "home"
+                            ]
+                        },
+                        "description": "Fetches the full editable home page structure."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Upsert home page content",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/content-pages/home",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "content-pages",
+                                "home"
+                            ]
+                        },
+                        "description": "Creates the page if missing, or updates existing home sections and uploaded files.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "page",
+                                    "value": "home",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[badge_text]",
+                                    "value": "عقدك الموثق من شبكة ايجار خلال دقائق",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[main_title]",
+                                    "value": "عقد إيجار إلكتروني موثق",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[description]",
+                                    "value": "عقود إيجار معتمدة وموثقة عبر منصة إيجار الإلكترونية.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "official_authorities[badge_text]",
+                                    "value": "جهات موثوقة ومعتمدة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[main_title]",
+                                    "value": "مرخصون من الجهات الرسمية",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[description]",
+                                    "value": "نعمل وفق أنظمة معتمدة لضمان موثوقية وأمان جميع التعاملات.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][title]",
+                                    "value": "شبكة إيجار",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][description]",
+                                    "value": "منصة موثقة ومعتمدة رسميًا.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][keep_license]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][license_file]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "official_authorities[cards][0][license_file_type]",
+                                    "value": "pdf",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[badge_text]",
+                                    "value": "مميزاتنا",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[main_title]",
+                                    "value": "لماذا عقدي!",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[description]",
+                                    "value": "عقدك الموثق من شبكة إيجار والهيئة العامة للعقار خلال دقائق.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[cards][0][title]",
+                                    "value": "ثقة عالية",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[cards][0][description]",
+                                    "value": "منصة مرخصة من شبكة إيجار.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[cards][0][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "features[cards][0][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "features[cards][0][is_default]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[badge_text]",
+                                    "value": "الأسعار",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[main_title]",
+                                    "value": "وثّق عقدك",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[description]",
+                                    "value": "اختر نوع العقد المناسب لك وابدأ التوثيق فورًا.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][title]",
+                                    "value": "عقد سكني",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][subtitle]",
+                                    "value": "مناسبة للإيجار، عقد فردي، عقد عائلي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][price]",
+                                    "value": "249",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][duration_label]",
+                                    "value": "/ السنة الواحدة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "pricing[cards][0][is_default]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][features][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "pricing[cards][0][features][0][text]",
+                                    "value": "خلال دقائق ينجز عقدك",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[badge_text]",
+                                    "value": "دعم مباشر وشخصي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[main_title]",
+                                    "value": "للاستفسار عن توثيق العقود على الواتساب",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[description]",
+                                    "value": "فريقنا المتخصص جاهز لمساعدتك.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[contact_number]",
+                                    "value": "0500000000",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "contact[image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "app[badge_text]",
+                                    "value": "تطبيق الجوال",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "app[main_title]",
+                                    "value": "وثّق عقودك من هاتفك الذكي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "app[description]",
+                                    "value": "حمّل تطبيق عقدي وأنجز جميع معاملاتك.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "app[keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "app[image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "deleted_feature_card_ids[0]",
+                                    "value": "9",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "deleted_official_card_ids[0]",
+                                    "value": "5",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "deleted_pricing_feature_ids[0]",
+                                    "value": "17",
+                                    "type": "text"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "About",
+            "item": [
+                {
+                    "name": "Get about page content",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/content-pages/about",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "content-pages",
+                                "about"
+                            ]
+                        },
+                        "description": "Fetches the full editable about page structure."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Upsert about page content",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/content-pages/about",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "content-pages",
+                                "about"
+                            ]
+                        },
+                        "description": "Creates the page if missing, or updates existing about sections and uploaded files.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "page",
+                                    "value": "about",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[badge_text]",
+                                    "value": "من نحن؟",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[main_title]",
+                                    "value": "نُبسّط إدارة العقود الإيجارية",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "hero[description]",
+                                    "value": "تقدم عقاري حلولًا إلكترونية متكاملة.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[badge_text]",
+                                    "value": "قصتنا",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[main_title]",
+                                    "value": "أرقام نعتز بها",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[description]",
+                                    "value": "نعمل تحت إشراف وتراخيص الجهات الحكومية.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[cards][0][value]",
+                                    "value": "8.3M+",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "story[cards][0][label]",
+                                    "value": "عدد العقود السكنية الموثقة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[section_title]",
+                                    "value": "كل ما تريد معرفته",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[section_description]",
+                                    "value": "يمكنك استخدام منصة عقدي لتوثيق عقودك.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[mission][badge_text]",
+                                    "value": "الرسالة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[mission][title]",
+                                    "value": "رسالتنا",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[mission][description]",
+                                    "value": "نقدم حلولًا عقارية موثوقة.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[mission][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[mission][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "vision_mission[vision][badge_text]",
+                                    "value": "الرؤية",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[vision][title]",
+                                    "value": "رؤيتنا",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[vision][description]",
+                                    "value": "أن تكون إيجار الأولى.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[vision][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "vision_mission[vision][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "beneficiaries[badge_text]",
+                                    "value": "العملية الإيجارية",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[main_title]",
+                                    "value": "المستفيدون من إيجار",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[description]",
+                                    "value": "يُطلق على المشتركين في إيجار العقاري.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[cards][0][title]",
+                                    "value": "المستأجر",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[cards][0][description]",
+                                    "value": "يهدف من المواطن والمقيم.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[cards][0][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "beneficiaries[cards][0][image]",
+                                    "type": "file",
+                                    "src": ""
+                                },
+                                {
+                                    "key": "values[badge_text]",
+                                    "value": "قيمنا",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[main_title]",
+                                    "value": "قيم عقدي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[description]",
+                                    "value": "يهدف إيجار إلى تنظيم قطاع الإيجار العقاري.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[cards][0][id]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[cards][0][title]",
+                                    "value": "نحو إدارة واضحة ومسؤولة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[cards][0][description]",
+                                    "value": "نوفر معلومات واضحة ومحدثة.",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[cards][0][keep_image]",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "values[cards][0][image]",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Generic",
+            "item": [
+                {
+                    "name": "Get by pageKey variable",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/content-pages/{{pageKey}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "content-pages",
+                                "{{pageKey}}"
+                            ]
+                        },
+                        "description": "Use the `pageKey` collection variable to switch between `home` and `about`."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

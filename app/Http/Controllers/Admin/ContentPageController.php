@@ -98,6 +98,7 @@ class ContentPageController extends Controller
     {
         $content = is_array($content) ? $content : $this->defaultContentFor($pageKey);
         $content = $this->mergeAssocRecursive($this->defaultContentFor($pageKey), $content);
+        $content = $this->normalizeNullValues($content);
 
         return [
             'page' => $pageKey,
@@ -282,6 +283,24 @@ class ContentPageController extends Controller
         return array_keys($array) !== range(0, count($array) - 1);
     }
 
+    private function normalizeNullValues(mixed $value): mixed
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        $normalized = [];
+        foreach ($value as $key => $item) {
+            $normalized[$key] = $this->normalizeNullValues($item);
+        }
+
+        return $normalized;
+    }
+
     private function fetchMessageFor(string $pageKey): string
     {
         return match ($pageKey) {
@@ -307,41 +326,41 @@ class ContentPageController extends Controller
                 'page' => 'home',
                 'sections' => [
                     'hero' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
-                        'image_url' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
+                        'image_url' => '',
                     ],
                     'official_authorities' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                     'features' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                     'pricing' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                     'contact' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
-                        'contact_number' => null,
-                        'image_url' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
+                        'contact_number' => '',
+                        'image_url' => '',
                     ],
                     'app' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
-                        'image_url' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
+                        'image_url' => '',
                     ],
                 ],
             ],
@@ -349,42 +368,42 @@ class ContentPageController extends Controller
                 'page' => 'about',
                 'sections' => [
                     'hero' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                     ],
                     'story' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                     'vision_mission' => [
-                        'section_title' => null,
-                        'section_description' => null,
+                        'section_title' => '',
+                        'section_description' => '',
                         'mission' => [
-                            'badge_text' => null,
-                            'title' => null,
-                            'description' => null,
-                            'image_url' => null,
+                            'badge_text' => '',
+                            'title' => '',
+                            'description' => '',
+                            'image_url' => '',
                         ],
                         'vision' => [
-                            'badge_text' => null,
-                            'title' => null,
-                            'description' => null,
-                            'image_url' => null,
+                            'badge_text' => '',
+                            'title' => '',
+                            'description' => '',
+                            'image_url' => '',
                         ],
                     ],
                     'beneficiaries' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                     'values' => [
-                        'badge_text' => null,
-                        'main_title' => null,
-                        'description' => null,
+                        'badge_text' => '',
+                        'main_title' => '',
+                        'description' => '',
                         'cards' => [],
                     ],
                 ],
