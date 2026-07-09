@@ -43,7 +43,12 @@ interface PaymentGatewayInterface
      *
      * @return array<string, mixed>
      */
-    public function paymentStatusPayload(string $uuid, string $result): array;
+    public function paymentStatusPayload(
+        string $uuid,
+        string $result,
+        ?string $paymentId = null,
+        ?string $invoiceId = null
+    ): array;
 
     /**
      * Sync local payment/contract state from the gateway using contract metadata.

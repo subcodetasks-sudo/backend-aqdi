@@ -173,9 +173,11 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
         $payload = app(MoyasarPaymentService::class)->paymentStatusPayload('654321', 'success');
 
         $this->assertSame('success', $payload['result']);
+        $this->assertSame('success', $payload['resolved_result']);
         $this->assertSame('654321', $payload['contract_uuid']);
         $this->assertNull($payload['contract_id']);
         $this->assertFalse($payload['is_completed']);
+        $this->assertTrue($payload['payment_confirmed']);
         $this->assertTrue($payload['employee_paid_record']['is_paid']);
         $this->assertSame('paid in branch', $payload['employee_paid_record']['notes']);
     }
@@ -375,6 +377,49 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
 
         $this->assertTrue($payload['synced']);
         $this->assertSame('success', $payload['status']);
+        $this->assertTrue((bool) $contract->fresh()->is_completed);
+    }
+
+    public function test_error_page_payload_resolves_to_success_when_gateway_confirms_paid(): void
+    {
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        $contract = Contract::query()->create([
+            'is_completed' => false,
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/invoices/invoice_paid_after_redirect' => Http::response([
+                'id' => 'invoice_paid_after_redirect',
+                'status' => 'paid',
+                'amount' => 57400,
+                'currency' => 'SAR',
+                'metadata' => ['contract_uuid' => (string) $contract->uuid],
+                'payments' => [
+                    [
+                        'id' => 'gateway_paid_after_redirect',
+                        'status' => 'paid',
+                        'amount' => 57400,
+                        'currency' => 'SAR',
+                        'source' => ['type' => 'creditcard'],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $payload = app(MoyasarPaymentService::class)->paymentStatusPayload(
+            (string) $contract->uuid,
+            'error',
+            null,
+            'invoice_paid_after_redirect'
+        );
+
+        $this->assertSame('error', $payload['result']);
+        $this->assertSame('success', $payload['resolved_result']);
+        $this->assertTrue($payload['payment_confirmed']);
         $this->assertTrue((bool) $contract->fresh()->is_completed);
     }
 }

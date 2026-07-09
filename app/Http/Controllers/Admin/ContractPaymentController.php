@@ -62,7 +62,12 @@ class ContractPaymentController extends Controller
         $this->paymentService->processIpn($request, $uuid);
 
         return response()->json(
-            $this->paymentService->paymentStatusPayload($uuid, 'return')
+            $this->paymentService->paymentStatusPayload(
+                $uuid,
+                'return',
+                $request->input('id') ?? $request->input('payment_id'),
+                $request->input('invoice_id')
+            )
         );
     }
 
@@ -74,7 +79,12 @@ class ContractPaymentController extends Controller
         $this->paymentService->processIpn($request, $uuid);
 
         return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload($uuid, 'success'),
+            $this->paymentService->paymentStatusPayload(
+                $uuid,
+                'success',
+                $request->input('id') ?? $request->input('payment_id'),
+                $request->input('invoice_id')
+            ),
             trans('api.success')
         );
     }
@@ -87,7 +97,12 @@ class ContractPaymentController extends Controller
         $this->paymentService->processIpn($request, $uuid);
 
         return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload($uuid, 'error'),
+            $this->paymentService->paymentStatusPayload(
+                $uuid,
+                'error',
+                $request->input('id') ?? $request->input('payment_id'),
+                $request->input('invoice_id')
+            ),
             trans('api.error'),
             400
         );
