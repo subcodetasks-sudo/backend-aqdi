@@ -50,7 +50,7 @@ interface PaymentGatewayInterface
      *
      * @return array<string, mixed>
      */
-    public function syncGatewayPaymentStatus(string $uuid): array;
+    public function syncGatewayPaymentStatus(string $uuid, ?string $paymentId = null, ?string $invoiceId = null): array;
 
     /**
      * Calculate the payable amount for a contract (services + period + coupons).

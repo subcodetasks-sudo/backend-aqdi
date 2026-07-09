@@ -216,11 +216,17 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     /**
      * @return array<string, mixed>
      */
-    public function syncGatewayPaymentStatus(string $uuid): array
+    public function syncGatewayPaymentStatus(string $uuid, ?string $paymentId = null, ?string $invoiceId = null): array
     {
-        $gatewayPayment = $this->fetchLatestPaymentByContractUuid($uuid);
+        $gatewayPayment = $this->resolveGatewayPaymentForSync($uuid, $paymentId, $invoiceId);
 
         if ($gatewayPayment === null) {
+            Log::warning('Moyasar gateway sync could not resolve payment', [
+                'contract_uuid' => $uuid,
+                'payment_id' => $paymentId,
+                'invoice_id' => $invoiceId,
+            ]);
+
             return [
                 'contract_uuid' => $uuid,
                 'synced' => false,
@@ -387,9 +393,111 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     /**
      * @return array<string, mixed>|null
      */
+    private function fetchInvoice(string $invoiceId): ?array
+    {
+        $response = $this->buildRequest('GET', '/v1/invoices/' . $invoiceId);
+
+        return $response['success'] && is_array($response['data']) ? $response['data'] : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveGatewayPaymentForSync(string $contractUuid, ?string $paymentId, ?string $invoiceId): ?array
+    {
+        if ($paymentId) {
+            $payment = $this->fetchPayment($paymentId);
+            if ($payment !== null) {
+                return $payment;
+            }
+        }
+
+        if ($invoiceId) {
+            $payment = $this->extractPaidPaymentFromInvoice($this->fetchInvoice($invoiceId), $contractUuid);
+            if ($payment !== null) {
+                return $payment;
+            }
+        }
+
+        $invoicePayment = $this->extractPaidPaymentFromInvoice(
+            $this->fetchLatestInvoiceByContractUuid($contractUuid),
+            $contractUuid
+        );
+        if ($invoicePayment !== null) {
+            return $invoicePayment;
+        }
+
+        return $this->fetchLatestPaymentByContractUuid($contractUuid);
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $invoice
+     * @return array<string, mixed>|null
+     */
+    private function extractPaidPaymentFromInvoice(?array $invoice, string $contractUuid): ?array
+    {
+        if ($invoice === null) {
+            return null;
+        }
+
+        $invoiceMetadata = is_array($invoice['metadata'] ?? null) ? $invoice['metadata'] : [];
+        $resolvedContractUuid = (string) ($invoiceMetadata['contract_uuid'] ?? $contractUuid);
+
+        $payments = is_array($invoice['payments'] ?? null) ? $invoice['payments'] : [];
+        foreach ($payments as $payment) {
+            if (! is_array($payment) || ($payment['status'] ?? null) !== 'paid') {
+                continue;
+            }
+
+            $paymentMetadata = is_array($payment['metadata'] ?? null) ? $payment['metadata'] : [];
+
+            return array_merge($payment, [
+                'metadata' => array_merge($paymentMetadata, [
+                    'contract_uuid' => (string) ($paymentMetadata['contract_uuid'] ?? $resolvedContractUuid),
+                ]),
+                'invoice_id' => $invoice['id'] ?? null,
+            ]);
+        }
+
+        if (($invoice['status'] ?? null) !== 'paid') {
+            return null;
+        }
+
+        return [
+            'id' => $invoice['id'] ?? null,
+            'status' => 'paid',
+            'amount' => $invoice['amount'] ?? 0,
+            'currency' => $invoice['currency'] ?? $this->currency,
+            'metadata' => array_merge($invoiceMetadata, [
+                'contract_uuid' => $resolvedContractUuid,
+            ]),
+            'source' => [],
+            'invoice_id' => $invoice['id'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchLatestInvoiceByContractUuid(string $contractUuid): ?array
+    {
+        return $this->fetchLatestGatewayResourceByMetadata('/v1/invoices', 'invoices', $contractUuid);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     private function fetchLatestPaymentByContractUuid(string $contractUuid): ?array
     {
-        $response = $this->buildRequest('GET', '/v1/payments', [
+        return $this->fetchLatestGatewayResourceByMetadata('/v1/payments', 'payments', $contractUuid);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function fetchLatestGatewayResourceByMetadata(string $endpoint, string $collectionKey, string $contractUuid): ?array
+    {
+        $response = $this->buildRequest('GET', $endpoint, [
             'metadata[contract_uuid]' => $contractUuid,
         ], 'query');
 
@@ -399,7 +507,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
         $rows = array_is_list($response['data'])
             ? $response['data']
-            : ($response['data']['payments'] ?? $response['data']['data'] ?? []);
+            : ($response['data'][$collectionKey] ?? $response['data']['data'] ?? []);
 
         if (! is_array($rows) || $rows === []) {
             return null;

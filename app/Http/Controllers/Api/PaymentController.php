@@ -56,10 +56,14 @@ class PaymentController extends Controller
         );
     }
 
-    public function syncFromGateway(string $uuid)
+    public function syncFromGateway(Request $request, string $uuid)
     {
         return $this->apiResponse(
-            $this->paymentService->syncGatewayPaymentStatus((string) $uuid),
+            $this->paymentService->syncGatewayPaymentStatus(
+                (string) $uuid,
+                $request->input('id') ?? $request->input('payment_id'),
+                $request->input('invoice_id')
+            ),
             trans('api.success')
         );
     }
