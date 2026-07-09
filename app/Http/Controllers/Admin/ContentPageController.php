@@ -206,6 +206,14 @@ class ContentPageController extends Controller
             return $incoming;
         }
 
+        if ($incoming === []) {
+            if (is_array($existing) && $this->isAssoc($existing)) {
+                return $existing;
+            }
+
+            return [];
+        }
+
         if (!$this->isAssoc($incoming)) {
             return $this->mergeList($existing, $incoming);
         }
