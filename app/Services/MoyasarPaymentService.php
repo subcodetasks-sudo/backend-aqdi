@@ -571,17 +571,20 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     {
         $source = is_array($verified['source'] ?? null) ? $verified['source'] : [];
         $metadata = is_array($verified['metadata'] ?? null) ? $verified['metadata'] : [];
-
-        $amount = isset($verified['amount'])
-            ? (float) $verified['amount'] / 100
-            : (float) $request->input('amount', 0);
+        $contractUuid = (string) ($metadata['contract_uuid'] ?? $uuid);
+        $amount = $this->normalizeGatewayAmount(
+            $verified['amount'] ?? $request->input('amount', 0)
+        );
 
         Payment::create([
-            'name' => $metadata['name'] ?? $request->input('metadata.name'),
+            'name' => $this->resolvePaymentName(
+                $metadata['name'] ?? $request->input('metadata.name'),
+                $contractUuid
+            ),
             'amount' => $amount,
-            'contract_uuid' => $metadata['contract_uuid'] ?? $uuid,
+            'contract_uuid' => $contractUuid,
             'tran_currency' => $verified['currency'] ?? $this->currency,
-            'payment_method' => $source['type'] ?? null,
+            'payment_method' => $source['type'] ?? 'moyasar',
             'status' => $status,
             'payment_date' => now(),
         ]);
@@ -601,14 +604,32 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         }
 
         Payment::create([
-            'name' => $metadata['name'] ?? null,
-            'amount' => isset($gatewayPayment['amount']) ? (float) $gatewayPayment['amount'] / 100 : 0,
+            'name' => $this->resolvePaymentName($metadata['name'] ?? null, $contractUuid),
+            'amount' => $this->normalizeGatewayAmount($gatewayPayment['amount'] ?? 0),
             'contract_uuid' => $contractUuid,
             'tran_currency' => $gatewayPayment['currency'] ?? $this->currency,
-            'payment_method' => $source['type'] ?? null,
+            'payment_method' => $source['type'] ?? 'moyasar',
             'status' => $status,
             'payment_date' => now(),
         ]);
+    }
+
+    private function resolvePaymentName(mixed $name, string $contractUuid): string
+    {
+        $resolved = is_string($name) ? trim($name) : '';
+
+        return $resolved !== '' ? $resolved : 'Contract ' . $contractUuid;
+    }
+
+    private function normalizeGatewayAmount(mixed $amount): float
+    {
+        $numeric = (float) $amount;
+
+        if ($numeric <= 0) {
+            return 0.0;
+        }
+
+        return round($numeric / 100, 2);
     }
 
     private function markContractAsCompleted(string $uuid): void

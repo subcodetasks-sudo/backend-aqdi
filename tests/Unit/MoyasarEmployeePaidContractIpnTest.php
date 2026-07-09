@@ -290,6 +290,42 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
         ]);
     }
 
+    public function test_paid_ipn_without_name_uses_contract_name_fallback(): void
+    {
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        $contract = Contract::query()->create([
+            'is_completed' => false,
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/payments/pay_without_name' => Http::response([
+                'id' => 'pay_without_name',
+                'status' => 'paid',
+                'amount' => 57400,
+                'currency' => 'SAR',
+                'metadata' => ['contract_uuid' => (string) $contract->uuid],
+                'source' => [],
+            ], 200),
+        ]);
+
+        app(MoyasarPaymentService::class)->processIpn(new Request([
+            'id' => 'pay_without_name',
+            'status' => 'paid',
+        ]), (string) $contract->uuid);
+
+        $this->assertDatabaseHas('payments', [
+            'contract_uuid' => (string) $contract->uuid,
+            'name' => 'Contract ' . $contract->uuid,
+            'payment_method' => 'moyasar',
+            'amount' => 574.00,
+            'status' => 'success',
+        ]);
+    }
+
     public function test_gateway_sync_by_metadata_marks_contract_as_completed(): void
     {
         config([
