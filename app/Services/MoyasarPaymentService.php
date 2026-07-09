@@ -269,6 +269,16 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     private function paymentFrontendRedirectUrls(string $contractUuid): array
     {
+        $successTemplate = (string) config('services.moyasar.payment_success_url_template', '');
+        $errorTemplate = (string) config('services.moyasar.payment_error_url_template', '');
+
+        if ($successTemplate !== '' && $errorTemplate !== '') {
+            return [
+                'success' => str_replace('{uuid}', $contractUuid, $successTemplate),
+                'error' => str_replace('{uuid}', $contractUuid, $errorTemplate),
+            ];
+        }
+
         $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
 
         return [
