@@ -27,7 +27,7 @@ class ContentPageController extends Controller
             );
 
             return $this->apiResponse(
-                $this->formatPageResponse($pageKey, $page->content_json),
+                $this->buildResponsePayload($pageKey, $page),
                 $this->fetchMessageFor($pageKey)
             );
         } catch (ValidationException $e) {
@@ -70,15 +70,23 @@ class ContentPageController extends Controller
                 'content_json' => $content,
             ]);
 
-            return $this->apiResponse([
-                'page' => $pageKey,
-                'updated_at' => optional($page->fresh()->updated_at)->toAtomString(),
-            ], $this->saveMessageFor($pageKey));
+            return $this->apiResponse(
+                $this->buildResponsePayload($pageKey, $page->fresh()),
+                $this->saveMessageFor($pageKey)
+            );
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (\Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
         }
+    }
+
+    private function buildResponsePayload(string $pageKey, ContentPage $page): array
+    {
+        $payload = $this->formatPageResponse($pageKey, $page->content_json);
+        $payload['updated_at'] = optional($page->updated_at)->toAtomString() ?? '';
+
+        return $payload;
     }
 
     private function normalizePageKey(string $pageKey): string
