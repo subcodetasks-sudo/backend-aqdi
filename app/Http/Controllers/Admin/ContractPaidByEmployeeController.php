@@ -104,6 +104,8 @@ class ContractPaidByEmployeeController extends Controller
                 'Payment_url' => $payment['payment_url'],
                 'cart_amount' => $payment['cart_amount'],
                 'contract_uuid' => $payment['contract_uuid'],
+                'payment_success_url' => $payment['payment_success_url'] ?? null,
+                'payment_error_url' => $payment['payment_error_url'] ?? null,
             ], trans('api.created_successfully'), 201);
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.contract_not_found'), 404);

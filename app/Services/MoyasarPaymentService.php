@@ -70,12 +70,16 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ], 400);
         }
 
+        $redirectUrls = $this->paymentFrontendRedirectUrls((string) $contract->uuid);
+
         return response()->json([
             'Payment_url' => $invoice['url'],
             'payment_url' => $invoice['url'],
             'invoice_id' => $invoice['id'],
             'contract_uuid' => (string) $contract->uuid,
             'cart_amount' => $cartAmount,
+            'payment_success_url' => $redirectUrls['success'],
+            'payment_error_url' => $redirectUrls['error'],
         ]);
     }
 
@@ -223,10 +227,27 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             throw new \RuntimeException($invoice['message'] ?? trans('api.not_accept'));
         }
 
+        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid);
+
         return [
             'payment_url' => (string) $invoice['url'],
             'cart_amount' => $amount,
             'contract_uuid' => $contractUuid,
+            'payment_success_url' => $redirectUrls['success'],
+            'payment_error_url' => $redirectUrls['error'],
+        ];
+    }
+
+    /**
+     * @return array{success: string, error: string}
+     */
+    private function paymentFrontendRedirectUrls(string $contractUuid): array
+    {
+        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
+
+        return [
+            'success' => "{$base}/payment/success/{$contractUuid}",
+            'error' => "{$base}/payment/error/{$contractUuid}",
         ];
     }
 
@@ -237,11 +258,15 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     private function createInvoice(float $amount, string $description, string $contractUuid): array
     {
+        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid);
+
         $response = $this->buildRequest('POST', '/v1/invoices', [
             'amount' => $this->toMinorUnits($amount),
             'currency' => $this->currency,
             'description' => $description,
             'callback_url' => route('callback', ['uuid' => $contractUuid]),
+            'success_url' => $redirectUrls['success'],
+            'back_url' => $redirectUrls['error'],
             'metadata' => [
                 'contract_uuid' => $contractUuid,
             ],

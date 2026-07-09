@@ -49,6 +49,7 @@ return [
         'secret_key' => env('MOYASAR_SECRET_KEY'),
         'publishable_key' => env('MOYASAR_PUBLISHABLE_KEY'),
         'currency' => env('MOYASAR_CURRENCY', 'SAR'),
+        'payment_frontend_url' => rtrim((string) env('PAYMENT_FRONTEND_URL', 'http://localhost:3000'), '/'),
     ],
 
 ];
