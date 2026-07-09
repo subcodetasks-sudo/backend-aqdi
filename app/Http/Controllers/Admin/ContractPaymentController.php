@@ -69,8 +69,10 @@ class ContractPaymentController extends Controller
     /**
      * GET /api/admin/payment-gateway/status/success/{uuid}
      */
-    public function success(string $uuid)
+    public function success(Request $request, string $uuid)
     {
+        $this->paymentService->processIpn($request, $uuid);
+
         return $this->apiResponse(
             $this->paymentService->paymentStatusPayload($uuid, 'success'),
             trans('api.success')
@@ -80,8 +82,10 @@ class ContractPaymentController extends Controller
     /**
      * GET /api/admin/payment-gateway/status/error/{uuid}
      */
-    public function error(string $uuid)
+    public function error(Request $request, string $uuid)
     {
+        $this->paymentService->processIpn($request, $uuid);
+
         return $this->apiResponse(
             $this->paymentService->paymentStatusPayload($uuid, 'error'),
             trans('api.error'),

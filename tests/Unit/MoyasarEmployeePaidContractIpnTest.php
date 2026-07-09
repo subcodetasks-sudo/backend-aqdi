@@ -271,4 +271,20 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
             (bool) ContractPaidByEmployee::query()->where('contract_uuid', '999999')->value('is_paid')
         );
     }
+
+    public function test_failed_status_from_return_link_is_saved_in_database(): void
+    {
+        app(MoyasarPaymentService::class)->processIpn(new Request([
+            'id' => 'pay_failed',
+            'status' => 'failed',
+            'amount' => 50000,
+            'currency' => 'SAR',
+            'metadata' => ['contract_uuid' => '444444'],
+        ]), '444444');
+
+        $this->assertDatabaseHas('payments', [
+            'contract_uuid' => '444444',
+            'status' => 'failed',
+        ]);
+    }
 }

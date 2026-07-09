@@ -35,16 +35,20 @@ class PaymentController extends Controller
         );
     }
 
-    public function success($uuid)
+    public function success(Request $request, $uuid)
     {
+        $this->paymentService->processIpn($request, (string) $uuid);
+
         return $this->apiResponse(
             $this->paymentService->paymentStatusPayload((string) $uuid, 'success'),
             trans('api.success')
         );
     }
 
-    public function error($uuid)
+    public function error(Request $request, $uuid)
     {
+        $this->paymentService->processIpn($request, (string) $uuid);
+
         return $this->apiResponse(
             $this->paymentService->paymentStatusPayload((string) $uuid, 'error'),
             trans('api.error'),
