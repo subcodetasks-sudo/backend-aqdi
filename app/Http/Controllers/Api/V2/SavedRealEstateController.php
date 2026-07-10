@@ -26,75 +26,26 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
         DB::beginTransaction();
 
         try {
-            $realData = [
-                'user_id' => $userId,
-                'property_owner_iban' => $contract->property_owner_iban,
-                'contract_type' => $contract->contract_type,
-                'date_first_registration' => $contract->date_first_registration,
-                'real_estate_registry_number' => $contract->real_estate_registry_number,
-                'name_real_estate' => $validated['name_real_estate'],
-                'name_owner' => $contract->name_owner,
-                'number_of_units_in_realestate' => $contract->numberOfUnitsInRealestate(),
-                'unit_number' => $contract->unit_number,
-                'instrument_number' => $contract->instrument_number,
-                'instrument_history' => $contract->instrument_history,
-                'instrument_type' => $contract->instrument_type,
-                'property_city_id' => $contract->property_city_id,
-                'street' => $contract->street,
-                'number_of_floors' => $contract->number_of_floors,
-                'postal_code' => $contract->postal_code,
-                'extra_figure' => $contract->extra_figure,
-                'type_real_estate_other' => $contract->type_real_estate_other,
-                'property_owner_id_num' => $contract->property_owner_id_num,
-                'property_owner_dob' => $contract->property_owner_dob,
-                'property_owner_mobile' => $contract->property_owner_mobile,
-                'neighborhood' => $contract->neighborhood,
-                'property_place_id' => $contract->property_place_id,
-                'building_number' => $contract->building_number,
-                'property_type_id' => $contract->property_type_id,
-                'property_usages_id' => $contract->property_usages_id,
-                'image_instrument' => $contract->image_instrument,
-                'age_of_the_property' => $contract->age_of_the_property,
-                'number_of_units_per_floor' => $contract->number_of_units_per_floor,
-                'image_address' => $contract->image_address,
-                'latitude' => $contract->latitude,
-                'longitude' => $contract->longitude,
-            ];
+            $real = RealEstate::create($this->realEstatePayloadFromContract($contract, $userId, $validated['name_real_estate']));
+            $unit = UnitsReal::create(UnitsReal::attributesForApi(
+                $this->unitPayloadFromContract($contract, $real->id, $userId)
+            ));
 
-            $real = RealEstate::create($realData);
-
-            $unitData = [
-                'real_estates_units_id' => $real->id,
-                'user_id' => $userId,
-                'unit_number' => $contract->unit_number,
-                'unit_area' => $contract->unit_area,
-                'electricity_meter_number' => $contract->electricity_meter_number,
-                'water_meter_number' => $contract->water_meter_number,
-                'Gasmeter' => $contract->Gasmeter,
-                'window_ac' => $contract->window_ac,
-                'split_ac' => $contract->split_ac,
-                'tootal_rooms' => $contract->tootal_rooms,
-                'The_number_of_toilets' => $contract->The_number_of_toilets,
-                'number_of_kitchens' => $contract->number_of_kitchens,
-                'unit_usage_id' => $contract->unit_usage_id,
-                'unit_type_id' => $contract->unit_type_id,
-                'floor_number' => $contract->floor_number,
-                'number_of_parking_spaces' => $contract->number_of_parking_spaces,
-                'number_of_halls' => $contract->number_of_halls,
-            ];
-
-            $unit = UnitsReal::create($unitData);
+            $contract->update([
+                'real_id' => $real->id,
+                'real_units_id' => $unit->id,
+                'is_real' => true,
+            ]);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'تمت إضافة العقار بنجاح',
+                'message' => 'تمت إضافة العقار والوحدة بنجاح',
                 'code' => Response::HTTP_CREATED,
                 'success' => true,
                 'data' => [
-                    'real_estate' => $real,
-                    'units_real' => $unit,
-                    // Expose contract V2 fields so the client has all newly added data.
+                    'real_estate' => $real->fresh(),
+                    'units_real' => $unit->fresh(),
                     'contract_v2_fields' => [
                         'image_instrument_from_the_front' => $contract->image_instrument_from_the_front,
                         'image_instrument_from_the_back' => $contract->image_instrument_from_the_back,
@@ -120,5 +71,96 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
-}
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function realEstatePayloadFromContract(Contract $contract, int $userId, string $nameRealEstate): array
+    {
+        return [
+            'user_id' => $userId,
+            'property_owner_iban' => $contract->property_owner_iban,
+            'contract_type' => $contract->contract_type,
+            'date_first_registration' => $contract->date_first_registration,
+            'real_estate_registry_number' => $contract->real_estate_registry_number,
+            'name_real_estate' => $nameRealEstate,
+            'name_owner' => $contract->name_owner,
+            'number_of_units_in_realestate' => $contract->numberOfUnitsInRealestate(),
+            'instrument_number' => $contract->instrument_number,
+            'instrument_history' => $contract->instrument_history,
+            'instrument_type' => $contract->instrument_type,
+            'property_city_id' => $contract->property_city_id,
+            'street' => $contract->street,
+            'number_of_floors' => $contract->number_of_floors,
+            'postal_code' => $contract->postal_code,
+            'extra_figure' => $contract->extra_figure,
+            'type_real_estate_other' => $contract->type_real_estate_other,
+            'property_owner_id_num' => $contract->property_owner_id_num,
+            'property_owner_dob_hijri' => $contract->property_owner_dob,
+            'property_owner_mobile' => $contract->property_owner_mobile,
+            'neighborhood' => $contract->neighborhood,
+            'property_place_id' => $contract->property_place_id,
+            'building_number' => $contract->building_number,
+            'property_type_id' => $contract->property_type_id,
+            'property_usages_id' => $contract->property_usages_id,
+            'image_instrument' => $contract->image_instrument,
+            'age_of_the_property' => $contract->age_of_the_property,
+            'number_of_units_per_floor' => $contract->number_of_units_per_floor,
+            'image_address' => $contract->image_address,
+            'address_url' => $contract->address_url,
+            'latitude' => $contract->latitude,
+            'longitude' => $contract->longitude,
+            'contract_ownership' => $contract->contract_ownership,
+            'add_legal_agent_of_owner' => $contract->add_legal_agent_of_owner,
+            'id_num_of_property_owner_agent' => $contract->id_num_of_property_owner_agent,
+            'dob_of_property_owner_agent' => $contract->dob_of_property_owner_agent,
+            'mobile_of_property_owner_agent' => $contract->mobile_of_property_owner_agent,
+            'agency_number_in_instrument_of_property_owner' => $contract->agency_number_in_instrument_of_property_owner,
+            'agency_instrument_date_of_property_owner' => $contract->agency_instrument_date_of_property_owner,
+            'copy_of_the_authorization_or_agency' => $contract->copy_of_the_authorization_or_agency,
+            'copy_of_the_endowment_registration_certificate' => $contract->copy_of_the_endowment_registration_certificate,
+            'copy_of_the_trusteeship_deed' => $contract->copy_of_the_trusteeship_deed,
+            'type_dob_property_owner' => $contract->type_dob_property_owner,
+            'type_dob_property_owner_agent' => $contract->type_dob_property_owner_agent,
+            'type_instrument_history' => $contract->type_instrument_history,
+            'type_date_first_registration' => $contract->type_date_first_registration,
+            'type_agency_instrument_date_of_property_owner' => $contract->type_agency_instrument_date_of_property_owner,
+        ];
+    }
+
+    /**
+     * Copy contract step-5 unit fields into a new real_units row.
+     *
+     * @return array<string, mixed>
+     */
+    private function unitPayloadFromContract(Contract $contract, int $realEstateId, int $userId): array
+    {
+        $attrs = $contract->getAttributes();
+
+        return [
+            'real_estates_units_id' => $realEstateId,
+            'user_id' => $userId,
+            'contract_type' => $contract->contract_type,
+            'unit_number' => $contract->unit_number,
+            'unit_type_id' => $contract->unit_type_id,
+            'unit_usage_id' => $contract->unit_usage_id,
+            'floor_number' => $contract->floor_number,
+            'unit_area' => $contract->unit_area,
+            'tootal_rooms' => $contract->tootal_rooms,
+            'The_number_of_halls' => $contract->The_number_of_halls,
+            'The_number_of_kitchens' => $contract->The_number_of_kitchens,
+            'The_number_of_toilets' => $contract->The_number_of_toilets
+                ?? ($attrs['The_number_of_the_toilet'] ?? null),
+            'window_ac' => $contract->window_ac,
+            'split_ac' => $contract->split_ac,
+            'electricity_meter_number' => $contract->electricity_meter_number,
+            'water_meter_number' => $contract->water_meter_number,
+            'kitchen_tank' => (bool) $contract->kitchen_tank,
+            'furnished' => (bool) $contract->furnished,
+            'type_furnished' => (bool) $contract->type_furnished,
+            'electricity_meter' => (bool) $contract->electricity_meter,
+            'water_meter' => (bool) $contract->water_meter,
+            'Number_parking_spaces' => $attrs['Number_parking_spaces'] ?? null,
+        ];
+    }
+}
