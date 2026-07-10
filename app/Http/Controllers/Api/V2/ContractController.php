@@ -39,7 +39,7 @@ class ContractController extends Controller
         $user = auth()->user();
         $contracts = Contract::where('user_id', $user->id)
             ->with(['realEstate', 'contractStatus'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy('updated_at', 'desc')
            
             ->where('is_delete', 0)
             ->paginate(10);
