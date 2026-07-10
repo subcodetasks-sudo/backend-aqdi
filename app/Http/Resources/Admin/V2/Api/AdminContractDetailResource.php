@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\V2\Api;
 
 use App\Enums\ReceivedContractStatus;
+use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnOrderFields;
 use App\Models\Account;
@@ -31,6 +32,7 @@ use Illuminate\Support\Str;
  */
 class AdminContractDetailResource extends JsonResource
 {
+    use ResolvesContractPaymentForAdmin;
     use ResolvesContractReturnAcceptance;
     use ResolvesContractReturnOrderFields;
     /**
@@ -303,6 +305,11 @@ class AdminContractDetailResource extends JsonResource
             return null;
         }
 
+        $payment = $this->contractPaymentFields();
+        $price = is_numeric($payment['amount_payment'])
+            ? (float) $payment['amount_payment']
+            : ($m->price ?? null);
+
         return [
             'id' => $m->id,
             'period' => $m->period ?? null,
@@ -310,7 +317,7 @@ class AdminContractDetailResource extends JsonResource
             'note_ar' => $m->note_ar ?? null,
             'note_en' => $m->note_en ?? null,
             'note_trans' => $m->note_trans ?? null,
-            'price' => $m->price ?? null,
+            'price' => $price,
             'contract_type' => $m->contract_type ?? null,
         ];
     }
