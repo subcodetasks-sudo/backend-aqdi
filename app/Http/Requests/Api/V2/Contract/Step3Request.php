@@ -7,7 +7,6 @@ use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Stringable;
 
@@ -233,30 +232,6 @@ class Step3Request extends BaseApiV2Request
 
         return $contractId
             && Contract::query()->whereKey($contractId)->value('instrument_type') === 'lease_renewal';
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator) {
-            $add = $this->input('add_legal_agent_of_owner');
-            $hasAgent = in_array((string) $add, ['1', 'true'], true)
-                || $add === 1
-                || $add === true;
-            if (! $hasAgent) {
-                return;
-            }
-            if ($this->hasFile('copy_of_the_authorization_or_agency')) {
-                return;
-            }
-            $contract = Contract::query()->find($this->input('id'));
-            if ($contract?->copy_of_the_authorization_or_agency) {
-                return;
-            }
-            $validator->errors()->add(
-                'copy_of_the_authorization_or_agency',
-                'نسخة من التوكيل أو الوكالة مطلوبة عند وجود وكيل للمالك.'
-            );
-        });
     }
 
     public function messages(): array

@@ -16,20 +16,22 @@ interface PaymentGatewayInterface
 {
     /**
      * Build a hosted-payment redirect response for a contract.
+     *
+     * @param  string  $client  Payment client: "web" (default frontend redirects) or "app" (no web redirect).
      */
-    public function createPaymentUrlResponse(string $uuid): JsonResponse;
+    public function createPaymentUrlResponse(string $uuid, string $client = 'web'): JsonResponse;
 
     /**
      * Request a redirect URL for a contract using a custom amount.
      *
-     * @return array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: string, payment_error_url: string}
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: ?string, payment_error_url: ?string}
      */
     public function requestPaymentRedirectUrl(string $uuid, float $amount): array;
 
     /**
      * Request a redirect URL for a standalone (contract-less) payment.
      *
-     * @return array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: string, payment_error_url: string}
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: ?string, payment_error_url: ?string}
      */
     public function requestPaymentRedirectUrlWithoutContract(string $contractUuid, float $amount): array;
 

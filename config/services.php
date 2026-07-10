@@ -52,6 +52,9 @@ return [
         'payment_frontend_url' => rtrim((string) env('PAYMENT_FRONTEND_URL', 'http://localhost:3000'), '/'),
         'payment_success_url_template' => env('PAYMENT_SUCCESS_URL_TEMPLATE'),
         'payment_error_url_template' => env('PAYMENT_ERROR_URL_TEMPLATE'),
+        // Optional deep-link / universal-link templates for the mobile app only.
+        'payment_app_success_url_template' => env('PAYMENT_APP_SUCCESS_URL_TEMPLATE'),
+        'payment_app_error_url_template' => env('PAYMENT_APP_ERROR_URL_TEMPLATE'),
     ],
 
 ];

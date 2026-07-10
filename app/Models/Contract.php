@@ -558,24 +558,8 @@ class Contract extends Model
      */
     public static function deedImageFieldsForInstrumentType(?string $instrumentType): array
     {
-        if ($instrumentType === null || $instrumentType === '') {
-            return [];
-        }
-
-        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
-
-        // Single deed image (no front/back split).
-        if (in_array($canonical, ['electronic', 'lease_renewal'], true)
-            || $instrumentType === 'electronic_deed_from_the_ministry_of_justice') {
-            return ['image_instrument'];
-        }
-
-        // صك السجل العقاري: front only — back image is not required.
-        if ($canonical === 'strong_argument') {
-            return ['image_instrument_from_the_front'];
-        }
-
-        return self::deedFrontBackImageFields();
+        // Contract deed/document images are optional for all instrument types.
+        return [];
     }
 
     /**
@@ -583,30 +567,7 @@ class Contract extends Model
      */
     public static function requiredImagesForInstrumentType(?string $instrumentType): array
     {
-        if ($instrumentType === null || $instrumentType === '') {
-            return [];
-        }
-
-        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
-        $ownerEndowment = RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT;
-
-        $fields = self::deedImageFieldsForInstrumentType($instrumentType);
-
-        if ($canonical === $ownerEndowment) {
-            $fields = array_merge($fields, [
-                'copy_of_the_endowment_registration_certificate',
-                'copy_of_the_trusteeship_deed',
-            ]);
-        }
-
-        return array_map(
-            static fn (string $field): array => [
-                'key' => $field,
-                'name_ar' => self::instrumentImageFieldLabel($field, 'ar'),
-                'name_en' => self::instrumentImageFieldLabel($field, 'en'),
-            ],
-            array_values(array_unique($fields))
-        );
+        return [];
     }
 
     /**
@@ -614,22 +575,7 @@ class Contract extends Model
      */
     public static function conditionalRequiredImagesForInstrumentType(?string $instrumentType): array
     {
-        if ($instrumentType === null || $instrumentType === '') {
-            return [];
-        }
-
-        $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
-
-        if ($canonical !== RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {
-            return [];
-        }
-
-        return [[
-            'key' => 'copy_of_guardians_power_of_attorney_for_agent',
-            'name_ar' => self::instrumentImageFieldLabel('copy_of_guardians_power_of_attorney_for_agent', 'ar'),
-            'name_en' => self::instrumentImageFieldLabel('copy_of_guardians_power_of_attorney_for_agent', 'en'),
-            'when' => ['is_multiple_trusteeship_deed_copy' => true],
-        ]];
+        return [];
     }
 
     public static function instrumentImageFieldLabel(string $field, ?string $locale = null): string

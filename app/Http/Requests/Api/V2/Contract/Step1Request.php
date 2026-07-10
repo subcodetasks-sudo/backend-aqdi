@@ -38,14 +38,11 @@ class Step1Request extends BaseApiV2Request
 
     public function rules(): array
     {
-        $effectiveInstrumentType = $this->effectiveInstrumentType();
-        $deedImageFields = Contract::deedImageFieldsForInstrumentType($effectiveInstrumentType);
-
         return [
             'id' => 'required|exists:contracts,id',
              'instrument_type' => ['nullable', Rule::in(Contract::instrumentTypes())],
             //  'number_of_floors' => [
-            //      Rule::requiredIf(! Contract::shouldSkipInitialSteps($effectiveInstrumentType)),
+            //      Rule::requiredIf(! Contract::shouldSkipInitialSteps($this->effectiveInstrumentType())),
             //  ],
             //  'property_type_id' => [
             //      'nullable',
@@ -69,7 +66,6 @@ class Step1Request extends BaseApiV2Request
                 'nullable',
                 'file',
                 'mimes:jpg,jpeg,png,webp,pdf',
-                Rule::requiredIf(in_array('image_instrument', $deedImageFields, true)),
             ],
             'image_address' => 'nullable|image',
             'address_url' => 'nullable|string|max:2048',
@@ -90,13 +86,11 @@ class Step1Request extends BaseApiV2Request
                 'nullable',
                 'file',
                 'mimes:jpg,jpeg,png,webp,pdf',
-                Rule::requiredIf(in_array('image_instrument_from_the_back', $deedImageFields, true)),
             ],
             'image_instrument_from_the_front' => [
                 'nullable',
                 'file',
                 'mimes:jpg,jpeg,png,webp,pdf',
-                Rule::requiredIf(in_array('image_instrument_from_the_front', $deedImageFields, true)),
             ],
             ...$this->contractPropertyAddressRules(),
         ];

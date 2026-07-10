@@ -18,7 +18,27 @@ class PaymentController extends Controller
 
     public function index(Request $request, $uuid)
     {
-        return $this->paymentService->createPaymentUrlResponse((string) $uuid);
+        return $this->paymentService->createPaymentUrlResponse(
+            (string) $uuid,
+            $this->resolvePaymentClient($request)
+        );
+    }
+
+    /**
+     * Resolve whether the payment link is for web or the mobile app.
+     * Web keeps frontend redirects; app skips them (or uses app deep-link templates).
+     */
+    private function resolvePaymentClient(Request $request): string
+    {
+        $client = strtolower((string) (
+            $request->query('platform')
+            ?? $request->query('client')
+            ?? $request->header('X-Client')
+            ?? $request->header('X-Platform')
+            ?? 'web'
+        ));
+
+        return in_array($client, ['app', 'mobile', 'ios', 'android'], true) ? 'app' : 'web';
     }
 
     public function updateCartByIPN(Request $requestData, $uuid)

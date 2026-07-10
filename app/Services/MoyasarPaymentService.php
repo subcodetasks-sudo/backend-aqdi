@@ -33,8 +33,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         ];
     }
 
-    public function createPaymentUrlResponse(string $uuid): JsonResponse
+    public function createPaymentUrlResponse(string $uuid, string $client = 'web'): JsonResponse
     {
+        $client = $this->normalizePaymentClient($client);
         $contract = Contract::where('uuid', $uuid)->firstOrFail();
 
         if (! $this->contractCanBePaid($contract)) {
@@ -61,7 +62,12 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ], 422);
         }
 
-        $invoice = $this->createInvoice($cartAmount, 'Contract ' . $contract->uuid, (string) $contract->uuid);
+        $invoice = $this->createInvoice(
+            $cartAmount,
+            'Contract ' . $contract->uuid,
+            (string) $contract->uuid,
+            $client
+        );
 
         if (! $invoice['success']) {
             Log::warning('Moyasar invoice request rejected', [
@@ -77,7 +83,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ], 400);
         }
 
-        $redirectUrls = $this->paymentFrontendRedirectUrls((string) $contract->uuid);
+        $redirectUrls = $this->paymentFrontendRedirectUrls((string) $contract->uuid, $client);
 
         return response()->json([
             'Payment_url' => $invoice['url'],
@@ -312,11 +318,12 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     */
 
     /**
-     * @return array{payment_url: string, cart_amount: float, contract_uuid: string}
+     * @return array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: ?string, payment_error_url: ?string}
      */
-    private function createInvoiceOrFail(float $amount, string $description, string $contractUuid): array
+    private function createInvoiceOrFail(float $amount, string $description, string $contractUuid, string $client = 'web'): array
     {
-        $invoice = $this->createInvoice($amount, $description, $contractUuid);
+        $client = $this->normalizePaymentClient($client);
+        $invoice = $this->createInvoice($amount, $description, $contractUuid, $client);
 
         if (! $invoice['success']) {
             Log::warning('Moyasar invoice request rejected', [
@@ -329,7 +336,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             throw new \RuntimeException($invoice['message'] ?? trans('api.not_accept'));
         }
 
-        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid);
+        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid, $client);
 
         return [
             'payment_url' => (string) $invoice['url'],
@@ -341,10 +348,31 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     }
 
     /**
-     * @return array{success: string, error: string}
+     * @return array{success: ?string, error: ?string}
      */
-    private function paymentFrontendRedirectUrls(string $contractUuid): array
+    private function paymentFrontendRedirectUrls(string $contractUuid, string $client = 'web'): array
     {
+        $client = $this->normalizePaymentClient($client);
+
+        // Mobile app: use optional deep-link templates, otherwise omit redirects
+        // so Moyasar does not send the WebView to the web frontend.
+        if ($client === 'app') {
+            $successTemplate = (string) config('services.moyasar.payment_app_success_url_template', '');
+            $errorTemplate = (string) config('services.moyasar.payment_app_error_url_template', '');
+
+            if ($successTemplate !== '' && $errorTemplate !== '') {
+                return [
+                    'success' => str_replace('{uuid}', $contractUuid, $successTemplate),
+                    'error' => str_replace('{uuid}', $contractUuid, $errorTemplate),
+                ];
+            }
+
+            return [
+                'success' => null,
+                'error' => null,
+            ];
+        }
+
         $successTemplate = (string) config('services.moyasar.payment_success_url_template', '');
         $errorTemplate = (string) config('services.moyasar.payment_error_url_template', '');
 
@@ -363,26 +391,41 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         ];
     }
 
+    private function normalizePaymentClient(string $client): string
+    {
+        $client = strtolower(trim($client));
+
+        return in_array($client, ['app', 'mobile', 'ios', 'android'], true) ? 'app' : 'web';
+    }
+
     /**
      * Create a Moyasar invoice and normalise the useful bits.
      *
      * @return array{success: bool, status: int, url: string|null, id: string|null, message: string|null}
      */
-    private function createInvoice(float $amount, string $description, string $contractUuid): array
+    private function createInvoice(float $amount, string $description, string $contractUuid, string $client = 'web'): array
     {
-        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid);
+        $redirectUrls = $this->paymentFrontendRedirectUrls($contractUuid, $client);
 
-        $response = $this->buildRequest('POST', '/v1/invoices', [
+        $payload = [
             'amount' => $this->toMinorUnits($amount),
             'currency' => $this->currency,
             'description' => $description,
             'callback_url' => route('callback', ['uuid' => $contractUuid]),
-            'success_url' => $redirectUrls['success'],
-            'back_url' => $redirectUrls['error'],
             'metadata' => [
                 'contract_uuid' => $contractUuid,
             ],
-        ]);
+        ];
+
+        // Web keeps frontend redirects; app omits them unless app templates are configured.
+        if (! empty($redirectUrls['success'])) {
+            $payload['success_url'] = $redirectUrls['success'];
+        }
+        if (! empty($redirectUrls['error'])) {
+            $payload['back_url'] = $redirectUrls['error'];
+        }
+
+        $response = $this->buildRequest('POST', '/v1/invoices', $payload);
 
         $data = $response['data'] ?? [];
         $url = is_array($data) ? ($data['url'] ?? null) : null;
