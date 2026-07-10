@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\GeneralController;
 use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TenantRoleController;
+use App\Http\Controllers\Api\V2\ContentPageController as V2ContentPageController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\UncompeleteContractController as V2UncompeleteContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
@@ -42,6 +43,10 @@ Route::controller(GeneralController::class)->group(function () {
 Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
     Route::get('/', 'index');
     Route::get('/{key}', 'show')->where('key', '[a-z0-9\-]+');
+});
+
+Route::prefix('content-pages')->controller(V2ContentPageController::class)->group(function () {
+    Route::get('/{pageKey}', 'show')->where('pageKey', 'home|about');
 });
 
 Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {

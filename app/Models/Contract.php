@@ -493,7 +493,7 @@ class Contract extends Model
             'property_ownership_owner_are_deceased' => 'صك ملكية لمالك متوفى',
             'property_ownership_owner_are_suspended' => 'صك ملكية (مالك موقوف)',
             'old_handwritten' => 'صك يدوي قديم',
-            'strong_argument' => 'حجة استحكام',
+            'strong_argument' => 'صك ملكية إلكتروني من السجل العقاري',
             'sublease_agreement' => 'اتفاقية إعارة من الباطن',
             'lease_renewal' => 'تجديد عقد إيجار',
             default => $instrumentType,
@@ -564,9 +564,15 @@ class Contract extends Model
 
         $canonical = self::normalizeInstrumentType($instrumentType) ?? $instrumentType;
 
+        // Single deed image (no front/back split).
         if (in_array($canonical, ['electronic', 'lease_renewal'], true)
             || $instrumentType === 'electronic_deed_from_the_ministry_of_justice') {
             return ['image_instrument'];
+        }
+
+        // صك السجل العقاري: front only — back image is not required.
+        if ($canonical === 'strong_argument') {
+            return ['image_instrument_from_the_front'];
         }
 
         return self::deedFrontBackImageFields();

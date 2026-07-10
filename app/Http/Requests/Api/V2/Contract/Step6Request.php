@@ -3,14 +3,18 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Support\ContractStartingDateInput;
 use Illuminate\Contracts\Validation\Validator;
 
 class Step6Request extends BaseApiV2Request
 {
+    use ResolvesContractIdInput;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
 
         ContractStartingDateInput::prepareRequest($this);
 

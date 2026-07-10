@@ -4,16 +4,19 @@ namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
 use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use Illuminate\Validation\Rule;
 
 class Step2Request extends BaseApiV2Request
 {
     use NormalizesCoordinateInputs;
+    use ResolvesContractIdInput;
 
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
         $this->normalizeCoordinateInputs();
     }
 

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V2\Contract;
 use App\Http\Requests\Api\V2\BaseApiV2Request;
 use App\Http\Requests\Api\V2\Concerns\ContractPropertyAddressRules;
 use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\RealEstate;
@@ -15,10 +16,12 @@ class Step1Request extends BaseApiV2Request
 {
     use ContractPropertyAddressRules;
     use NormalizesCoordinateInputs;
+    use ResolvesContractIdInput;
 
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
         $this->normalizeCoordinateInputs();
 
         if ($this->has('instrument_type')) {

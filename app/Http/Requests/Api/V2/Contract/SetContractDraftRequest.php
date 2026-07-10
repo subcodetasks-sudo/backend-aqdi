@@ -3,12 +3,16 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 
 class SetContractDraftRequest extends BaseApiV2Request
 {
+    use ResolvesContractIdInput;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
 
         if (! $this->exists('is_draft')) {
             return;

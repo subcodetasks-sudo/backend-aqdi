@@ -3,13 +3,17 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 
 class Step5Request extends BaseApiV2Request
 {
+    use ResolvesContractIdInput;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
 
         $booleanKeys = ['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'];
         $normalizedBooleans = [];

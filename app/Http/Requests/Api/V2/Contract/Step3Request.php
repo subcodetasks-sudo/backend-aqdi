@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
@@ -12,9 +13,12 @@ use Illuminate\Support\Stringable;
 
 class Step3Request extends BaseApiV2Request
 {
+    use ResolvesContractIdInput;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
 
         if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
             $this->merge(['add_legal_agent_of_owner' => false]);

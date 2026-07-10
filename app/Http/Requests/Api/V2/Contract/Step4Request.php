@@ -3,14 +3,18 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use App\Support\HijriDobParts;
 
 class Step4Request extends BaseApiV2Request
 {
+    use ResolvesContractIdInput;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->resolveContractIdInput();
 
         if ($this->filled('tenant_dob') && ! $this->filled('tenant_dob_day')) {
             $parts = HijriDobParts::split((string) $this->input('tenant_dob'));
