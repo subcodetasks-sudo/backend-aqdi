@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\NormalizesSaudiMobileInputs;
 use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use App\Support\DateInputNormalizer;
@@ -12,12 +13,17 @@ use Illuminate\Support\Stringable;
 
 class Step3Request extends BaseApiV2Request
 {
+    use NormalizesSaudiMobileInputs;
     use ResolvesContractIdInput;
 
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->resolveContractIdInput();
+        $this->normalizeSaudiMobileFields([
+            'property_owner_mobile',
+            'mobile_of_property_owner_agent',
+        ]);
 
         if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
             $this->merge(['add_legal_agent_of_owner' => false]);
@@ -186,14 +192,14 @@ class Step3Request extends BaseApiV2Request
             'property_owner_dob_day' => 'required',
             'property_owner_dob_month' => 'required',
             'property_owner_dob_year' => 'required',
-            'property_owner_mobile' => 'required|min:10|regex:/^05[0-9]{8}$/',
+            'property_owner_mobile' => 'required|min:9|regex:/^5[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
             'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10',
             'dob_of_property_owner_agent_day' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'dob_of_property_owner_agent_month' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'dob_of_property_owner_agent_year' => 'nullable|required_if:add_legal_agent_of_owner,1',
-            'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10|regex:/^05[0-9]{8}$/',
+            'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:9|regex:/^5[0-9]{8}$/',
             'copy_of_the_authorization_or_agency' => 'nullable',
         ];
     }
@@ -214,14 +220,14 @@ class Step3Request extends BaseApiV2Request
             'property_owner_dob_day' => 'nullable',
             'property_owner_dob_month' => 'nullable',
             'property_owner_dob_year' => 'nullable',
-            'property_owner_mobile' => 'nullable|min:10|regex:/^05[0-9]{8}$/',
+            'property_owner_mobile' => 'nullable|min:9|regex:/^5[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
             'add_legal_agent_of_owner' => 'nullable',
             'id_num_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10',
             'dob_of_property_owner_agent_day' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'dob_of_property_owner_agent_month' => 'nullable|required_if:add_legal_agent_of_owner,1',
             'dob_of_property_owner_agent_year' => 'nullable|required_if:add_legal_agent_of_owner,1',
-            'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10|regex:/^05[0-9]{8}$/',
+            'mobile_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:9|regex:/^5[0-9]{8}$/',
             'copy_of_the_authorization_or_agency' => 'nullable',
         ];
     }

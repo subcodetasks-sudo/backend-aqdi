@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V2\RealEstate;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\NormalizesSaudiMobileInputs;
 use App\Models\RealEstate;
 use App\Support\DateInputNormalizer;
 use Illuminate\Contracts\Validation\Validator;
@@ -12,9 +13,15 @@ use Illuminate\Contracts\Validation\Validator;
  */
 class Step2RealEstateRequest extends BaseApiV2Request
 {
+    use NormalizesSaudiMobileInputs;
+
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
+        $this->normalizeSaudiMobileFields([
+            'property_owner_mobile',
+            'mobile_of_property_owner_agent',
+        ]);
 
         if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
             $this->merge(['add_legal_agent_of_owner' => false]);
@@ -107,14 +114,14 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_dob_day' => ['nullable'],
             'property_owner_dob_month' => ['nullable'],
             'property_owner_dob_year' => ['nullable'],
-            'property_owner_mobile' => 'required|min:10|regex:/^05[0-9]{8}$/',
+            'property_owner_mobile' => 'required|min:9|regex:/^5[0-9]{8}$/',
             'property_owner_iban' => 'nullable|min:22',
             'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|min:10',
             'dob_of_property_owner_agent_day' => 'nullable',
             'dob_of_property_owner_agent_month' => 'nullable',
             'dob_of_property_owner_agent_year' => 'nullable',
-            'mobile_of_property_owner_agent' => 'nullable|min:10|regex:/^05[0-9]{8}$/',
+            'mobile_of_property_owner_agent' => 'nullable|min:9|regex:/^5[0-9]{8}$/',
             'agency_number_in_instrument_of_property_owner' => 'nullable|string|max:255',
             'agency_instrument_date_of_property_owner_day' => 'nullable',
             'agency_instrument_date_of_property_owner_month' => 'nullable|integer|between:1,12',
@@ -186,9 +193,9 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_id_num.required' => 'رقم هوية المالك مطلوب.',
             'property_owner_id_num.min' => 'رقم هوية المالك لا يقل عن 10 أرقام.',
             'property_owner_mobile.required' => 'رقم جوال المالك مطلوب.',
-            'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
+            'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
             'id_num_of_property_owner_agent.min' => 'رقم هوية وكيل المالك لا يقل عن 10 أرقام.',
-            'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
+            'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
             'copy_of_the_authorization_or_agency.mimes' => 'صورة الوكالة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
         ];
     }

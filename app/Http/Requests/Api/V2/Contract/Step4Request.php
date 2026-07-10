@@ -3,18 +3,24 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\NormalizesSaudiMobileInputs;
 use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
 use App\Support\HijriDobParts;
 
 class Step4Request extends BaseApiV2Request
 {
+    use NormalizesSaudiMobileInputs;
     use ResolvesContractIdInput;
 
     protected function prepareForValidation(): void
     {
         parent::prepareForValidation();
         $this->resolveContractIdInput();
+        $this->normalizeSaudiMobileFields([
+            'tenant_mobile',
+            'mobile_of_property_tenant_agent',
+        ]);
 
         if ($this->filled('tenant_dob') && ! $this->filled('tenant_dob_day')) {
             $parts = HijriDobParts::split((string) $this->input('tenant_dob'));
@@ -61,14 +67,14 @@ class Step4Request extends BaseApiV2Request
             'tenant_dob_day' => 'nullable|required_if:tenant_entity,person',
             'tenant_dob_month' => 'nullable|required_if:tenant_entity,person',
             'tenant_dob_year' => 'nullable|required_if:tenant_entity,person',
-            'tenant_mobile' => 'nullable|required_if:tenant_entity,person|min:10|regex:/^05[0-9]{8}$/',
+            'tenant_mobile' => 'nullable|required_if:tenant_entity,person|min:9|regex:/^5[0-9]{8}$/',
             'region_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:regions,id',
             'city_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:cities,id',
             'tenant_entity_unified_registry_number' => 'nullable|required_if:tenant_entity,institution',
             'authorization_type' => 'nullable|required_if:tenant_entity,institution',
             'copy_of_the_owner_record' => 'nullable|mimes:jpg,jpeg,png,pdf',
             'id_num_of_property_tenant_agent' => 'nullable|min:10',
-            'mobile_of_property_tenant_agent' => 'nullable',
+            'mobile_of_property_tenant_agent' => 'nullable|min:9|regex:/^5[0-9]{8}$/',
             'dobof_property_tenant_agent_day' => 'nullable',
             'dobof_property_tenant_agent_month' => 'nullable',
             'dobof_property_tenant_agent_year' => 'nullable',

@@ -94,12 +94,14 @@ final class ContractV2ValidationMessages
      * @var array<string, string>
      */
     private const FIELD_OVERRIDES = [
-        'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-        'property_owner_mobile.min' => 'رقم جوال المالك يجب ألا يقل عن 10 أرقام.',
-        'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-        'mobile_of_property_owner_agent.min' => 'رقم جوال وكيل المالك يجب ألا يقل عن 10 أرقام.',
-        'tenant_mobile.regex' => 'رقم جوال المستأجر يجب أن يبدأ بـ 05 ويتكون من 10 أرقام.',
-        'tenant_mobile.min' => 'رقم جوال المستأجر يجب ألا يقل عن 10 أرقام.',
+        'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
+        'property_owner_mobile.min' => 'رقم جوال المالك يجب ألا يقل عن 9 أرقام.',
+        'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
+        'mobile_of_property_owner_agent.min' => 'رقم جوال وكيل المالك يجب ألا يقل عن 9 أرقام.',
+        'tenant_mobile.regex' => 'رقم جوال المستأجر يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
+        'tenant_mobile.min' => 'رقم جوال المستأجر يجب ألا يقل عن 9 أرقام.',
+        'mobile_of_property_tenant_agent.regex' => 'رقم جوال وكيل المستأجر يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
+        'mobile_of_property_tenant_agent.min' => 'رقم جوال وكيل المستأجر يجب ألا يقل عن 9 أرقام.',
         'property_owner_id_num.min' => 'رقم هوية المالك يجب ألا يقل عن 10 أرقام.',
         'id_num_of_property_owner_agent.min' => 'رقم هوية وكيل المالك يجب ألا يقل عن 10 أرقام.',
         'id_num_of_property_tenant_agent.min' => 'رقم هوية وكيل المستأجر يجب ألا يقل عن 10 أرقام.',
