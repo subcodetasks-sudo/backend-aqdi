@@ -25,20 +25,59 @@ class PaymentController extends Controller
     }
 
     /**
-     * Resolve whether the payment link is for web or the mobile app.
-     * Web keeps frontend redirects; app skips them (or uses app deep-link templates).
+     * Detect web vs mobile without requiring app changes.
+     * Default is "app" (no frontend redirect). Web is detected via
+     * Origin/Referer matching PAYMENT_FRONTEND_URL, or an explicit platform=web.
      */
     private function resolvePaymentClient(Request $request): string
     {
-        $client = strtolower((string) (
+        $explicit = strtolower((string) (
             $request->query('platform')
             ?? $request->query('client')
             ?? $request->header('X-Client')
             ?? $request->header('X-Platform')
-            ?? 'web'
+            ?? ''
         ));
 
-        return in_array($client, ['app', 'mobile', 'ios', 'android'], true) ? 'app' : 'web';
+        if (in_array($explicit, ['app', 'mobile', 'ios', 'android'], true)) {
+            return 'app';
+        }
+
+        if (in_array($explicit, ['web', 'frontend'], true)) {
+            return 'web';
+        }
+
+        if ($this->requestLooksLikeWebFrontend($request)) {
+            return 'web';
+        }
+
+        return 'app';
+    }
+
+    private function requestLooksLikeWebFrontend(Request $request): bool
+    {
+        $frontendBase = rtrim((string) config('services.moyasar.payment_frontend_url', ''), '/');
+        if ($frontendBase === '') {
+            return false;
+        }
+
+        $frontendHost = parse_url($frontendBase, PHP_URL_HOST);
+        if (! is_string($frontendHost) || $frontendHost === '') {
+            return false;
+        }
+
+        foreach ([$request->headers->get('Origin'), $request->headers->get('Referer')] as $url) {
+            if (! is_string($url) || $url === '') {
+                continue;
+            }
+
+            $host = parse_url($url, PHP_URL_HOST);
+            if (is_string($host) && strcasecmp($host, $frontendHost) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function updateCartByIPN(Request $requestData, $uuid)

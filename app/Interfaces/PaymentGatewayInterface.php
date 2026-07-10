@@ -17,7 +17,7 @@ interface PaymentGatewayInterface
     /**
      * Build a hosted-payment redirect response for a contract.
      *
-     * @param  string  $client  Payment client: "web" (default frontend redirects) or "app" (no web redirect).
+     * @param  string  $client  "web" keeps frontend redirects; "app" omits them (default for API mobile clients).
      */
     public function createPaymentUrlResponse(string $uuid, string $client = 'web'): JsonResponse;
 
