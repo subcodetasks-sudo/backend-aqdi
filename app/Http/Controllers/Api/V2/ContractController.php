@@ -429,7 +429,7 @@ class ContractController extends Controller
     {
         $data['id_num_of_property_owner_agent'] = null;
         $data['type_dob_property_owner_agent'] = null;
-        $data['dob_hijri_of_property_owner_agent'] = null;
+        $data['dob_of_property_owner_agent'] = null;
         $data['mobile_of_property_owner_agent'] = null;
         $data['agency_number_in_instrument_of_property_owner'] = null;
         $data['agency_instrument_date_of_property_owner'] = null;

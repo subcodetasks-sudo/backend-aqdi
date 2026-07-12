@@ -18,7 +18,7 @@ class Step3Resource extends JsonResource
         $ownerDob = HijriDobParts::split(
             ($ownerDobStored !== null && $ownerDobStored !== '') ? $ownerDobStored : null
         );
-        $agentDob = HijriDobParts::split($this->dob_hijri_of_property_owner_agent);
+        $agentDob = HijriDobParts::split($this->dob_of_property_owner_agent);
         $agencyDate = DateInputNormalizer::splitMysqlDate($this->agency_instrument_date_of_property_owner);
 
         return [
@@ -36,8 +36,8 @@ class Step3Resource extends JsonResource
             'property_owner_iban' => $this->property_owner_iban,
             'add_legal_agent_of_owner' => $this->add_legal_agent_of_owner,
             'id_num_of_property_owner_agent' => $this->id_num_of_property_owner_agent,
-            'dob_of_property_owner_agent' => $this->dob_hijri_of_property_owner_agent,
             'type_dob_property_owner_agent' => $this->type_dob_property_owner_agent,
+            'dob_of_property_owner_agent' => $this->dob_of_property_owner_agent,
             'dob_of_property_owner_agent_day' => $agentDob['day'],
             'dob_of_property_owner_agent_month' => $agentDob['month'],
             'dob_of_property_owner_agent_year' => $agentDob['year'],

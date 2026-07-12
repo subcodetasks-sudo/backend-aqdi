@@ -125,6 +125,7 @@ class Contract extends Model
         'draft_before_paid_path',
         'draft_after_paid_path',
         'total_price',
+        'dob_of_property_owner_agent',
      ];
 
     /*
@@ -452,6 +453,23 @@ class Contract extends Model
     public function getContractTypeTransAttribute()
     {
         return self::contractTypeLabel((string) $this->contract_type);
+    }
+
+    /**
+     * API alias for DB column `dob_hijri_of_property_owner_agent`.
+     */
+    public function getDobOfPropertyOwnerAgentAttribute(mixed $value): mixed
+    {
+        if ($value !== null && $value !== '') {
+            return $value;
+        }
+
+        return $this->attributes['dob_hijri_of_property_owner_agent'] ?? null;
+    }
+
+    public function setDobOfPropertyOwnerAgentAttribute(mixed $value): void
+    {
+        $this->attributes['dob_hijri_of_property_owner_agent'] = $value;
     }
 
     public function getInstrumentTypeTransAttribute()
