@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\ContractPeriodController;
 use App\Http\Controllers\Admin\ContractCommentController;
 use App\Http\Controllers\Admin\ContractStatusController;
+use App\Http\Controllers\Admin\DraftContractStatusController;
 use App\Http\Controllers\Admin\ContractWhatsAppController;
 use App\Http\Controllers\Admin\ContentPageController;
 use App\Http\Controllers\Admin\CouponAdminController;
@@ -178,6 +179,7 @@ use Illuminate\Support\Facades\Route;
     // Contracts lists
     Route::prefix('contracts')->name('contracts.')->controller(OrderController::class)->group(function () {
         Route::get('/draft', 'draftContracts')->name('draft');
+        Route::get('/draft/status/{statusId}', 'draftByStatus')->whereNumber('statusId')->name('draft-by-status');
         Route::get('/completed', 'complete')->name('completed');
         Route::get('/completed-draft', 'completedAndDraft')->name('completed-draft');
     });
@@ -189,12 +191,14 @@ use Illuminate\Support\Facades\Route;
         Route::get('/status/{statusId}', 'byStatus')->whereNumber('statusId')->name('by-status');
         Route::get('/completed', 'complete')->name('completed');
         Route::get('/draft', 'draftContracts')->name('draft');
+        Route::get('/draft/status/{statusId}', 'draftByStatus')->whereNumber('statusId')->name('draft-by-status');
         Route::get('/completed-draft', 'completedAndDraft')->name('completed-draft');
         Route::get('/incomplete/list', 'incomplete')->name('incomplete');
         Route::get('/complete/list', 'complete')->name('complete');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
         Route::post('/{id}/contract-status', 'updateContractStatus')->whereNumber('id')->name('update-contract-status');
+        Route::post('/{id}/draft-contract-status', 'updateDraftContractStatus')->whereNumber('id')->name('update-draft-contract-status');
         Route::post('/{id}/return-contract-status', 'updateReturnContractAcceptance')->whereNumber('id')->middleware('auth:sanctum')->name('return-contract-status');
     });
 
@@ -325,6 +329,17 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->name('show');
         Route::post('/{id}', 'update')->name('update');
         Route::post('/{id}/delete', 'destroy')->name('destroy');
+    });
+
+    // Draft Contract Statuses (مسودات) — same shape as contract-statuses
+    Route::prefix('draft-contract-statuses')->name('draft-contract-statuses.')->controller(DraftContractStatusController::class)->group(function () {
+        Route::get('/active', 'active')->name('active');
+        Route::post('/sync', 'syncFromContractStatuses')->name('sync');
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
     });
 
     // Contract Periods Management

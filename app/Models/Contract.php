@@ -718,6 +718,11 @@ class Contract extends Model
         return $this->belongsTo(ContractStatus::class, 'contract_status_id');
     }
 
+    public function draftContractStatus()
+    {
+        return $this->belongsTo(DraftContractStatus::class, 'draft_contract_status_id');
+    }
+
     public function acceptRetrunContractEmployee()
     {
         return $this->belongsTo(Employee::class, 'accept_retrun_contract_employee_id');

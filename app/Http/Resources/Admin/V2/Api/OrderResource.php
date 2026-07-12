@@ -34,10 +34,23 @@ class OrderResource extends JsonResource
             'payment_label_ar' => $payment['payment_label_ar'],
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'status' => [
-                 
-                'name' => $this->contractStatus?->name,
-                'color' => $this->contractStatus?->color,
+                'name' => $this->is_draft
+                    ? ($this->draftContractStatus?->name ?? $this->contractStatus?->name)
+                    : $this->contractStatus?->name,
+                'color' => $this->is_draft
+                    ? ($this->draftContractStatus?->color ?? $this->contractStatus?->color)
+                    : $this->contractStatus?->color,
             ],
+            'draft_contract_status_id' => $this->draft_contract_status_id,
+            'draft_contract_status' => $this->when(
+                (bool) $this->is_draft || $this->draft_contract_status_id,
+                fn () => $this->draftContractStatus ? [
+                    'id' => $this->draftContractStatus->id,
+                    'name' => $this->draftContractStatus->name,
+                    'color' => $this->draftContractStatus->color,
+                    'color_text' => $this->draftContractStatus->color_text,
+                ] : null
+            ),
             'is_received' => $receivedContractExists,
             'received_contract_exists' => $receivedContractExists,
             'employee_name' => $receivedContract?->employee?->name ?? 'لم يتم الاستلام',

@@ -156,6 +156,8 @@ class AdminContractDetailResource extends JsonResource
             'account' => $this->accountSummary($c->account),
             'received_contract' => $this->receivedContractSummary($c->receivedContract),
             'contract_status' => $this->contractStatusSummary($c->contractStatus),
+            'draft_contract_status' => $this->contractStatusSummary($c->draftContractStatus),
+            'draft_contract_status_id' => $c->draft_contract_status_id,
             'contract_payments' => $this->paymentsSummary($c->contractPayments),
             'tenant_role' => $this->tenantRoleSummary($c->tenantRole),
             'accept_retrun_contract_employee' => $this->employeeSummary($c->acceptRetrunContractEmployee),
@@ -184,6 +186,7 @@ class AdminContractDetailResource extends JsonResource
             'contract_term' => $this->translatedName($c->contractTermInYears, 'note'),
             'payment_type' => $this->translatedName($c->paymentType, 'name'),
             'contract_status' => $c->contractStatus?->name,
+            'draft_contract_status' => $c->draftContractStatus?->name,
             'tenant_role' => $c->tenantRole?->text_of_reason,
         ];
     }
@@ -441,7 +444,7 @@ class AdminContractDetailResource extends JsonResource
         ];
     }
 
-    private function contractStatusSummary(?ContractStatus $m): ?array
+    private function contractStatusSummary($m): ?array
     {
         if ($m === null) {
             return null;

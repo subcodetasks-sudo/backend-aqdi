@@ -110,6 +110,47 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Draft contracts filtered by draft_contract_status_id.
+     * GET /api/admin/orders/draft/status/{statusId}
+     */
+    public function draftByStatus(Request $request, $statusId)
+    {
+        $request->merge(['status_id' => $statusId]);
+        $this->validate($request, [
+            'status_id' => 'required|integer|exists:draft_contract_statuses,id',
+        ]);
+
+        try {
+            $contracts = Contract::query()
+                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+                ->notDeleted()
+                ->draft()
+                ->where('draft_contract_status_id', (int) $statusId)
+                ->when($request->filled('search'), fn ($q) =>
+                    $q->adminSearch($request->string('search')->toString())
+                )
+                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+                ->with($this->orderListRelations())
+                ->latest()
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['is_draft' => true, 'draft_contract_status_id' => (int) $statusId]
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
     public function incomplete(Request $request)
     {
         try {
@@ -218,6 +259,7 @@ class OrderController extends Controller
             'acceptRetrunContractEmployee:id,name',
             'refundableContract',
             'contractStatus',
+            'draftContractStatus',
             'contractPayments' => fn ($q) => $q->where('status', 'success'),
         ];
     }
@@ -336,6 +378,7 @@ class OrderController extends Controller
             'acceptRetrunContractEmployee:id,name',
             'refundableContract',
             'contractStatus',
+            'draftContractStatus',
             'contractPayments',
             'tenantRole',
         ];
@@ -697,6 +740,53 @@ class OrderController extends Controller
             return $this->apiResponse(
                 null,
                 trans('api.error_occurred') . ': ' . $e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
+    /**
+     * Update draft contract status (مسودة).
+     * POST /api/admin/orders/{id}/draft-contract-status
+     */
+    public function updateDraftContractStatus(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'draft_contract_status_id' => ['required', 'integer', 'exists:draft_contract_statuses,id'],
+            ]);
+
+            if ($validator->fails()) {
+                return $this->errorResponse($validator->errors(), 422);
+            }
+
+            $contract = $this->findAdminContract((int) $id);
+
+            if (! $contract->is_draft) {
+                return $this->errorMessage('العقد ليس مسودة.', 422);
+            }
+
+            $contract->update([
+                'draft_contract_status_id' => (int) $request->draft_contract_status_id,
+            ]);
+            $contract->load($this->contractDetailRelations());
+
+            return $this->apiResponse(
+                new AdminContractDetailResource($contract),
+                trans('api.updated_successfully')
+            );
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.contract_not_found'),
+                false,
+                404
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
                 false,
                 500
             );
