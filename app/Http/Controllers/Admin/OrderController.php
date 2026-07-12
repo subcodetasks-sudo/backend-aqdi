@@ -337,6 +337,7 @@ class OrderController extends Controller
 
         return $this->apiResponse(
             array_merge(
+                $detail,
                 $this->buildStepBasedDetailResponse($detail),
                 [
                     'user_contracts' => $this->userContractSummariesForUser($contract->user_id),

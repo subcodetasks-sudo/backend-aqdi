@@ -22,7 +22,7 @@ class UnitEstateController extends Controller
 
     private function normalizeUnitBooleanFlags(Request $request): void
     {
-        $keys = ['kitchen_tank', 'furnished', 'type_furnished', 'electricity_meter', 'water_meter'];
+        $keys = ['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'];
         $normalized = [];
 
         foreach ($keys as $key) {
@@ -51,6 +51,10 @@ class UnitEstateController extends Controller
                     $normalized[$key] = $trimmed === 'true' ? 1 : 0;
                 }
             }
+        }
+
+        if ($request->exists('type_furnished')) {
+            $normalized['type_furnished'] = \App\Support\TypeFurnished::normalize($request->input('type_furnished'));
         }
 
         if ($normalized !== []) {
@@ -128,7 +132,7 @@ class UnitEstateController extends Controller
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
             'furnished' => 'nullable|boolean',
-            'type_furnished' => 'nullable|boolean',
+            'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];
@@ -154,7 +158,7 @@ class UnitEstateController extends Controller
             'water_meter_number' => $request->water_meter_number,
             'kitchen_tank' => $request->boolean('kitchen_tank'),
             'furnished' => $request->boolean('furnished'),
-            'type_furnished' => $request->boolean('type_furnished'),
+            'type_furnished' => \App\Support\TypeFurnished::normalize($request->input('type_furnished')),
             'electricity_meter' => $request->boolean('electricity_meter'),
             'water_meter' => $request->boolean('water_meter'),
             'user_id' => $user->id,
@@ -192,7 +196,7 @@ class UnitEstateController extends Controller
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'sometimes|boolean',
             'furnished' => 'sometimes|boolean',
-            'type_furnished' => 'sometimes|boolean',
+            'type_furnished' => \App\Support\TypeFurnished::rules(true),
             'electricity_meter' => 'sometimes|boolean',
             'water_meter' => 'sometimes|boolean',
         ];
@@ -225,10 +229,14 @@ class UnitEstateController extends Controller
 
         $data['user_id'] = auth()->id();
 
-        foreach (['kitchen_tank', 'furnished', 'type_furnished', 'electricity_meter', 'water_meter'] as $flag) {
+        foreach (['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'] as $flag) {
             if ($request->exists($flag)) {
                 $data[$flag] = (int) $request->boolean($flag);
             }
+        }
+
+        if ($request->exists('type_furnished')) {
+            $data['type_furnished'] = \App\Support\TypeFurnished::normalize($request->input('type_furnished'));
         }
 
         try {

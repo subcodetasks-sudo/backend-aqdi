@@ -65,7 +65,6 @@ class UnitsReal extends Model
     protected $casts = [
         'kitchen_tank' => 'boolean',
         'furnished' => 'boolean',
-        'type_furnished' => 'boolean',
         'electricity_meter' => 'boolean',
         'water_meter' => 'boolean',
     ];

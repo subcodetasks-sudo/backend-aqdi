@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\PageContentController;
 use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PaperworkController;
 use App\Http\Controllers\Admin\PopupContractController;
+use App\Http\Controllers\Admin\PaymentMessageController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -359,6 +360,15 @@ use Illuminate\Support\Facades\Route;
 
     // Popup Contract Management
     Route::prefix('popup-contracts')->name('popup-contracts.')->controller(PopupContractController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Payment success / failed messages
+    Route::prefix('payment-messages')->name('payment-messages.')->controller(PaymentMessageController::class)->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');

@@ -9,6 +9,7 @@
 | **`AQDI-Admin-Return-Contract-Status.postman_collection.json`** | **Return orders:** `POST …/return-contract-status` with `accept_retrun_contract` JSON |
 | **`AQDI-Admin-Content-Pages-API.postman_collection.json`** | Admin content pages (home/about) |
 | **`AQDI-Admin-Popup-Contracts-API.postman_collection.json`** | **Popup contracts:** CRUD under `/api/admin/popup-contracts` |
+| **`AQDI-Admin-Payment-Messages-API.postman_collection.json`** | **Payment messages:** success/failed + 2 buttons under `/api/admin/payment-messages` |
 | **`AQDI-API-V2.postman_collection.json`** | **Full V2 API:** auth, contracts, real estate, units, coupons, payment, public lookups |
 | **`AQDI-Contracts-API.postman_collection.json`** | **V2 contracts only:** steps 1–6, listing, uncompleted (subset of full V2) |
 | **`AQDI-Uncompleted-Contract-API.postman_collection.json`** | **V2 resume flow:** check + load incomplete contract by uuid |

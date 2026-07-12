@@ -61,7 +61,7 @@ class AdminContractDetailResource extends JsonResource
 
         $enriched = $this->enrichedRelations($c);
 
-        return array_merge($full, $enriched, $this->returnOrderFields(), $this->returnAcceptanceFields(), [
+        return array_merge($full, $enriched, $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
             'relation_labels' => $this->relationLabels($c),
             'documentation_deadline_at' => $c->documentationDeadlineAt()?->format('Y-m-d H:i:s'),
         ]);

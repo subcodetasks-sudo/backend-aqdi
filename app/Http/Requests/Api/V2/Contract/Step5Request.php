@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V2\Contract;
 use App\Http\Requests\Api\V2\BaseApiV2Request;
 use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Models\Contract;
+use App\Support\TypeFurnished;
 
 class Step5Request extends BaseApiV2Request
 {
@@ -14,6 +15,12 @@ class Step5Request extends BaseApiV2Request
     {
         parent::prepareForValidation();
         $this->resolveContractIdInput();
+
+        if ($this->exists('type_furnished')) {
+            $this->merge([
+                'type_furnished' => TypeFurnished::normalize($this->input('type_furnished')),
+            ]);
+        }
 
         $booleanKeys = ['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'];
         $normalizedBooleans = [];
@@ -85,7 +92,7 @@ class Step5Request extends BaseApiV2Request
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
             'furnished' => 'nullable|boolean',
-            'type_furnished' => 'nullable|string|max:255',
+            'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];
@@ -111,7 +118,7 @@ class Step5Request extends BaseApiV2Request
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
             'furnished' => 'nullable|boolean',
-            'type_furnished' => 'nullable|string|max:255',
+            'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
         ];

@@ -157,7 +157,7 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
             'water_meter_number' => $contract->water_meter_number,
             'kitchen_tank' => (bool) $contract->kitchen_tank,
             'furnished' => (bool) $contract->furnished,
-            'type_furnished' => (bool) $contract->type_furnished,
+            'type_furnished' => \App\Support\TypeFurnished::normalize($contract->type_furnished),
             'electricity_meter' => (bool) $contract->electricity_meter,
             'water_meter' => (bool) $contract->water_meter,
             'Number_parking_spaces' => $attrs['Number_parking_spaces'] ?? null,
