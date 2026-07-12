@@ -54,6 +54,31 @@ class ContractController extends Controller
         );
     }
 
+    public function byStatus(Request $request, $statusId)
+    {
+        $request->merge(['status_id' => $statusId]);
+        $this->validate($request, [
+            'status_id' => 'required|integer|exists:contract_statuses,id',
+        ]);
+
+        $user = auth()->user();
+        $contracts = Contract::query()
+            ->where('user_id', $user->id)
+            ->where('contract_status_id', (int) $statusId)
+            ->where('is_delete', 0)
+            ->with(['realEstate', 'contractStatus'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(10);
+
+        return $this->apiResponse(
+            [
+                'data' => ContractResource::collection($contracts),
+                'pagination' => $this->paginate($contracts),
+            ],
+            trans('api.success')
+        );
+    }
+
     public function show($id)
     {
         $user = auth()->user();
