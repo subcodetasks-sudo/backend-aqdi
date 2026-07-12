@@ -25,6 +25,12 @@ class Step3Request extends BaseApiV2Request
             'mobile_of_property_owner_agent',
         ]);
 
+        foreach (['name_owner', 'property_owner_iban'] as $optionalField) {
+            if ($this->exists($optionalField) && trim((string) $this->input($optionalField)) === '') {
+                $this->merge([$optionalField => null]);
+            }
+        }
+
         if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
             $this->merge(['add_legal_agent_of_owner' => false]);
         } else {
@@ -187,13 +193,13 @@ class Step3Request extends BaseApiV2Request
             'type_dob_property_owner_agent' => 'nullable|in:hijri,gregorian',
             'type_agency_instrument_date_of_property_owner' => 'nullable|in:hijri,gregorian',
             'name_real_estate' => 'nullable|string|max:255',
-            'name_owner' => 'required|string',
+            'name_owner' => 'nullable|string',
             'property_owner_id_num' => 'required|min:10',
             'property_owner_dob_day' => 'required',
             'property_owner_dob_month' => 'required',
             'property_owner_dob_year' => 'required',
             'property_owner_mobile' => 'required|min:9|regex:/^5[0-9]{8}$/',
-            'property_owner_iban' => 'nullable|min:22',
+            'property_owner_iban' => 'nullable|string|min:22',
             'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10',
             'dob_of_property_owner_agent_day' => 'nullable|required_if:add_legal_agent_of_owner,1',
@@ -221,7 +227,7 @@ class Step3Request extends BaseApiV2Request
             'property_owner_dob_month' => 'nullable',
             'property_owner_dob_year' => 'nullable',
             'property_owner_mobile' => 'nullable|min:9|regex:/^5[0-9]{8}$/',
-            'property_owner_iban' => 'nullable|min:22',
+            'property_owner_iban' => 'nullable|string|min:22',
             'add_legal_agent_of_owner' => 'nullable',
             'id_num_of_property_owner_agent' => 'nullable|required_if:add_legal_agent_of_owner,1|min:10',
             'dob_of_property_owner_agent_day' => 'nullable|required_if:add_legal_agent_of_owner,1',

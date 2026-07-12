@@ -77,16 +77,16 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
                 return;
             }
 
-            // if ($this->filled('property_city_id') && $this->filled('property_place_id')) {
-            //     $valid = City::query()
-            //         ->where('id', $this->input('property_city_id'))
-            //         ->where('region_id', $this->input('property_place_id'))
-            //         ->exists();
+            if ($this->filled('property_city_id') && $this->filled('property_place_id')) {
+                $valid = City::query()
+                    ->where('id', $this->input('property_city_id'))
+                    ->where('region_id', $this->input('property_place_id'))
+                    ->exists();
 
-            //     if (! $valid) {
-            //         $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
-            //     }
-            // }
+                if (! $valid) {
+                    $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
+                }
+            }
 
             $instrumentType = $this->input('instrument_type');
             $ownerEndowment = RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT;

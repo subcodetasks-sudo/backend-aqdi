@@ -1,0 +1,330 @@
+{
+    "info": {
+        "_postman_id": "34f8a8ff-cff5-4b05-94c9-b98733747e73",
+        "name": "AQDI Admin Popup Contracts API",
+        "description": "Admin CRUD for popup-contracts.\n\nFields:\n- instrument_type (enum)\n- popup_status_contract (boolean)\n- popup_status_realestate (boolean)\n- content_popup\n- button_text\n- button_link\n\nAllowed instrument_type values:\n- electronic\n- old_handwritten\n- strong_argument\n- electronic_tax_register\n- property_ownership_owner_are_deceased_endowment\n- property_ownership_owner_is_endowment\n- sale_agreement\n- electronic_deed_from_the_ministry_of_justice\n- economic_cities_authority_suspended\n- sublease_agreement\n- lease_renewal\n- property_ownership_owner_are_suspended\n- property_ownership_owner_are_deceased",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "employee_token",
+            "value": ""
+        },
+        {
+            "key": "popup_contract_id",
+            "value": "1"
+        }
+    ],
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Employee login",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Login and save employee_token for the other requests."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) {",
+                                    "  pm.collectionVariables.set(\"employee_token\", token);",
+                                    "  pm.environment.set(\"employee_token\", token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Popup Contracts",
+            "item": [
+                {
+                    "name": "List popup contracts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/popup-contracts?per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "popup-contracts"
+                            ],
+                            "query": [
+                                {
+                                    "key": "instrument_type",
+                                    "value": "electronic",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "popup_status_contract",
+                                    "value": "1",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "popup_status_realestate",
+                                    "value": "0",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20",
+                                    "disabled": false
+                                }
+                            ]
+                        },
+                        "description": "List with optional filters and pagination."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create popup contract",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/popup-contracts",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "popup-contracts"
+                            ]
+                        },
+                        "description": "Create a popup config for an instrument type.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"instrument_type\": \"electronic\",\n    \"popup_status_contract\": true,\n    \"popup_status_realestate\": false,\n    \"content_popup\": \"نص محتوى البوب أب هنا\",\n    \"button_text\": \"ابدأ الآن\",\n    \"button_link\": \"https://example.com/start\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const id = json?.data?.id;",
+                                    "if (id) {",
+                                    "  pm.collectionVariables.set(\"popup_contract_id\", String(id));",
+                                    "  pm.environment.set(\"popup_contract_id\", String(id));",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Show popup contract",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/popup-contracts/{{popup_contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "popup-contracts",
+                                "{{popup_contract_id}}"
+                            ]
+                        },
+                        "description": "Get one popup contract by id."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update popup contract",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/popup-contracts/{{popup_contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "popup-contracts",
+                                "{{popup_contract_id}}"
+                            ]
+                        },
+                        "description": "Update popup contract fields (POST update convention).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"instrument_type\": \"lease_renewal\",\n    \"popup_status_contract\": false,\n    \"popup_status_realestate\": true,\n    \"content_popup\": \"محتوى محدث للبوب أب\",\n    \"button_text\": \"متابعة\",\n    \"button_link\": \"https://example.com/continue\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete popup contract",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/popup-contracts/{{popup_contract_id}}/delete",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "popup-contracts",
+                                "{{popup_contract_id}}",
+                                "delete"
+                            ]
+                        },
+                        "description": "Delete popup contract by id."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

@@ -73,7 +73,7 @@ trait RealEstateLocationRules
             'extra_figure',
             'address_url',
         ] as $field) {
-            if ($this->filled($field)) {
+            if ($this->exists($field)) {
                 $payload[$field] = $this->input($field);
             }
         }

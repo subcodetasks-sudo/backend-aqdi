@@ -3,13 +3,15 @@
 namespace App\Http\Requests\Api\V2\Contract;
 
 use App\Http\Requests\Api\V2\BaseApiV2Request;
+use App\Http\Requests\Api\V2\Concerns\ContractPropertyAddressRules;
 use App\Http\Requests\Api\V2\Concerns\NormalizesCoordinateInputs;
 use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
-use App\Models\Contract;
-use Illuminate\Validation\Rule;
+use App\Models\City;
+use Illuminate\Contracts\Validation\Validator;
 
 class Step2Request extends BaseApiV2Request
 {
+    use ContractPropertyAddressRules;
     use NormalizesCoordinateInputs;
     use ResolvesContractIdInput;
 
@@ -27,18 +29,9 @@ class Step2Request extends BaseApiV2Request
 
     public function rules(): array
     {
-        $skipStepTwo = $this->shouldSkipStepTwo();
-
         return [
             'id' => 'required|exists:contracts,id',
-            // 'property_place_id' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'integer', 'exists:regions,id'],
-            // 'property_city_id' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'integer', 'exists:cities,id'],
-            // 'neighborhood' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'string', 'max:255'],
-            // 'street' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'string', 'max:255'],
-            // 'building_number' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'string', 'max:50'],
-            // 'postal_code' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'string', 'max:20'],
-            // 'extra_figure' => [Rule::requiredIf(! $skipStepTwo), 'nullable', 'string', 'max:255'],
-            'address_url' => 'nullable|string|max:2048',
+            ...$this->contractPropertyAddressRules(require: false),
             'image_address' => 'nullable|image',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
@@ -47,16 +40,22 @@ class Step2Request extends BaseApiV2Request
         ];
     }
 
-    private function shouldSkipStepTwo(): bool
+    public function withValidator(Validator $validator): void
     {
-        $contractId = $this->input('id');
-        if (! $contractId) {
-            return false;
-        }
+        $validator->after(function (Validator $validator) {
+            if (! $this->filled('property_city_id') || ! $this->filled('property_place_id')) {
+                return;
+            }
 
-        $instrumentType = Contract::query()->whereKey($contractId)->value('instrument_type');
+            $city = City::query()
+                ->whereKey($this->input('property_city_id'))
+                ->where('region_id', $this->input('property_place_id'))
+                ->exists();
 
-        return Contract::shouldSkipInitialSteps($instrumentType);
+            if (! $city) {
+                $validator->errors()->add('property_city_id', trans('api.city_not_include_region'));
+            }
+        });
     }
 
     public function messages(): array
@@ -79,4 +78,3 @@ class Step2Request extends BaseApiV2Request
         ]);
     }
 }
-

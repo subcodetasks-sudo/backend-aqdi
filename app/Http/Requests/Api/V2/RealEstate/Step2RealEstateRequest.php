@@ -23,6 +23,12 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'mobile_of_property_owner_agent',
         ]);
 
+        foreach (['name_owner', 'property_owner_iban'] as $optionalField) {
+            if ($this->exists($optionalField) && trim((string) $this->input($optionalField)) === '') {
+                $this->merge([$optionalField => null]);
+            }
+        }
+
         if (! array_key_exists('add_legal_agent_of_owner', $this->all())) {
             $this->merge(['add_legal_agent_of_owner' => false]);
         } else {
@@ -109,13 +115,13 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'type_dob_property_owner_agent' => 'nullable|in:hijri,gregorian',
             'type_agency_instrument_date_of_property_owner' => 'nullable|in:hijri,gregorian',
             'name_real_estate' => 'nullable|string|max:255',
-            'name_owner' => 'required|string',
+            'name_owner' => 'nullable|string',
             'property_owner_id_num' => 'required|min:10',
             'property_owner_dob_day' => ['nullable'],
             'property_owner_dob_month' => ['nullable'],
             'property_owner_dob_year' => ['nullable'],
             'property_owner_mobile' => 'required|min:9|regex:/^5[0-9]{8}$/',
-            'property_owner_iban' => 'nullable|min:22',
+            'property_owner_iban' => 'nullable|string|min:22',
             'add_legal_agent_of_owner' => 'nullable|boolean',
             'id_num_of_property_owner_agent' => 'nullable|min:10',
             'dob_of_property_owner_agent_day' => 'nullable',
@@ -189,7 +195,6 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'type_dob_property_owner_agent.in' => 'نوع تاريخ الميلاد لوكيل المالك غير صالح.',
             'name_real_estate.required' => 'اسم العقار مطلوب.',
             'name_real_estate.max' => 'اسم العقار يجب ألا يزيد عن 255 حرفاً.',
-            'name_owner.required' => 'اسم المالك مطلوب.',
             'property_owner_id_num.required' => 'رقم هوية المالك مطلوب.',
             'property_owner_id_num.min' => 'رقم هوية المالك لا يقل عن 10 أرقام.',
             'property_owner_mobile.required' => 'رقم جوال المالك مطلوب.',
