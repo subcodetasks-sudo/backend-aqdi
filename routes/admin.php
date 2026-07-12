@@ -175,9 +175,11 @@ use Illuminate\Support\Facades\Route;
         Route::get('{contractId}', 'show')->whereNumber('contractId')->name('show');
     });
 
-    // Contracts draft (is_draft = true)
+    // Contracts lists
     Route::prefix('contracts')->name('contracts.')->controller(OrderController::class)->group(function () {
         Route::get('/draft', 'draftContracts')->name('draft');
+        Route::get('/completed', 'complete')->name('completed');
+        Route::get('/completed-draft', 'completedAndDraft')->name('completed-draft');
     });
 
     // Orders Management
@@ -185,6 +187,9 @@ use Illuminate\Support\Facades\Route;
         Route::get('/', 'orders')->name('index');
         Route::get('/return', 'returnOrders')->name('return');
         Route::get('/status/{statusId}', 'byStatus')->whereNumber('statusId')->name('by-status');
+        Route::get('/completed', 'complete')->name('completed');
+        Route::get('/draft', 'draftContracts')->name('draft');
+        Route::get('/completed-draft', 'completedAndDraft')->name('completed-draft');
         Route::get('/incomplete/list', 'incomplete')->name('incomplete');
         Route::get('/complete/list', 'complete')->name('complete');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');

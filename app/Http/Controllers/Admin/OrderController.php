@@ -114,8 +114,8 @@ class OrderController extends Controller
     {
         try {
             $contracts = $this->incompleteContractsQuery($request)
-                ->with($this->contractRelations())
-                ->paginate($this->perPageFromRequest($request));
+                ->with($this->orderListRelations())
+                ->paginate($this->perPageFromRequest($request, 120, 200));
 
             return $this->paginatedApiResponse(
                 $contracts,
@@ -143,13 +143,40 @@ class OrderController extends Controller
         try {
             $contracts = $this->draftContractsQuery($request)
                 ->with($this->orderListRelations())
-                ->paginate($this->perPageFromRequest($request));
+                ->paginate($this->perPageFromRequest($request, 120, 200));
 
             return $this->paginatedApiResponse(
                 $contracts,
                 OrderResource::collection($contracts),
                 trans('api.success'),
                 ['is_draft' => true]
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
+    /**
+     * Completed and draft contracts together.
+     * GET /api/admin/orders/completed-draft
+     */
+    public function completedAndDraft(Request $request)
+    {
+        try {
+            $contracts = $this->completedAndDraftContractsQuery($request)
+                ->with($this->orderListRelations())
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['is_completed_or_draft' => true]
             );
         } catch (\Throwable $e) {
             return $this->apiResponse(
@@ -240,6 +267,30 @@ class OrderController extends Controller
             );
     }
 
+    private function completedAndDraftContractsQuery(Request $request)
+    {
+        return Contract::query()
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+            ->notDeleted()
+            ->where(function ($q) {
+                $q->where('is_completed', 1)
+                    ->orWhere('is_draft', true);
+            })
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+            ->orderBy(
+                $request->get('sort_by', 'created_at'),
+                $request->get('sort_order', 'desc')
+            );
+    }
 
     private function contractRelations(): array
     {
@@ -296,8 +347,8 @@ class OrderController extends Controller
     {
         try {
             $completedOrders = $this->completeContractsQuery($request)
-                ->with($this->contractRelations())
-                ->paginate($this->perPageFromRequest($request, 10));
+                ->with($this->orderListRelations())
+                ->paginate($this->perPageFromRequest($request, 120, 200));
 
             return $this->paginatedApiResponse(
                 $completedOrders,

@@ -32,7 +32,7 @@ class ContractPaidByEmployeeController extends Controller
         }
 
         $query = ContractPaidByEmployee::query()
-            ->with('employee')
+            ->with(['employee', 'contractPeriod'])
             ->latest('id');
 
         if ($request->filled('contract_uuid')) {
@@ -45,6 +45,14 @@ class ContractPaidByEmployeeController extends Controller
 
         if ($request->has('is_paid')) {
             $query->where('is_paid', $request->boolean('is_paid'));
+        }
+
+        if ($request->filled('contract_type')) {
+            $query->where('contract_type', $request->string('contract_type'));
+        }
+
+        if ($request->filled('draft_contract_number')) {
+            $query->where('draft_contract_number', $request->string('draft_contract_number'));
         }
 
         if ($request->filled('customer_mobile')) {
@@ -76,11 +84,17 @@ class ContractPaidByEmployeeController extends Controller
             $validated = $request->validated();
             $amount = (float) $validated['amount'];
             $contractUuid = (string) Contract::generateUUID();
+            $draftContractId = $request->input('draft_contract_id')
+                ?? ($validated['draft_contract_id'] ?? null);
 
             $record = ContractPaidByEmployee::query()->create([
                 'contract_uuid' => $contractUuid,
                 'employee_id' => $employee->id,
                 'customer_mobile' => $validated['customer_mobile'],
+                'contract_type' => $validated['contract_type'],
+                'contract_period_id' => $validated['contract_period_id'],
+                'draft_contract_number' => $validated['draft_contract_number'],
+                'draft_contract_id' => $draftContractId,
                 'amount' => $amount,
                 'is_paid' => false,
                 'notes' => $validated['notes'] ?? null,
@@ -96,7 +110,7 @@ class ContractPaidByEmployeeController extends Controller
                 throw $e;
             }
 
-            $record->load('employee');
+            $record->load(['employee', 'contractPeriod']);
 
             return $this->apiResponse([
                 'record' => new ContractPaidByEmployeeResource($record),
@@ -135,7 +149,7 @@ class ContractPaidByEmployeeController extends Controller
 
         try {
             $record = ContractPaidByEmployee::query()
-                ->with('employee')
+                ->with(['employee', 'contractPeriod'])
                 ->findOrFail($id);
 
             return $this->apiResponse(

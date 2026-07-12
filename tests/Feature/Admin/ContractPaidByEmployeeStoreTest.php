@@ -49,6 +49,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
     {
         Schema::dropIfExists('contract_paid_by_employees');
         Schema::dropIfExists('personal_access_tokens');
+        Schema::dropIfExists('contract_periods');
         Schema::dropIfExists('contracts');
         Schema::dropIfExists('employees');
 
@@ -59,6 +60,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
     {
         Schema::dropIfExists('contract_paid_by_employees');
         Schema::dropIfExists('personal_access_tokens');
+        Schema::dropIfExists('contract_periods');
         Schema::dropIfExists('contracts');
         Schema::dropIfExists('employees');
 
@@ -77,6 +79,19 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('uuid')->nullable();
             $table->boolean('is_completed')->default(false);
+            $table->boolean('is_delete')->default(false);
+            $table->boolean('is_draft')->default(false);
+            $table->string('app_or_web')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('contract_periods', function (Blueprint $table): void {
+            $table->id();
+            $table->string('period');
+            $table->string('note_ar')->nullable();
+            $table->string('note_en')->nullable();
+            $table->enum('contract_type', ['housing', 'commercial']);
+            $table->decimal('price', 10, 2)->nullable();
             $table->timestamps();
         });
 
@@ -96,6 +111,10 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             $table->string('contract_uuid')->nullable();
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
             $table->string('customer_mobile', 32);
+            $table->enum('contract_type', ['housing', 'commercial'])->nullable();
+            $table->foreignId('contract_period_id')->nullable()->constrained('contract_periods')->nullOnDelete();
+            $table->string('draft_contract_number', 32)->nullable();
+            $table->foreignId('draft_contract_id')->nullable()->constrained('contracts')->nullOnDelete();
             $table->decimal('amount', 10, 2)->default(0);
             $table->boolean('is_paid')->default(false);
             $table->text('notes')->nullable();
@@ -112,10 +131,26 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'is_active' => true,
         ]);
 
+        $draft = \App\Models\Contract::query()->create([
+            'uuid' => 100001,
+            'is_draft' => true,
+            'is_delete' => false,
+        ]);
+
+        $period = \App\Models\ContractPeriod::query()->create([
+            'period' => '1',
+            'note_ar' => 'سنة',
+            'contract_type' => 'housing',
+            'price' => 100,
+        ]);
+
         Sanctum::actingAs($employee);
 
         $response = $this->postJson('/api/admin/contract-paid-by-employees', [
             'customer_mobile' => '0512345678',
+            'contract_type' => 'housing',
+            'contract_period_id' => $period->id,
+            'draft_contract_number' => str_pad((string) $draft->id, 6, '0', STR_PAD_LEFT),
             'amount' => 500,
             'notes' => 'دفعة من العميل في الفرع',
         ]);
@@ -126,7 +161,9 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             ->assertJsonPath('data.record.customer_mobile', '0512345678')
             ->assertJsonPath('data.record.amount', 500)
             ->assertJsonPath('data.record.is_paid', false)
-            ->assertJsonPath('data.record.notes', 'دفعة من العميل في الفرع');
+            ->assertJsonPath('data.record.notes', 'دفعة من العميل في الفرع')
+            ->assertJsonPath('data.record.contract_type', 'housing')
+            ->assertJsonPath('data.record.draft_contract_id', $draft->id);
 
         $contractUuid = $response->json('data.contract_uuid');
         $this->assertNotEmpty($contractUuid);
@@ -135,6 +172,9 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'contract_uuid' => (string) $contractUuid,
             'employee_id' => $employee->id,
             'customer_mobile' => '0512345678',
+            'contract_type' => 'housing',
+            'contract_period_id' => $period->id,
+            'draft_contract_id' => $draft->id,
             'is_paid' => 0,
             'notes' => 'دفعة من العميل في الفرع',
         ]);
@@ -149,10 +189,26 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'is_active' => true,
         ]);
 
+        $draft = \App\Models\Contract::query()->create([
+            'uuid' => 100002,
+            'is_draft' => true,
+            'is_delete' => false,
+        ]);
+
+        $period = \App\Models\ContractPeriod::query()->create([
+            'period' => '2',
+            'note_ar' => 'سنتين',
+            'contract_type' => 'commercial',
+            'price' => 200,
+        ]);
+
         Sanctum::actingAs($employee);
 
         $response = $this->postJson('/api/admin/contract-paid-by-employees', [
             'customer_mobile' => '0598765432',
+            'contract_type' => 'commercial',
+            'contract_period_id' => $period->id,
+            'draft_contract_number' => (string) $draft->id,
             'amount' => 250.50,
         ]);
 
@@ -166,6 +222,9 @@ class ContractPaidByEmployeeStoreTest extends TestCase
     {
         $response = $this->postJson('/api/admin/contract-paid-by-employees', [
             'customer_mobile' => '0512345678',
+            'contract_type' => 'housing',
+            'contract_period_id' => 1,
+            'draft_contract_number' => '000001',
             'amount' => 500,
         ]);
 
