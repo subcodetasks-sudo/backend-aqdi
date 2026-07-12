@@ -8,6 +8,7 @@ use App\Http\Resources\ContractPeriodResource;
 use App\Http\Resources\PaperworkResource;
 use App\Http\Resources\PaymentTypeResource;
 use App\Http\Resources\Api\V2\PopupContractResource;
+use App\Http\Resources\Api\V2\PaymentMessageResource;
 use App\Http\Resources\QuestionResource;
 use App\Http\Resources\ReaEstatTypeResource;
 use App\Http\Resources\ReaEstatUsageResource;
@@ -24,6 +25,7 @@ use App\Models\Page;
 use App\Models\Paperwork;
 use App\Models\PaymentType;
 use App\Models\PopupContract;
+use App\Models\PaymentMessage;
 use App\Models\Question;
 use App\Models\ReaEstatType;
 use App\Models\ReaEstatUsage;
@@ -234,6 +236,26 @@ class GeneralController extends Controller
 
         return $this->apiResponse(
             PopupContractResource::collection($popups),
+            trans('api.success')
+        );
+    }
+
+    public function paymentContent(Request $request)
+    {
+        $this->validate($request, [
+            'type' => 'nullable|in:success,failed',
+        ]);
+
+        $query = PaymentMessage::query();
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type'));
+        }
+
+        $messages = $query->orderBy('type')->get();
+
+        return $this->apiResponse(
+            PaymentMessageResource::collection($messages),
             trans('api.success')
         );
     }
