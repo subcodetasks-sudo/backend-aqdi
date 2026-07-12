@@ -40,32 +40,15 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'instrument_history' => 'nullable|date',
             'real_estate_registry_number' => [Rule::requiredIf($instrumentType === 'strong_argument')],
             'date_first_registration' => [Rule::requiredIf($instrumentType === 'strong_argument')],
-            // 'property_type_id' => 'required|exists:rea_estat_types,id',
-            // 'property_owner_is_deceased' => 'required|boolean',
-            // 'number_of_floors' => 'required',
+            'property_type_id' => 'nullable|exists:rea_estat_types,id',
+            'number_of_floors' => 'nullable',
             'instrument_type' => ['nullable', Rule::in($instrumentTypes), 'required_if:property_owner_is_deceased,1'],
-            // 'property_usages_id' => [
-            //     'nullable',
-            //     Rule::requiredIf(in_array($instrumentType, [
-            //         'electronic',
-            //         'strong_argument',
-            //         RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT,
-            //     ], true)),
-            //     'exists:rea_estat_usages,id',
-            // ],
-            // 'number_of_units_in_realestate' => [
-            //     Rule::requiredIf(in_array($instrumentType, [
-            //         'electronic',
-            //         'strong_argument',
-            //         RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT,
-            //     ], true)),
-            //     'nullable',
-            //     'integer',
-            // ],
+            'property_usages_id' => 'nullable|exists:rea_estat_usages,id',
+            'number_of_units_in_realestate' => 'nullable|integer',
             'image_instrument' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf',
             'image_address' => 'nullable|image',
             'age_of_the_property' => 'nullable|integer|min:0',
-            // 'number_of_units_per_floor' => 'nullable|string|max:255',
+            'number_of_units_per_floor' => 'nullable|string|max:255',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
             'copy_of_the_endowment_registration_certificate' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
@@ -162,6 +145,19 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             $data['property_owner_is_deceased'] = $this->input('property_owner_is_deceased') === null
                 ? null
                 : $this->boolean('property_owner_is_deceased');
+        }
+
+        foreach ([
+            'property_type_id',
+            'property_usages_id',
+            'number_of_floors',
+            'age_of_the_property',
+            'number_of_units_per_floor',
+            'number_of_units_in_realestate',
+        ] as $optionalField) {
+            if ($this->exists($optionalField)) {
+                $data[$optionalField] = $this->input($optionalField);
+            }
         }
 
         if ($this->filled('contract_type')) {

@@ -135,16 +135,23 @@ class ContractController extends Controller
         $step1Data = [
             'app_or_web' => 'app',
             'instrument_number' => null,
-            // 'property_type_id' => $validated['property_type_id'] ?? null,
-            // 'property_usages_id' => $validated['property_usages_id'] ?? null,
-            // 'age_of_the_property' => $validated['age_of_the_property'] ?? null,
-            // 'number_of_floors' => $validated['number_of_floors'] ?? null,
-            // 'number_of_units_per_floor' => $validated['number_of_units_per_floor'] ?? null,
-            // 'number_of_units_in_realestate' => $validated['number_of_units_in_realestate'] ?? null,
             'is_multiple_trusteeship_deed_copy' => array_key_exists('is_multiple_trusteeship_deed_copy', $validated)
                 ? (bool) $validated['is_multiple_trusteeship_deed_copy']
                 : (bool) $contract->is_multiple_trusteeship_deed_copy,
         ];
+
+        foreach ([
+            'property_type_id',
+            'property_usages_id',
+            'age_of_the_property',
+            'number_of_floors',
+            'number_of_units_per_floor',
+            'number_of_units_in_realestate',
+        ] as $optionalField) {
+            if (array_key_exists($optionalField, $validated)) {
+                $step1Data[$optionalField] = $validated[$optionalField];
+            }
+        }
 
         if ($request->filled('instrument_type')) {
             $step1Data['instrument_type'] = $validated['instrument_type'];
