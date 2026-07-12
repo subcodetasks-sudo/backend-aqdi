@@ -18,6 +18,7 @@ class PaymentTypeResource extends JsonResource
             'name_en' => $this->name_en,
             'name' => $this->name_trans,
             'contract_type' => $this->contract_type,
+            'notes' => $this->notes,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

@@ -335,6 +335,7 @@ class AdminContractDetailResource extends JsonResource
             'name_en' => $m->name_en ?? null,
             'name_trans' => $m->name_trans ?? null,
             'contract_type' => $m->contract_type ?? null,
+            'notes' => $m->notes ?? null,
         ];
     }
 

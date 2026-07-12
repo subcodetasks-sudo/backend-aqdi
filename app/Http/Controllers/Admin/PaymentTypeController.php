@@ -137,6 +137,7 @@ class PaymentTypeController extends Controller
                 $isUpdate ? 'sometimes' : 'required',
                 Rule::in(['housing', 'commercial']),
             ],
+            'notes' => ['nullable', 'string'],
         ];
     }
 }

@@ -17,6 +17,7 @@ class PaymentTypeResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name_trans,
+            'notes' => $this->notes,
         ];
     }
 }
