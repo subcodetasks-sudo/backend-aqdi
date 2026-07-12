@@ -87,7 +87,7 @@ class Step5Request extends BaseApiV2Request
             'The_number_of_kitchens' => 'nullable|integer',
             'The_number_of_the_toilet' => 'nullable|integer',
             'window_ac' => 'nullable|integer',
-            'split_ac' => 'required|integer',
+            'split_ac' => 'nullable|integer',
             'electricity_meter_number' => 'nullable|string|max:255',
             'water_meter_number' => 'nullable|string|max:255',
             'kitchen_tank' => 'nullable|boolean',
