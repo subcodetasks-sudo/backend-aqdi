@@ -70,6 +70,46 @@ class OrderController extends Controller
         }
     }
 
+    /**
+     * Contracts filtered by contract_status_id.
+     * GET /api/admin/orders/status/{statusId}
+     */
+    public function byStatus(Request $request, $statusId)
+    {
+        $request->merge(['status_id' => $statusId]);
+        $this->validate($request, [
+            'status_id' => 'required|integer|exists:contract_statuses,id',
+        ]);
+
+        try {
+            $contracts = Contract::query()
+                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+                ->notDeleted()
+                ->where('contract_status_id', (int) $statusId)
+                ->when($request->filled('search'), fn ($q) =>
+                    $q->adminSearch($request->string('search')->toString())
+                )
+                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+                ->with($this->orderListRelations())
+                ->latest()
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['contract_status_id' => (int) $statusId]
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
     public function incomplete(Request $request)
     {
         try {
