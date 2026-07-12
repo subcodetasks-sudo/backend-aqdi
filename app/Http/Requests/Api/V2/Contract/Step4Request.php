@@ -22,6 +22,12 @@ class Step4Request extends BaseApiV2Request
             'mobile_of_property_tenant_agent',
         ]);
 
+        foreach (['region_of_the_tenant_legal_agent', 'city_of_the_tenant_legal_agent'] as $optionalField) {
+            if ($this->exists($optionalField) && trim((string) $this->input($optionalField)) === '') {
+                $this->merge([$optionalField => null]);
+            }
+        }
+
         if ($this->filled('tenant_dob') && ! $this->filled('tenant_dob_day')) {
             $parts = HijriDobParts::split((string) $this->input('tenant_dob'));
             if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
@@ -68,8 +74,8 @@ class Step4Request extends BaseApiV2Request
             'tenant_dob_month' => 'nullable|required_if:tenant_entity,person',
             'tenant_dob_year' => 'nullable|required_if:tenant_entity,person',
             'tenant_mobile' => 'nullable|required_if:tenant_entity,person|min:9|regex:/^5[0-9]{8}$/',
-            'region_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:regions,id',
-            'city_of_the_tenant_legal_agent' => 'nullable|required_if:tenant_entity,institution|exists:cities,id',
+            'region_of_the_tenant_legal_agent' => 'nullable|exists:regions,id',
+            'city_of_the_tenant_legal_agent' => 'nullable|exists:cities,id',
             'tenant_entity_unified_registry_number' => 'nullable|required_if:tenant_entity,institution',
             'authorization_type' => 'nullable|required_if:tenant_entity,institution',
             'copy_of_the_owner_record' => 'nullable|mimes:jpg,jpeg,png,pdf',
