@@ -35,6 +35,7 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/units-types', 'unitsTypes');
     Route::get('/units-usage', 'unitsUsages');
     Route::get('/payments-types', 'paymentsTypes');
+    Route::get('/popup-contracts', 'popupContracts');
     Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');

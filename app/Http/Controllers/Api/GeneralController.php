@@ -7,6 +7,7 @@ use App\Http\Resources\CityResource;
 use App\Http\Resources\ContractPeriodResource;
 use App\Http\Resources\PaperworkResource;
 use App\Http\Resources\PaymentTypeResource;
+use App\Http\Resources\Api\V2\PopupContractResource;
 use App\Http\Resources\QuestionResource;
 use App\Http\Resources\ReaEstatTypeResource;
 use App\Http\Resources\ReaEstatUsageResource;
@@ -22,6 +23,7 @@ use App\Models\ContractPeriod;
 use App\Models\Page;
 use App\Models\Paperwork;
 use App\Models\PaymentType;
+use App\Models\PopupContract;
 use App\Models\Question;
 use App\Models\ReaEstatType;
 use App\Models\ReaEstatUsage;
@@ -31,6 +33,7 @@ use App\Models\Setting;
 use App\Models\UnitType;
 use App\Models\UsageUnit;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class GeneralController extends Controller
 {
@@ -200,6 +203,39 @@ class GeneralController extends Controller
         $paymentsTypes = PaymentType::where('contract_type', $request->contract_type)->get();
 
         return $this->apiResponse(PaymentTypeResource::collection($paymentsTypes), trans('api.success'));
+    }
+
+    public function popupContracts(Request $request)
+    {
+        if ($request->filled('instrument_type')) {
+            $request->merge([
+                'instrument_type' => Contract::normalizeInstrumentType($request->input('instrument_type')),
+            ]);
+        }
+
+        $this->validate($request, [
+            'instrument_type' => ['nullable', Rule::in(Contract::instrumentTypes())],
+            'context' => 'nullable|in:contract,realestate',
+        ]);
+
+        $query = PopupContract::query();
+
+        if ($request->filled('instrument_type')) {
+            $query->where('instrument_type', $request->string('instrument_type'));
+        }
+
+        if ($request->input('context') === 'contract') {
+            $query->where('popup_status_contract', true);
+        } elseif ($request->input('context') === 'realestate') {
+            $query->where('popup_status_realestate', true);
+        }
+
+        $popups = $query->latest('id')->get();
+
+        return $this->apiResponse(
+            PopupContractResource::collection($popups),
+            trans('api.success')
+        );
     }
 
     public function contractPeriods(Request $request)
