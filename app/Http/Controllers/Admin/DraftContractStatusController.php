@@ -20,7 +20,7 @@ class DraftContractStatusController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = DraftContractStatus::query()->orderBy('order')->orderBy('name');
+            $query = DraftContractStatus::query()->orderBy('id');
             $statuses = $query->paginate($request->get('per_page', 20));
 
             return $this->apiResponse(
@@ -43,8 +43,7 @@ class DraftContractStatusController extends Controller
         try {
             $statuses = DraftContractStatus::query()
                 ->where('is_active', true)
-                ->orderBy('order')
-                ->orderBy('name')
+                ->orderBy('id')
                 ->get();
 
             return $this->apiResponse($statuses, trans('api.success'));
@@ -131,26 +130,27 @@ class DraftContractStatusController extends Controller
             $existingNames = DraftContractStatus::query()->pluck('name')->all();
             $created = [];
 
-            foreach (ContractStatus::query()->orderBy('order')->orderBy('id')->get() as $status) {
+            foreach (ContractStatus::query()->orderBy('id')->get() as $status) {
                 if (in_array($status->name, $existingNames, true)) {
                     continue;
                 }
 
-                $created[] = DraftContractStatus::query()->create([
+                $payload = [
                     'name' => $status->name,
                     'color' => $status->color,
                     'color_text' => $status->color_text,
                     'description' => $status->description,
-                    'order' => $status->order ?? 0,
                     'is_active' => (bool) $status->is_active,
-                ]);
+                ];
+
+                $created[] = DraftContractStatus::query()->create($payload);
             }
 
             return $this->apiResponse(
                 [
                     'created_count' => count($created),
                     'created' => $created,
-                    'items' => DraftContractStatus::query()->orderBy('order')->orderBy('name')->get(),
+                    'items' => DraftContractStatus::query()->orderBy('id')->get(),
                 ],
                 trans('api.success')
             );

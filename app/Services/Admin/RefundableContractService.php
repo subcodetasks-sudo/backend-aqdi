@@ -139,12 +139,11 @@ class RefundableContractService
 
         $statuses = ContractStatus::query()
             ->where('is_active', true)
-            ->orderBy('order')
             ->orderBy('id')
-            ->get(['id', 'name', 'color', 'color_text', 'order']);
+            ->get(['id', 'name', 'color', 'color_text']);
 
         if ($statuses->isEmpty()) {
-            $statuses = ContractStatus::query()->orderBy('id')->get(['id', 'name', 'color', 'color_text', 'order']);
+            $statuses = ContractStatus::query()->orderBy('id')->get(['id', 'name', 'color', 'color_text']);
         }
 
         return $statuses->map(fn (ContractStatus $status) => [
@@ -152,7 +151,6 @@ class RefundableContractService
             'name' => $status->name,
             'color' => $status->color,
             'color_text' => $status->color_text,
-            'order' => $status->order,
             'count' => (int) ($countsByStatus[$status->id] ?? 0),
         ])->values()->all();
     }

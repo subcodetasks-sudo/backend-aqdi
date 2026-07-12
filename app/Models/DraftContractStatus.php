@@ -14,13 +14,11 @@ class DraftContractStatus extends Model
         'color',
         'color_text',
         'description',
-        'order',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'order' => 'integer',
     ];
 
     protected $appends = ['created_at_label'];

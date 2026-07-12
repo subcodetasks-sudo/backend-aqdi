@@ -456,7 +456,6 @@ class AdminContractDetailResource extends JsonResource
             'color' => $m->color ?? null,
             'color_text' => $m->color_text ?? null,
             'description' => $m->description ?? null,
-            'order' => $m->order ?? null,
             'is_active' => (bool) ($m->is_active ?? false),
         ];
     }

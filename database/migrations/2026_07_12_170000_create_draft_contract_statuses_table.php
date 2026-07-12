@@ -16,7 +16,6 @@ return new class extends Migration
                 $table->string('color');
                 $table->string('color_text')->nullable();
                 $table->text('description')->nullable();
-                $table->unsignedInteger('order')->default(0);
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
             });
@@ -26,7 +25,6 @@ return new class extends Migration
             $existingNames = DB::table('draft_contract_statuses')->pluck('name')->all();
 
             $rows = DB::table('contract_statuses')
-                ->orderBy('order')
                 ->orderBy('id')
                 ->get();
 
@@ -40,7 +38,6 @@ return new class extends Migration
                     'color' => $row->color,
                     'color_text' => $row->color_text,
                     'description' => $row->description,
-                    'order' => $row->order ?? 0,
                     'is_active' => (bool) $row->is_active,
                     'created_at' => now(),
                     'updated_at' => now(),

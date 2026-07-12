@@ -125,8 +125,7 @@ class ContractStatusController extends Controller
     {
         try {
             $contractStatuses = ContractStatus::where('is_active', true)
-                ->orderBy('order', 'asc')
-                ->orderBy('name', 'asc')
+                ->orderBy('id', 'asc')
                 ->get();
 
             return $this->apiResponse(
