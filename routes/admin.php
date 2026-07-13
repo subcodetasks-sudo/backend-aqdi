@@ -130,15 +130,20 @@ use Illuminate\Support\Facades\Route;
     Route::prefix('refundable-contracts')->name('refundable-contracts.')->controller(RefundableContractController::class)->middleware('auth:sanctum')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
-        Route::get('/{id}', 'show')->name('show');
-        Route::post('/{id}', 'update')->name('update');
+        Route::get('/{uuid}', 'show')->name('show');
+        Route::match(['post', 'put', 'patch'], '/{uuid}', 'update')->name('update');
     });
 
-    Route::prefix('analytics/refunds')->name('analytics.refunds.')->controller(RefundableContractController::class)->group(function () {
-        Route::get('/contracts', 'index')->name('contracts.index');
-        Route::get('/contracts/{id}', 'show')->name('contracts.show');
-        Route::post('/contracts/{id}', 'update')->name('contracts.update');
-    });
+    Route::prefix('analytics/refunds')->name('analytics.refunds.')
+        ->controller(RefundableContractController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::get('/contracts', 'index')->name('contracts.index');
+            // Body-based confirm (avoids hosting WAF 403 on POST .../contracts/{uuid})
+            Route::post('/contracts/confirm', 'confirm')->name('contracts.confirm');
+            Route::get('/contracts/{uuid}', 'show')->name('contracts.show');
+            Route::match(['post', 'put', 'patch'], '/contracts/{uuid}', 'update')->name('contracts.update');
+        });
 
     Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {
         Route::get('/most-received-orders', 'mostReceivedOrders')->name('most-received-orders');

@@ -108,16 +108,44 @@ class RefundableContractController extends Controller
      * Management approval (موافقة الإدارة): accept or reject.
      * When approved, sets is_refunded (تم الاسترجاع).
      *
-     * POST /api/admin/refundable-contracts/{id}
-     * POST /api/admin/analytics/refunds/contracts/{id}
+     * POST|PUT|PATCH /api/admin/refundable-contracts/{uuid}
+     * POST|PUT|PATCH /api/admin/analytics/refunds/contracts/{uuid}
      * Accept: { "admin_confirmed": true }
      * Reject: { "admin_confirmed": false }
      * Optional: { "refund_amount": 125.99, "notes": "..." }
+     *
+     * {uuid} = contract uuid first, then contract_id
      */
-    public function update(UpdateRefundableContractApprovalRequest $request, string $id)
+    public function update(UpdateRefundableContractApprovalRequest $request, string $uuid)
+    {
+        return $this->applyApproval($request, $uuid);
+    }
+
+    /**
+     * Same as update, but uuid/id in body — use when hosting WAF blocks POST .../{uuid}.
+     *
+     * POST /api/admin/analytics/refunds/contracts/confirm
+     * Body: { "uuid": "...", "admin_confirmed": true }
+     *   or: { "contract_id": 40892, "admin_confirmed": true }
+     *   or: { "id": 40892, "admin_confirmed": true }
+     */
+    public function confirm(UpdateRefundableContractApprovalRequest $request)
+    {
+        $key = $request->input('uuid')
+            ?? $request->input('contract_id')
+            ?? $request->input('id');
+
+        if ($key === null || $key === '') {
+            return $this->errorMessage(trans('api.refund_contract_id_required'), 422);
+        }
+
+        return $this->applyApproval($request, (string) $key);
+    }
+
+    private function applyApproval(UpdateRefundableContractApprovalRequest $request, string $key)
     {
         try {
-            $record = $this->refundableService->findForAdmin($id);
+            $record = $this->refundableService->findForAdmin($key);
 
             if (! $record) {
                 return $this->errorMessage(trans('api.not_found'), 404);
@@ -137,15 +165,15 @@ class RefundableContractController extends Controller
     }
 
     /**
-     * GET /api/admin/refundable-contracts/{id}
-     * GET /api/admin/analytics/refunds/contracts/{id}
+     * GET /api/admin/refundable-contracts/{uuid}
+     * GET /api/admin/analytics/refunds/contracts/{uuid}
      *
-     * {id} = contract uuid first, then contract_id
+     * {uuid} = contract uuid first, then contract_id
      */
-    public function show(string $id)
+    public function show(string $uuid)
     {
         try {
-            $record = $this->refundableService->findForAdmin($id);
+            $record = $this->refundableService->findForAdmin($uuid);
 
             if (! $record) {
                 return $this->errorMessage(trans('api.not_found'), 404);

@@ -18,6 +18,9 @@ class UpdateRefundableContractApprovalRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'uuid' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'contract_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'id' => ['sometimes', 'nullable', 'integer', 'min:1'],
             'admin_confirmed' => ['sometimes', 'boolean'],
             'refund_amount' => ['sometimes', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
