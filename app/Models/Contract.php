@@ -174,7 +174,8 @@ class Contract extends Model
     }
 
     /**
-     * Admin orders: hide contracts that have not reached step 3 yet.
+     * Contracts that reached at least the given step (default: 3).
+     * Used by admin order lists and API v2 contract lists.
      */
     public function scopeReachedAdminOrderStep($query, int $minStep = 3)
     {

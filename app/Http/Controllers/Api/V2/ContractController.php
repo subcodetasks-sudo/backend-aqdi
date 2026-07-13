@@ -42,8 +42,8 @@ class ContractController extends Controller
         $contracts = Contract::where('user_id', $user->id)
             ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
             ->orderBy('updated_at', 'desc')
-           
             ->where('is_delete', 0)
+            ->reachedAdminOrderStep()
             ->paginate(10);
 
         return $this->apiResponse(
@@ -68,6 +68,7 @@ class ContractController extends Controller
             ->where('user_id', $user->id)
             ->where('contract_status_id', (int) $statusId)
             ->where('is_delete', 0)
+            ->reachedAdminOrderStep()
             ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
@@ -87,6 +88,7 @@ class ContractController extends Controller
         $contracts = Contract::query()
             ->where('user_id', $user->id)
             ->where('is_delete', 0)
+            ->reachedAdminOrderStep()
             ->draft()
             ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
             ->orderBy('updated_at', 'desc')
@@ -112,6 +114,7 @@ class ContractController extends Controller
         $contracts = Contract::query()
             ->where('user_id', $user->id)
             ->where('is_delete', 0)
+            ->reachedAdminOrderStep()
             ->draft()
             ->where('draft_contract_status_id', (int) $statusId)
             ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
@@ -130,7 +133,10 @@ class ContractController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $contract = Contract::with(['realEstate', 'contractStatus', 'draftContractStatus'])->where('user_id', $user->id)->findOrFail($id);
+        $contract = Contract::with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->where('user_id', $user->id)
+            ->reachedAdminOrderStep()
+            ->findOrFail($id);
 
         return $this->apiResponse(new ContractResource($contract), trans('api.success'));
     }
