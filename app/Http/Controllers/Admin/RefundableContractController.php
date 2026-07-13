@@ -23,7 +23,8 @@ class RefundableContractController extends Controller
     ) {}
 
     /**
-     * List refund requests (مسترجع) — matches analytics table UI.
+     * List refund requests (مسترجع).
+     * GET /api/admin/refundable-contracts?period=today
      * GET /api/admin/analytics/refunds/contracts?period=today
      */
     public function index(Request $request)
@@ -107,6 +108,7 @@ class RefundableContractController extends Controller
      * Management approval (موافقة الإدارة): accept or reject.
      * When approved, sets is_refunded (تم الاسترجاع).
      *
+     * POST /api/admin/refundable-contracts/{id}
      * POST /api/admin/analytics/refunds/contracts/{id}
      * Accept: { "admin_confirmed": true }
      * Reject: { "admin_confirmed": false }
@@ -135,6 +137,7 @@ class RefundableContractController extends Controller
     }
 
     /**
+     * GET /api/admin/refundable-contracts/{id}
      * GET /api/admin/analytics/refunds/contracts/{id}
      */
     public function show(int $id)

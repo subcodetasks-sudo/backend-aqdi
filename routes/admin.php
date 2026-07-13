@@ -128,7 +128,10 @@ use Illuminate\Support\Facades\Route;
     });
 
     Route::prefix('refundable-contracts')->name('refundable-contracts.')->controller(RefundableContractController::class)->middleware('auth:sanctum')->group(function () {
+        Route::get('/', 'index')->name('index');
         Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
     });
 
     Route::prefix('analytics/refunds')->name('analytics.refunds.')->controller(RefundableContractController::class)->group(function () {
