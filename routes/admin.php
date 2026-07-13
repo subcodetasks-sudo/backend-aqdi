@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PaperworkController;
 use App\Http\Controllers\Admin\PopupContractController;
 use App\Http\Controllers\Admin\PaymentMessageController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -80,6 +81,19 @@ use Illuminate\Support\Facades\Route;
             Route::post('/{id}/unblock', 'unblock')->whereNumber('id')->name('unblock');
         });
     });
+
+    // Firebase notifications
+    Route::prefix('notifications')->name('notifications.')->controller(NotificationController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::post('/send', 'send')->name('send');
+            Route::post('/user', 'sendToUser')->name('user');
+            Route::post('/custom-user', 'sendToCustomUser')->name('custom-user');
+            Route::post('/employee', 'sendToEmployee')->name('employee');
+            Route::post('/custom-employee', 'sendToCustomEmployee')->name('custom-employee');
+            Route::post('/all-users', 'sendToAllUsers')->name('all-users');
+            Route::post('/all-employees', 'sendToAllEmployees')->name('all-employees');
+        });
 
     // Analytics & Dashboard
     Route::controller(HomeAdminController::class)->group(function () {

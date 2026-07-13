@@ -22,11 +22,11 @@ class FirebaseNotificationService
     {
         $credentials = (string) config(
             'services.firebase.credentials',
-            storage_path('app/aqdi-5f575-ea6541aff561.json')
+            storage_path('app/aqdi-test-34027147e050.json')
         );
 
         $this->credentialsPath = $this->resolveCredentialsPath($credentials);
-        $this->projectId = (string) config('services.firebase.project_id', 'aqdi-5f575');
+        $this->projectId = (string) config('services.firebase.project_id', 'aqdi-3d3ee');
     }
 
     private function resolveCredentialsPath(string $path): string
@@ -91,6 +91,149 @@ class FirebaseNotificationService
                 ]);
             }
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{sent: int, failed: int, topic_sent: bool, missing_token: bool}
+     */
+    public function sendToUser(int $userId, string $title, string $body, array $data = []): array
+    {
+        $user = \App\Models\User::query()->find($userId);
+        if (! $user) {
+            throw new \InvalidArgumentException(trans('api.not_found'));
+        }
+
+        if (! filled($user->fcm_token)) {
+            return ['sent' => 0, 'failed' => 0, 'topic_sent' => false, 'missing_token' => true];
+        }
+
+        try {
+            $this->sendToToken((string) $user->fcm_token, $title, $body, array_merge([
+                'type' => 'custom_user',
+                'user_id' => (string) $user->id,
+            ], $data));
+
+            return ['sent' => 1, 'failed' => 0, 'topic_sent' => false, 'missing_token' => false];
+        } catch (\Throwable $e) {
+            Log::warning('Firebase send to user failed', ['user_id' => $userId, 'error' => $e->getMessage()]);
+
+            return ['sent' => 0, 'failed' => 1, 'topic_sent' => false, 'missing_token' => false];
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{sent: int, failed: int, topic_sent: bool, missing_token: bool}
+     */
+    public function sendToEmployee(int $employeeId, string $title, string $body, array $data = []): array
+    {
+        $employee = Employee::query()->find($employeeId);
+        if (! $employee) {
+            throw new \InvalidArgumentException(trans('api.not_found'));
+        }
+
+        if (! filled($employee->fcm_token)) {
+            return ['sent' => 0, 'failed' => 0, 'topic_sent' => false, 'missing_token' => true];
+        }
+
+        try {
+            $this->sendToToken((string) $employee->fcm_token, $title, $body, array_merge([
+                'type' => 'custom_employee',
+                'employee_id' => (string) $employee->id,
+            ], $data));
+
+            return ['sent' => 1, 'failed' => 0, 'topic_sent' => false, 'missing_token' => false];
+        } catch (\Throwable $e) {
+            Log::warning('Firebase send to employee failed', ['employee_id' => $employeeId, 'error' => $e->getMessage()]);
+
+            return ['sent' => 0, 'failed' => 1, 'topic_sent' => false, 'missing_token' => false];
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{sent: int, failed: int, topic_sent: bool, missing_token: bool}
+     */
+    public function sendToAllUsers(string $title, string $body, array $data = []): array
+    {
+        $payload = array_merge(['type' => 'all_users'], $data);
+        $topicSent = false;
+
+        try {
+            $this->sendToTopic((string) config('services.firebase.users_topic', 'users'), $title, $body, $payload);
+            $topicSent = true;
+        } catch (\Throwable $e) {
+            Log::warning('Firebase users topic failed', ['error' => $e->getMessage()]);
+        }
+
+        $tokens = \App\Models\User::query()
+            ->where('is_active', 1)
+            ->whereNotNull('fcm_token')
+            ->where('fcm_token', '!=', '')
+            ->pluck('fcm_token')
+            ->unique()
+            ->filter()
+            ->values();
+
+        return array_merge($this->sendToTokens($tokens->all(), $title, $body, $payload), [
+            'topic_sent' => $topicSent,
+            'missing_token' => false,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{sent: int, failed: int, topic_sent: bool, missing_token: bool}
+     */
+    public function sendToAllEmployees(string $title, string $body, array $data = []): array
+    {
+        $payload = array_merge(['type' => 'all_employees'], $data);
+        $topicSent = false;
+
+        try {
+            $this->sendToTopic((string) config('services.firebase.employees_topic', 'employees'), $title, $body, $payload);
+            $topicSent = true;
+        } catch (\Throwable $e) {
+            Log::warning('Firebase employees topic failed', ['error' => $e->getMessage()]);
+        }
+
+        $tokens = Employee::query()
+            ->where('is_active', true)
+            ->whereNotNull('fcm_token')
+            ->where('fcm_token', '!=', '')
+            ->pluck('fcm_token')
+            ->unique()
+            ->filter()
+            ->values();
+
+        return array_merge($this->sendToTokens($tokens->all(), $title, $body, $payload), [
+            'topic_sent' => $topicSent,
+            'missing_token' => false,
+        ]);
+    }
+
+    /**
+     * @param  list<string>  $tokens
+     * @param  array<string, mixed>  $data
+     * @return array{sent: int, failed: int}
+     */
+    private function sendToTokens(array $tokens, string $title, string $body, array $data = []): array
+    {
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($tokens as $token) {
+            try {
+                $this->sendToToken((string) $token, $title, $body, $data);
+                $sent++;
+            } catch (\Throwable $e) {
+                $failed++;
+                Log::warning('Firebase token send failed', ['error' => $e->getMessage()]);
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
     }
 
     /**
