@@ -114,10 +114,10 @@ class RefundableContractController extends Controller
      * Reject: { "admin_confirmed": false }
      * Optional: { "refund_amount": 125.99, "notes": "..." }
      */
-    public function update(UpdateRefundableContractApprovalRequest $request, int $id)
+    public function update(UpdateRefundableContractApprovalRequest $request, string $id)
     {
         try {
-            $record = $this->refundableService->baseQuery()->find($id);
+            $record = $this->refundableService->findForAdmin($id);
 
             if (! $record) {
                 return $this->errorMessage(trans('api.not_found'), 404);
@@ -139,11 +139,13 @@ class RefundableContractController extends Controller
     /**
      * GET /api/admin/refundable-contracts/{id}
      * GET /api/admin/analytics/refunds/contracts/{id}
+     *
+     * {id} = contract_id | contract uuid
      */
-    public function show(int $id)
+    public function show(string $id)
     {
         try {
-            $record = $this->refundableService->baseQuery()->find($id);
+            $record = $this->refundableService->findForAdmin($id);
 
             if (! $record) {
                 return $this->errorMessage(trans('api.not_found'), 404);

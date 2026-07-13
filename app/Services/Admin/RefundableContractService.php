@@ -33,6 +33,49 @@ class RefundableContractService
     }
 
     /**
+     * Resolve a refundable row by contract id or contract uuid.
+     */
+    public function findForAdmin(string|int $key): ?RefundableContract
+    {
+        $key = trim((string) $key);
+        if ($key === '') {
+            return null;
+        }
+
+        $query = $this->adminLookupQuery();
+
+        if (ctype_digit($key)) {
+            return $query
+                ->where('contract_id', (int) $key)
+                ->latest('refundable_contracts.id')
+                ->first();
+        }
+
+        return $query
+            ->whereHas('contract', fn (Builder $q) => $q
+                ->where('uuid', $key)
+                ->where('is_delete', 0)
+            )
+            ->latest('refundable_contracts.id')
+            ->first();
+    }
+
+    /**
+     * Same eager loads as list, without forcing return-status filter so
+     * lookup by contract id/uuid still works after status changes.
+     */
+    private function adminLookupQuery(): Builder
+    {
+        return RefundableContract::query()
+            ->whereHas('contract', fn (Builder $q) => $q->where('is_delete', 0))
+            ->with([
+                'contract.user:id,fname,lname,mobile',
+                'contract.contractStatus:id,name,color',
+                'employee:id,name',
+            ]);
+    }
+
+    /**
      * Return-order contract from orders list (contract_status_id = 2).
      */
     public function resolveReturnContract(int $contractId): Contract
@@ -271,7 +314,7 @@ class RefundableContractService
             $this->syncContractAfterRefundDecision($record, (bool) $data['admin_confirmed']);
         }
 
-        return $this->baseQuery()->findOrFail($record->id);
+        return $this->adminLookupQuery()->findOrFail($record->id);
     }
 
     /**
