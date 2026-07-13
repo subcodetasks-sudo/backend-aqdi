@@ -53,6 +53,15 @@ interface PaymentGatewayInterface
     ): array;
 
     /**
+     * Whether local/gateway state shows this contract uuid as paid.
+     */
+    public function isPaymentConfirmed(
+        string $uuid,
+        ?string $paymentId = null,
+        ?string $invoiceId = null
+    ): bool;
+
+    /**
      * Sync local payment/contract state from the gateway using contract metadata.
      *
      * @return array<string, mixed>

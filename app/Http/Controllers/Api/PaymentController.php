@@ -112,17 +112,24 @@ class PaymentController extends Controller
     {
         $this->paymentService->processIpn($request, (string) $uuid);
 
-        $frontendUrl = $this->frontendPaymentRedirectUrl('success', (string) $uuid);
+        $paid = $this->paymentService->isPaymentConfirmed(
+            (string) $uuid,
+            $request->input('id') ?? $request->input('payment_id'),
+            $request->input('invoice_id')
+        );
+        $result = $paid ? 'success' : 'error';
+        $frontendUrl = $this->frontendPaymentRedirectUrl($result, (string) $uuid);
 
         if ($this->wantsJsonPaymentResponse($request)) {
             return $this->apiResponse(
                 $this->paymentService->paymentStatusPayload(
                     (string) $uuid,
-                    'success',
+                    $result,
                     $request->input('id') ?? $request->input('payment_id'),
                     $request->input('invoice_id')
                 ),
-                trans('api.success')
+                $paid ? trans('api.success') : trans('api.error'),
+                $paid ? 200 : 400
             );
         }
 
@@ -133,18 +140,25 @@ class PaymentController extends Controller
     {
         $this->paymentService->processIpn($request, (string) $uuid);
 
-        $frontendUrl = $this->frontendPaymentRedirectUrl('error', (string) $uuid);
+        // If Moyasar hit back/error URL but payment actually succeeded, send success screen.
+        $paid = $this->paymentService->isPaymentConfirmed(
+            (string) $uuid,
+            $request->input('id') ?? $request->input('payment_id'),
+            $request->input('invoice_id')
+        );
+        $result = $paid ? 'success' : 'error';
+        $frontendUrl = $this->frontendPaymentRedirectUrl($result, (string) $uuid);
 
         if ($this->wantsJsonPaymentResponse($request)) {
             return $this->apiResponse(
                 $this->paymentService->paymentStatusPayload(
                     (string) $uuid,
-                    'error',
+                    $result,
                     $request->input('id') ?? $request->input('payment_id'),
                     $request->input('invoice_id')
                 ),
-                trans('api.error'),
-                400
+                $paid ? trans('api.success') : trans('api.error'),
+                $paid ? 200 : 400
             );
         }
 
@@ -159,13 +173,16 @@ class PaymentController extends Controller
 
         $template = (string) config($templateKey, '');
         if ($template !== '') {
-            return str_replace('{uuid}', $uuid, $template);
+            $url = str_replace('{uuid}', $uuid, $template);
+        } else {
+            $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
+            $path = $type === 'error' ? 'error' : 'success';
+            $url = "{$base}/payment/{$path}/{$uuid}";
         }
 
-        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
-        $path = $type === 'error' ? 'error' : 'success';
+        $separator = str_contains($url, '?') ? '&' : '?';
 
-        return "{$base}/payment/{$path}/{$uuid}";
+        return $url.$separator.'status='.($type === 'error' ? 'failed' : 'success');
     }
 
     private function wantsJsonPaymentResponse(Request $request): bool

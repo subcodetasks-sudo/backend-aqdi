@@ -239,6 +239,16 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         ];
     }
 
+    public function isPaymentConfirmed(
+        string $uuid,
+        ?string $paymentId = null,
+        ?string $invoiceId = null
+    ): bool {
+        $payload = $this->paymentStatusPayload($uuid, 'return', $paymentId, $invoiceId);
+
+        return (bool) ($payload['payment_confirmed'] ?? false);
+    }
+
     /**
      * @return array<string, mixed>
      */

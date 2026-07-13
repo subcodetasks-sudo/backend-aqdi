@@ -78,7 +78,13 @@ class ContractPaymentController extends Controller
     {
         $this->paymentService->processIpn($request, $uuid);
 
-        return redirect()->away($this->frontendPaymentRedirectUrl('success', $uuid));
+        $paid = $this->paymentService->isPaymentConfirmed(
+            $uuid,
+            $request->input('id') ?? $request->input('payment_id'),
+            $request->input('invoice_id')
+        );
+
+        return redirect()->away($this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid));
     }
 
     /**
@@ -88,7 +94,13 @@ class ContractPaymentController extends Controller
     {
         $this->paymentService->processIpn($request, $uuid);
 
-        return redirect()->away($this->frontendPaymentRedirectUrl('error', $uuid));
+        $paid = $this->paymentService->isPaymentConfirmed(
+            $uuid,
+            $request->input('id') ?? $request->input('payment_id'),
+            $request->input('invoice_id')
+        );
+
+        return redirect()->away($this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid));
     }
 
     private function frontendPaymentRedirectUrl(string $type, string $uuid): string
@@ -99,12 +111,15 @@ class ContractPaymentController extends Controller
 
         $template = (string) config($templateKey, '');
         if ($template !== '') {
-            return str_replace('{uuid}', $uuid, $template);
+            $url = str_replace('{uuid}', $uuid, $template);
+        } else {
+            $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
+            $path = $type === 'error' ? 'error' : 'success';
+            $url = "{$base}/payment/{$path}/{$uuid}";
         }
 
-        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
-        $path = $type === 'error' ? 'error' : 'success';
+        $separator = str_contains($url, '?') ? '&' : '?';
 
-        return "{$base}/payment/{$path}/{$uuid}";
+        return $url.$separator.'status='.($type === 'error' ? 'failed' : 'success');
     }
 }
