@@ -348,14 +348,18 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     }
 
     /**
-     * @return array{success: ?string, error: ?string}
+     * Always give Moyasar success/back URLs so the browser leaves the gateway
+     * "Invoice Paid" page and lands on success / failed screens.
+     *
+     * App with PAYMENT_APP_* templates → deep links.
+     * Otherwise → backend status routes (process IPN) → frontend templates.
+     *
+     * @return array{success: string, error: string}
      */
     private function paymentFrontendRedirectUrls(string $contractUuid, string $client = 'web'): array
     {
         $client = $this->normalizePaymentClient($client);
 
-        // Mobile app: use optional deep-link templates, otherwise omit redirects
-        // so Moyasar does not send the WebView to the web frontend.
         if ($client === 'app') {
             $successTemplate = (string) config('services.moyasar.payment_app_success_url_template', '');
             $errorTemplate = (string) config('services.moyasar.payment_app_error_url_template', '');
@@ -366,15 +370,10 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                     'error' => str_replace('{uuid}', $contractUuid, $errorTemplate),
                 ];
             }
-
-            return [
-                'success' => null,
-                'error' => null,
-            ];
         }
 
-        // Web: send the browser to backend status routes first (so payment is
-        // processed), then those routes redirect to the frontend pages.
+        // Backend first (record payment), then PaymentController redirects to:
+        // PAYMENT_SUCCESS_URL_TEMPLATE / PAYMENT_ERROR_URL_TEMPLATE
         return [
             'success' => route('status.success', ['uuid' => $contractUuid]),
             'error' => route('status.error', ['uuid' => $contractUuid]),
@@ -407,13 +406,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ],
         ];
 
-        // Web keeps frontend redirects; app omits them unless app templates are configured.
-        if (! empty($redirectUrls['success'])) {
-            $payload['success_url'] = $redirectUrls['success'];
-        }
-        if (! empty($redirectUrls['error'])) {
-            $payload['back_url'] = $redirectUrls['error'];
-        }
+        // Always attach redirects so Moyasar leaves the invoice page.
+        $payload['success_url'] = $redirectUrls['success'];
+        $payload['back_url'] = $redirectUrls['error'];
 
         $response = $this->buildRequest('POST', '/v1/invoices', $payload);
 

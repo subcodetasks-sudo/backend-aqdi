@@ -26,8 +26,9 @@ class PaymentController extends Controller
 
     /**
      * Detect web vs mobile without requiring app changes.
-     * Default is "app" (no frontend redirect). Web is detected via
-     * Origin/Referer matching PAYMENT_FRONTEND_URL, or an explicit platform=web.
+     * Web: Origin/Referer matching PAYMENT_FRONTEND_URL, or platform=web.
+     * Default is "app" (uses PAYMENT_APP_* deep links when set; otherwise same
+     * backend→frontend success/error redirect as web).
      */
     private function resolvePaymentClient(Request $request): string
     {
@@ -169,11 +170,8 @@ class PaymentController extends Controller
 
     private function wantsJsonPaymentResponse(Request $request): bool
     {
-        if ($request->query('format') === 'json') {
-            return true;
-        }
-
-        return $request->expectsJson() && ! $request->acceptsHtml();
+        // Only skip the frontend redirect when the client explicitly asks for JSON.
+        return $request->query('format') === 'json';
     }
 
     public function syncFromGateway(Request $request, string $uuid)
