@@ -19,7 +19,7 @@ class FilterContract extends Controller
 
     public function allcontracts(Request $request)
     {
-        $contractsQuery = Contract::query()->notDeleted();
+        $contractsQuery = Contract::query()->notDeleted()->reachedAdminOrderStep();
 
         if ($request->has('is_completed')) {
             $contractsQuery->where('is_completed', $request->boolean('is_completed') ? 1 : 0);

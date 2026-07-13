@@ -174,6 +174,14 @@ class Contract extends Model
     }
 
     /**
+     * Admin orders: hide contracts that have not reached step 3 yet.
+     */
+    public function scopeReachedAdminOrderStep($query, int $minStep = 3)
+    {
+        return $query->where('step', '>=', $minStep);
+    }
+
+    /**
      * Incomplete contracts: is_completed = 0.
      */
     public function scopeIncomplete($query)

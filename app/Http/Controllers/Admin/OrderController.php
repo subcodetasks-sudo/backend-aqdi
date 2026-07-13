@@ -28,6 +28,7 @@ class OrderController extends Controller
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
@@ -80,6 +81,7 @@ class OrderController extends Controller
             $contracts = Contract::query()
                 ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
                 ->notDeleted()
+                ->reachedAdminOrderStep()
                 ->whereHas('receivedContract')
                 ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
                 ->when($request->filled('contract_type'), fn ($q) =>
@@ -129,6 +131,7 @@ class OrderController extends Controller
             $contracts = Contract::query()
                 ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
                 ->notDeleted()
+                ->reachedAdminOrderStep()
                 ->where('contract_status_id', (int) $statusId)
                 ->when($request->filled('search'), fn ($q) =>
                     $q->adminSearch($request->string('search')->toString())
@@ -169,6 +172,7 @@ class OrderController extends Controller
             $contracts = Contract::query()
                 ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
                 ->notDeleted()
+                ->reachedAdminOrderStep()
                 ->draft()
                 ->where('draft_contract_status_id', (int) $statusId)
                 ->when($request->filled('search'), fn ($q) =>
@@ -278,6 +282,7 @@ class OrderController extends Controller
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->where('contract_status_id', RefundableContractService::RETURN_CONTRACT_STATUS_ID)
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
@@ -313,6 +318,7 @@ class OrderController extends Controller
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->incomplete()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
@@ -336,6 +342,7 @@ class OrderController extends Controller
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->draft()
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
@@ -358,6 +365,7 @@ class OrderController extends Controller
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->where(function ($q) {
                 $q->where('is_completed', 1)
                     ->orWhere('is_draft', true);
@@ -459,6 +467,7 @@ class OrderController extends Controller
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->completed()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
@@ -537,6 +546,7 @@ class OrderController extends Controller
         return Contract::query()
             ->where('user_id', $userId)
             ->notDeleted()
+            ->reachedAdminOrderStep()
             ->orderByDesc('id')
             ->get(['id', 'uuid'])
             ->map(static fn (Contract $contract) => [
