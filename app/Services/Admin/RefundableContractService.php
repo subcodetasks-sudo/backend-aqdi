@@ -33,7 +33,7 @@ class RefundableContractService
     }
 
     /**
-     * Resolve a refundable row by contract id or contract uuid.
+     * Resolve a refundable row by contract uuid, then fall back to contract id.
      */
     public function findForAdmin(string|int $key): ?RefundableContract
     {
@@ -44,18 +44,24 @@ class RefundableContractService
 
         $query = $this->adminLookupQuery();
 
-        if (ctype_digit($key)) {
-            return $query
-                ->where('contract_id', (int) $key)
-                ->latest('refundable_contracts.id')
-                ->first();
-        }
-
-        return $query
+        $byUuid = (clone $query)
             ->whereHas('contract', fn (Builder $q) => $q
                 ->where('uuid', $key)
                 ->where('is_delete', 0)
             )
+            ->latest('refundable_contracts.id')
+            ->first();
+
+        if ($byUuid) {
+            return $byUuid;
+        }
+
+        if (! ctype_digit($key)) {
+            return null;
+        }
+
+        return $query
+            ->where('contract_id', (int) $key)
             ->latest('refundable_contracts.id')
             ->first();
     }

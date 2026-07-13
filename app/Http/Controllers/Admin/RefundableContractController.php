@@ -140,7 +140,7 @@ class RefundableContractController extends Controller
      * GET /api/admin/refundable-contracts/{id}
      * GET /api/admin/analytics/refunds/contracts/{id}
      *
-     * {id} = contract_id | contract uuid
+     * {id} = contract uuid first, then contract_id
      */
     public function show(string $id)
     {
