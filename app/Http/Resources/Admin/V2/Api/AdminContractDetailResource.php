@@ -23,6 +23,7 @@ use App\Models\UnitType;
 use App\Models\UnitsReal;
 use App\Models\UsageUnit;
 use App\Models\User;
+use App\Support\HijriDobParts;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -61,10 +62,46 @@ class AdminContractDetailResource extends JsonResource
 
         $enriched = $this->enrichedRelations($c);
 
-        return array_merge($full, $enriched, $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
+        return array_merge($full, $enriched, $this->step4TenantFields($c), $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
             'relation_labels' => $this->relationLabels($c),
             'documentation_deadline_at' => $c->documentationDeadlineAt()?->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Same tenant / Step4 payload shape as API V2 Step4Resource.
+     *
+     * @return array<string, mixed>
+     */
+    private function step4TenantFields($c): array
+    {
+        $tenantDob = HijriDobParts::split($c->tenant_dob);
+        $tenantAgentDob = HijriDobParts::split($c->dob_of_property_tenant_agent);
+
+        return [
+            'tenant_entity' => $c->tenant_entity,
+            'tenant_id_num' => $c->tenant_id_num,
+            'tenant_dob' => $c->tenant_dob,
+            'tenant_dob_day' => $tenantDob['day'],
+            'tenant_dob_month' => $tenantDob['month'],
+            'tenant_dob_year' => $tenantDob['year'],
+            'type_tenant_dob' => $c->type_tenant_dob ?? 'hijri',
+            'type_dob_tenant_agent' => $c->type_dob_tenant_agent ?? 'hijri',
+            'tenant_mobile' => $c->tenant_mobile,
+            'region_of_the_tenant_legal_agent' => $c->region_of_the_tenant_legal_agent,
+            'city_of_the_tenant_legal_agent' => $c->city_of_the_tenant_legal_agent,
+            'tenant_entity_unified_registry_number' => $c->tenant_entity_unified_registry_number,
+            'authorization_type' => $c->authorization_type,
+            'copy_of_the_owner_record' => $this->publicStorageUrl(
+                $c->getAttributes()['copy_of_the_owner_record'] ?? $c->copy_of_the_owner_record
+            ),
+            'id_num_of_property_tenant_agent' => $c->id_num_of_property_tenant_agent,
+            'mobile_of_property_tenant_agent' => $c->mobile_of_property_tenant_agent,
+            'dob_of_property_tenant_agent' => $c->dob_of_property_tenant_agent,
+            'dob_of_property_tenant_agent_day' => $tenantAgentDob['day'],
+            'dob_of_property_tenant_agent_month' => $tenantAgentDob['month'],
+            'dob_of_property_tenant_agent_year' => $tenantAgentDob['year'],
+        ];
     }
 
     /**
