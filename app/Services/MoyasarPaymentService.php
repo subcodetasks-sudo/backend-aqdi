@@ -373,21 +373,11 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ];
         }
 
-        $successTemplate = (string) config('services.moyasar.payment_success_url_template', '');
-        $errorTemplate = (string) config('services.moyasar.payment_error_url_template', '');
-
-        if ($successTemplate !== '' && $errorTemplate !== '') {
-            return [
-                'success' => str_replace('{uuid}', $contractUuid, $successTemplate),
-                'error' => str_replace('{uuid}', $contractUuid, $errorTemplate),
-            ];
-        }
-
-        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
-
+        // Web: send the browser to backend status routes first (so payment is
+        // processed), then those routes redirect to the frontend pages.
         return [
-            'success' => "{$base}/payment/success/{$contractUuid}",
-            'error' => "{$base}/payment/error/{$contractUuid}",
+            'success' => route('status.success', ['uuid' => $contractUuid]),
+            'error' => route('status.error', ['uuid' => $contractUuid]),
         ];
     }
 

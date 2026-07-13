@@ -1,0 +1,466 @@
+{
+    "info": {
+        "_postman_id": "a4b0f06b-39fb-428c-9bab-99400e18c515",
+        "name": "AQDI Admin Notifications API",
+        "description": "Firebase push notifications (admin). Auth: Bearer {{employee_token}}. Audiences: user, custom_user, employee, custom_employee, all_users, all_employees.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "https://aqdi.sa"
+        },
+        {
+            "key": "employee_token",
+            "value": ""
+        },
+        {
+            "key": "user_id",
+            "value": "1"
+        },
+        {
+            "key": "employee_id",
+            "value": "1"
+        },
+        {
+            "key": "fcm_token",
+            "value": "DEVICE_FCM_TOKEN"
+        }
+    ],
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Employee login (save token + fcm)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "login"
+                            ]
+                        },
+                        "description": "Login and optionally save employee FCM token.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"mohammed@aqdi.com\",\n    \"password\": \"password\",\n    \"fcm_token\": \"{{fcm_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token;",
+                                    "if (token) { pm.collectionVariables.set(\"employee_token\", token); }",
+                                    "const id = json?.data?.id;",
+                                    "if (id) { pm.collectionVariables.set(\"employee_id\", String(id)); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update employee FCM token",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/fcm",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "fcm"
+                            ]
+                        },
+                        "description": "Update current employee FCM token.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"fcm_token\": \"{{fcm_token}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Send notifications",
+            "item": [
+                {
+                    "name": "Send to user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/user",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "user"
+                            ]
+                        },
+                        "description": "Send notification to one user by user_id.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"title\": \"تنبيه\",\n    \"body\": \"رسالة للمستخدم\",\n    \"data\": {\n        \"screen\": \"home\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send custom user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/custom-user",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "custom-user"
+                            ]
+                        },
+                        "description": "Custom notification to one user.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"title\": \"رسالة مخصصة\",\n    \"body\": \"محتوى مخصص للمستخدم\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send to employee",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/employee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "employee"
+                            ]
+                        },
+                        "description": "Send notification to one employee by employee_id.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"employee_id\": \"{{employee_id}}\",\n    \"title\": \"تنبيه موظف\",\n    \"body\": \"رسالة للموظف\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send custom employee",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/custom-employee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "custom-employee"
+                            ]
+                        },
+                        "description": "Custom notification to one employee.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"employee_id\": \"{{employee_id}}\",\n    \"title\": \"رسالة مخصصة للموظف\",\n    \"body\": \"محتوى مخصص\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send to all users",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/all-users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "all-users"
+                            ]
+                        },
+                        "description": "Broadcast to all users (topic + tokens).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"إعلان\",\n    \"body\": \"رسالة لجميع المستخدمين\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Send to all employees",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/all-employees",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "all-employees"
+                            ]
+                        },
+                        "description": "Broadcast to all employees (topic + tokens).",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"إعلان موظفين\",\n    \"body\": \"رسالة لجميع الموظفين\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Generic send (audience)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/notifications/send",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "notifications",
+                                "send"
+                            ]
+                        },
+                        "description": "Unified endpoint. audience: user | custom_user | employee | custom_employee | all_users | all_employees",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"audience\": \"all_employees\",\n    \"title\": \"إعلان\",\n    \"body\": \"رسالة عبر audience\",\n    \"data\": {\n        \"type\": \"broadcast\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
