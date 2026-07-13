@@ -160,6 +160,10 @@ Route::post('/status/{uuid}', [PaymentController::class, 'Callback'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
     ->name('v2.return');
 
+Route::get('/status/result/{uuid}', [PaymentController::class, 'result'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('v2.status.result');
+
 Route::get('/status/success/{uuid}', [PaymentController::class, 'success'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
     ->name('v2.status.success');
@@ -171,6 +175,10 @@ Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])
 Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
     ->name('v2.payment.show');
+
+Route::get('/payment/result/{uuid}', [PaymentController::class, 'paymentResult'])
+    ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
+    ->name('v2.payment.result');
 
 Route::get('/payment/sync/{uuid}', [PaymentController::class, 'syncFromGateway'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])

@@ -246,18 +246,28 @@ class GeneralController extends Controller
             'type' => 'nullable|in:success,failed',
         ]);
 
-        $query = PaymentMessage::query();
-
         if ($request->filled('type')) {
-            $query->where('type', $request->string('type'));
+            $type = $request->string('type')->toString();
+            $message = PaymentMessage::query()->where('type', $type)->first();
+
+            return $this->apiResponse(
+                $message ? (new PaymentMessageResource($message))->resolve() : null,
+                trans('api.success')
+            );
         }
 
-        $messages = $query->orderBy('type')->get();
+        $success = PaymentMessage::query()->where('type', 'success')->first();
+        $failed = PaymentMessage::query()->where('type', 'failed')->first();
 
-        return $this->apiResponse(
-            PaymentMessageResource::collection($messages),
-            trans('api.success')
-        );
+        return $this->apiResponse([
+            // Prefer these keys so the UI never mixes success + failed copy.
+            'success' => $success ? (new PaymentMessageResource($success))->resolve() : null,
+            'failed' => $failed ? (new PaymentMessageResource($failed))->resolve() : null,
+            // Backward-compatible list (do not render all titles on one screen).
+            'items' => PaymentMessageResource::collection(
+                collect([$success, $failed])->filter()->values()
+            ),
+        ], trans('api.success'));
     }
 
     public function contractPeriods(Request $request)

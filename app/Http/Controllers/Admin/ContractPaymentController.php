@@ -76,15 +76,7 @@ class ContractPaymentController extends Controller
      */
     public function success(Request $request, string $uuid)
     {
-        $this->paymentService->processIpn($request, $uuid);
-
-        $paid = $this->paymentService->isPaymentConfirmed(
-            $uuid,
-            $request->input('id') ?? $request->input('payment_id'),
-            $request->input('invoice_id')
-        );
-
-        return redirect()->away($this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid));
+        return $this->redirectByPaymentState($request, $uuid);
     }
 
     /**
@@ -92,7 +84,16 @@ class ContractPaymentController extends Controller
      */
     public function error(Request $request, string $uuid)
     {
-        $this->paymentService->processIpn($request, $uuid);
+        return $this->redirectByPaymentState($request, $uuid);
+    }
+
+    private function redirectByPaymentState(Request $request, string $uuid)
+    {
+        try {
+            $this->paymentService->processIpn($request, $uuid);
+        } catch (\Throwable) {
+            // Resolve from stored/gateway state below.
+        }
 
         $paid = $this->paymentService->isPaymentConfirmed(
             $uuid,

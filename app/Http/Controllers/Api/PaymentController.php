@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V2\PaymentMessageResource;
 use App\Http\Traits\Responser;
 use App\Interfaces\PaymentGatewayInterface;
+use App\Models\PaymentMessage;
 use Illuminate\Http\Request;
 use TaqnyatSms;
 
@@ -108,51 +110,101 @@ class PaymentController extends Controller
         );
     }
 
+    /**
+     * Single entry from Moyasar: decide success vs failed from real payment state.
+     * GET /api/status/result/{uuid}
+     */
+    public function result(Request $request, $uuid)
+    {
+        return $this->redirectByPaymentState($request, (string) $uuid);
+    }
+
     public function success(Request $request, $uuid)
     {
-        $this->paymentService->processIpn($request, (string) $uuid);
-
-        $paid = $this->paymentService->isPaymentConfirmed(
-            (string) $uuid,
-            $request->input('id') ?? $request->input('payment_id'),
-            $request->input('invoice_id')
-        );
-        $result = $paid ? 'success' : 'error';
-        $frontendUrl = $this->frontendPaymentRedirectUrl($result, (string) $uuid);
-
-        if ($this->wantsJsonPaymentResponse($request)) {
-            return $this->apiResponse(
-                $this->paymentService->paymentStatusPayload(
-                    (string) $uuid,
-                    $result,
-                    $request->input('id') ?? $request->input('payment_id'),
-                    $request->input('invoice_id')
-                ),
-                $paid ? trans('api.success') : trans('api.error'),
-                $paid ? 200 : 400
-            );
-        }
-
-        return redirect()->away($frontendUrl);
+        return $this->redirectByPaymentState($request, (string) $uuid);
     }
 
     public function error(Request $request, $uuid)
     {
-        $this->paymentService->processIpn($request, (string) $uuid);
+        return $this->redirectByPaymentState($request, (string) $uuid);
+    }
 
-        // If Moyasar hit back/error URL but payment actually succeeded, send success screen.
+    /**
+     * Public status for the frontend success/failed screens.
+     * GET /api/payment/result/{uuid}
+     */
+    public function paymentResult(Request $request, $uuid)
+    {
+        $uuid = (string) $uuid;
+
+        try {
+            $this->paymentService->processIpn($request, $uuid);
+        } catch (\Throwable) {
+            // Best-effort; still resolve from local DB / gateway sync below.
+        }
+
+        try {
+            $payload = $this->paymentService->paymentStatusPayload(
+                $uuid,
+                'return',
+                $request->input('id') ?? $request->input('payment_id'),
+                $request->input('invoice_id')
+            );
+        } catch (\Throwable) {
+            $paid = $this->paymentService->isPaymentConfirmed($uuid);
+            $type = $paid ? 'success' : 'failed';
+            $message = PaymentMessage::query()->where('type', $type)->first();
+
+            return $this->apiResponse([
+                'paid' => $paid,
+                'status' => $paid ? 'success' : 'failed',
+                'screen' => $paid ? 'success' : 'error',
+                'contract_uuid' => $uuid,
+                'contract_id' => null,
+                'is_completed' => false,
+                'payment' => null,
+                'content' => $message ? (new PaymentMessageResource($message))->resolve() : null,
+                'frontend_url' => $this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid),
+            ], trans('api.success'));
+        }
+
+        $paid = (bool) ($payload['payment_confirmed'] ?? false);
+        $type = $paid ? 'success' : 'failed';
+        $message = PaymentMessage::query()->where('type', $type)->first();
+
+        return $this->apiResponse([
+            'paid' => $paid,
+            'status' => $paid ? 'success' : 'failed',
+            'screen' => $paid ? 'success' : 'error',
+            'contract_uuid' => $uuid,
+            'contract_id' => $payload['contract_id'] ?? null,
+            'is_completed' => (bool) ($payload['is_completed'] ?? false),
+            'payment' => $payload['payment'] ?? null,
+            'content' => $message ? (new PaymentMessageResource($message))->resolve() : null,
+            'frontend_url' => $this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid),
+        ], trans('api.success'));
+    }
+
+    private function redirectByPaymentState(Request $request, string $uuid)
+    {
+        try {
+            $this->paymentService->processIpn($request, $uuid);
+        } catch (\Throwable) {
+            // Continue and resolve from stored/gateway state.
+        }
+
         $paid = $this->paymentService->isPaymentConfirmed(
-            (string) $uuid,
+            $uuid,
             $request->input('id') ?? $request->input('payment_id'),
             $request->input('invoice_id')
         );
         $result = $paid ? 'success' : 'error';
-        $frontendUrl = $this->frontendPaymentRedirectUrl($result, (string) $uuid);
+        $frontendUrl = $this->frontendPaymentRedirectUrl($result, $uuid);
 
         if ($this->wantsJsonPaymentResponse($request)) {
             return $this->apiResponse(
                 $this->paymentService->paymentStatusPayload(
-                    (string) $uuid,
+                    $uuid,
                     $result,
                     $request->input('id') ?? $request->input('payment_id'),
                     $request->input('invoice_id')

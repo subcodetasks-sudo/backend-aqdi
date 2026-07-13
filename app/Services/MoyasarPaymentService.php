@@ -244,9 +244,13 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         ?string $paymentId = null,
         ?string $invoiceId = null
     ): bool {
-        $payload = $this->paymentStatusPayload($uuid, 'return', $paymentId, $invoiceId);
+        try {
+            $payload = $this->paymentStatusPayload($uuid, 'return', $paymentId, $invoiceId);
 
-        return (bool) ($payload['payment_confirmed'] ?? false);
+            return (bool) ($payload['payment_confirmed'] ?? false);
+        } catch (\Throwable) {
+            return $this->hasSuccessfulPayment($uuid);
+        }
     }
 
     /**
@@ -382,11 +386,10 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             }
         }
 
-        // Backend first (record payment), then PaymentController redirects to:
-        // PAYMENT_SUCCESS_URL_TEMPLATE / PAYMENT_ERROR_URL_TEMPLATE
+        // One smart redirect for Moyasar (paid → success screen, else → failed screen).
         return [
-            'success' => route('status.success', ['uuid' => $contractUuid]),
-            'error' => route('status.error', ['uuid' => $contractUuid]),
+            'success' => route('status.result', ['uuid' => $contractUuid]),
+            'error' => route('status.result', ['uuid' => $contractUuid]),
         ];
     }
 
