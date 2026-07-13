@@ -182,12 +182,14 @@ use Illuminate\Support\Facades\Route;
         Route::get('/draft/status/{statusId}', 'draftByStatus')->whereNumber('statusId')->name('draft-by-status');
         Route::get('/completed', 'complete')->name('completed');
         Route::get('/completed-draft', 'completedAndDraft')->name('completed-draft');
+        Route::get('/received', 'receivedOrders')->name('received');
     });
 
     // Orders Management
     Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
         Route::get('/', 'orders')->name('index');
         Route::get('/return', 'returnOrders')->name('return');
+        Route::get('/received', 'receivedOrders')->name('received');
         Route::get('/status/{statusId}', 'byStatus')->whereNumber('statusId')->name('by-status');
         Route::get('/completed', 'complete')->name('completed');
         Route::get('/draft', 'draftContracts')->name('draft');

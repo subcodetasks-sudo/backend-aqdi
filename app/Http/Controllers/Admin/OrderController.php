@@ -71,6 +71,50 @@ class OrderController extends Controller
     }
 
     /**
+     * Received contracts only (row exists in received_contracts).
+     * GET /api/admin/orders/received
+     */
+    public function receivedOrders(Request $request)
+    {
+        try {
+            $contracts = Contract::query()
+                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+                ->notDeleted()
+                ->whereHas('receivedContract')
+                ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
+                ->when($request->filled('contract_type'), fn ($q) =>
+                    $q->where('contract_type', $request->contract_type)
+                )
+                ->when($request->filled('user_id'), fn ($q) =>
+                    $q->where('user_id', $request->user_id)
+                )
+                ->when($request->filled('search'), fn ($q) =>
+                    $q->adminSearch($request->string('search')->toString())
+                )
+                ->with($this->orderListRelations())
+                ->orderBy(
+                    $request->get('sort_by', 'created_at'),
+                    $request->get('sort_order', 'desc')
+                )
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $contracts,
+                OrderResource::collection($contracts),
+                trans('api.success'),
+                ['is_received' => true]
+            );
+        } catch (\Throwable $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.error_occurred').': '.$e->getMessage(),
+                false,
+                500
+            );
+        }
+    }
+
+    /**
      * Contracts filtered by contract_status_id.
      * GET /api/admin/orders/status/{statusId}
      */
