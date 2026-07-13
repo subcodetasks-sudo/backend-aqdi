@@ -36,6 +36,7 @@ class Employee extends Authenticatable
         'role',
         'role_id',
         'reason_of_block',
+        'fcm_token',
     
     ];
 

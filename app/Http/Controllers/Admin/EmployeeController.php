@@ -69,6 +69,7 @@ class EmployeeController extends Controller
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+            'fcm_token' => ['nullable', 'string'],
         ]);
 
         $employee = Employee::with('roleRelation')
@@ -94,6 +95,11 @@ class EmployeeController extends Controller
                 'message' => trans('api.employee_account_blocked'),
                 'success' => false,
             ], Response::HTTP_FORBIDDEN);
+        }
+
+        if (array_key_exists('fcm_token', $validated) && filled($validated['fcm_token'])) {
+            $employee->fcm_token = $validated['fcm_token'];
+            $employee->save();
         }
 
         $employee->tokens()->delete();
@@ -134,6 +140,7 @@ class EmployeeController extends Controller
                 'snapchat' => $employee->snapchat,
                 'tiktok' => $employee->tiktok,
                 'twitter' => $employee->twitter,
+                'fcm_token' => $employee->fcm_token,
 
                 'token' => $token,
                 'token_type' => 'Bearer',
@@ -165,6 +172,34 @@ class EmployeeController extends Controller
             return $this->successMessage(trans('api.logout_success'));
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * POST /api/admin/employees/fcm
+     */
+    public function updateFcmToken(Request $request)
+    {
+        try {
+            $employee = $request->user();
+            if (! $employee instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            $validated = $request->validate([
+                'fcm_token' => ['required', 'string'],
+            ]);
+
+            $employee->update(['fcm_token' => $validated['fcm_token']]);
+
+            return $this->apiResponse(
+                ['fcm_token' => $employee->fcm_token],
+                trans('api.updated_successfully')
+            );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 

@@ -38,6 +38,7 @@ return [
         'secret' => env('FIREBASE_SECRET'),
         'credentials' => env('FIREBASE_CREDENTIALS', storage_path('app/aqdi-5f575-ea6541aff561.json')),
         'project_id' => env('FIREBASE_PROJECT_ID', 'aqdi-5f575'),
+        'employees_topic' => env('FIREBASE_EMPLOYEES_TOPIC', 'employees'),
     ],
 
     'google' => [

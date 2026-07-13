@@ -29,7 +29,9 @@ use App\Models\Setting;
 use App\Support\ContractStartingDateInput;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ContractController extends Controller
 {
@@ -186,6 +188,8 @@ class ContractController extends Controller
             'step' => Contract::shouldSkipInitialSteps($instrumentType) ? 3 : 1,
         ]);
 
+        $this->notifyEmployeesNewContract($contract);
+
         return $this->apiResponse(
             [
                 'contract_id' => $contract->id,
@@ -194,7 +198,18 @@ class ContractController extends Controller
             trans('api.success')
         );
     }
-     
+
+    private function notifyEmployeesNewContract(Contract $contract): void
+    {
+        try {
+            app(FirebaseNotificationService::class)->notifyEmployeesOfNewContract($contract);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to notify employees of new contract', [
+                'contract_id' => $contract->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     public function step1(Step1Request $request)
     {

@@ -18,11 +18,13 @@ use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Models\UnitType;
 use App\Support\ContractStartingDateInput;
+use App\Services\FirebaseNotificationService;
 use Flasher\Laravel\Http\Response;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 
@@ -118,8 +120,17 @@ class ContractController extends Controller
      
         
          $contract = Contract::create($data);
-    
+
          if ($contract && isset($contract->id)) {
+             try {
+                 app(FirebaseNotificationService::class)->notifyEmployeesOfNewContract($contract);
+             } catch (\Throwable $e) {
+                 Log::warning('Failed to notify employees of new contract', [
+                     'contract_id' => $contract->id,
+                     'error' => $e->getMessage(),
+                 ]);
+             }
+
              $response = [
                  'message' => trans('api.success'),  
                  'code' => 200,
