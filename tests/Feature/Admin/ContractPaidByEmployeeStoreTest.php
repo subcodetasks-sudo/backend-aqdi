@@ -131,12 +131,6 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'is_active' => true,
         ]);
 
-        $draft = \App\Models\Contract::query()->create([
-            'uuid' => 100001,
-            'is_draft' => true,
-            'is_delete' => false,
-        ]);
-
         $period = \App\Models\ContractPeriod::query()->create([
             'period' => '1',
             'note_ar' => 'سنة',
@@ -150,7 +144,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'customer_mobile' => '0512345678',
             'contract_type' => 'housing',
             'contract_period_id' => $period->id,
-            'draft_contract_number' => str_pad((string) $draft->id, 6, '0', STR_PAD_LEFT),
+            'draft_contract_number' => 'DRAFT-ANY-99',
             'amount' => 500,
             'notes' => 'دفعة من العميل في الفرع',
         ]);
@@ -163,7 +157,8 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             ->assertJsonPath('data.record.is_paid', false)
             ->assertJsonPath('data.record.notes', 'دفعة من العميل في الفرع')
             ->assertJsonPath('data.record.contract_type', 'housing')
-            ->assertJsonPath('data.record.draft_contract_id', $draft->id);
+            ->assertJsonPath('data.record.draft_contract_number', 'DRAFT-ANY-99')
+            ->assertJsonPath('data.record.draft_contract_id', null);
 
         $contractUuid = $response->json('data.contract_uuid');
         $this->assertNotEmpty($contractUuid);
@@ -174,7 +169,8 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'customer_mobile' => '0512345678',
             'contract_type' => 'housing',
             'contract_period_id' => $period->id,
-            'draft_contract_id' => $draft->id,
+            'draft_contract_number' => 'DRAFT-ANY-99',
+            'draft_contract_id' => null,
             'is_paid' => 0,
             'notes' => 'دفعة من العميل في الفرع',
         ]);
@@ -187,12 +183,6 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'email' => 'employee-paid-contract-2@test.local',
             'password' => Hash::make('secret'),
             'is_active' => true,
-        ]);
-
-        $draft = \App\Models\Contract::query()->create([
-            'uuid' => 100002,
-            'is_draft' => true,
-            'is_delete' => false,
         ]);
 
         $period = \App\Models\ContractPeriod::query()->create([
@@ -208,12 +198,13 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'customer_mobile' => '0598765432',
             'contract_type' => 'commercial',
             'contract_period_id' => $period->id,
-            'draft_contract_number' => (string) $draft->id,
+            'draft_contract_number' => '000999',
             'amount' => 250.50,
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.record.notes', null);
+            ->assertJsonPath('data.record.notes', null)
+            ->assertJsonPath('data.record.draft_contract_number', '000999');
 
         $this->assertSame(1, ContractPaidByEmployee::query()->count());
     }

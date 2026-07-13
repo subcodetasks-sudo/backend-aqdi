@@ -38,7 +38,7 @@ class ContractController extends Controller
     {
         $user = auth()->user();
         $contracts = Contract::where('user_id', $user->id)
-            ->with(['realEstate', 'contractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
             ->orderBy('updated_at', 'desc')
            
             ->where('is_delete', 0)
@@ -66,7 +66,53 @@ class ContractController extends Controller
             ->where('user_id', $user->id)
             ->where('contract_status_id', (int) $statusId)
             ->where('is_delete', 0)
-            ->with(['realEstate', 'contractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(10);
+
+        return $this->apiResponse(
+            [
+                'data' => ContractResource::collection($contracts),
+                'pagination' => $this->paginate($contracts),
+            ],
+            trans('api.success')
+        );
+    }
+
+    public function drafts()
+    {
+        $user = auth()->user();
+        $contracts = Contract::query()
+            ->where('user_id', $user->id)
+            ->where('is_delete', 0)
+            ->draft()
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(10);
+
+        return $this->apiResponse(
+            [
+                'data' => ContractResource::collection($contracts),
+                'pagination' => $this->paginate($contracts),
+            ],
+            trans('api.success')
+        );
+    }
+
+    public function draftsByStatus(Request $request, $statusId)
+    {
+        $request->merge(['status_id' => $statusId]);
+        $this->validate($request, [
+            'status_id' => 'required|integer|exists:draft_contract_statuses,id',
+        ]);
+
+        $user = auth()->user();
+        $contracts = Contract::query()
+            ->where('user_id', $user->id)
+            ->where('is_delete', 0)
+            ->draft()
+            ->where('draft_contract_status_id', (int) $statusId)
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
 
@@ -82,7 +128,7 @@ class ContractController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $contract = Contract::with(['realEstate', 'contractStatus'])->where('user_id', $user->id)->findOrFail($id);
+        $contract = Contract::with(['realEstate', 'contractStatus', 'draftContractStatus'])->where('user_id', $user->id)->findOrFail($id);
 
         return $this->apiResponse(new ContractResource($contract), trans('api.success'));
     }

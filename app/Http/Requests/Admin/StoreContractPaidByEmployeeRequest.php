@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Models\Contract;
 use App\Models\ContractPeriod;
-use App\Services\Admin\RefundableContractService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -47,50 +45,20 @@ class StoreContractPaidByEmployeeRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if ($this->filled('contract_period_id') && $this->filled('contract_type')) {
-                $periodType = ContractPeriod::query()
-                    ->whereKey($this->integer('contract_period_id'))
-                    ->value('contract_type');
-
-                if ($periodType && $periodType !== $this->input('contract_type')) {
-                    $validator->errors()->add(
-                        'contract_period_id',
-                        'مدة العقد لا تطابق نوع العقد المختار.'
-                    );
-                }
-            }
-
-            if (! $this->filled('draft_contract_number')) {
+            if (! $this->filled('contract_period_id') || ! $this->filled('contract_type')) {
                 return;
             }
 
-            $draftId = app(RefundableContractService::class)
-                ->resolveContractIdFromDraftNumber((string) $this->input('draft_contract_number'));
+            $periodType = ContractPeriod::query()
+                ->whereKey($this->integer('contract_period_id'))
+                ->value('contract_type');
 
-            if ($draftId === null) {
+            if ($periodType && $periodType !== $this->input('contract_type')) {
                 $validator->errors()->add(
-                    'draft_contract_number',
-                    trans('api.invalid_draft_contract_number')
+                    'contract_period_id',
+                    'مدة العقد لا تطابق نوع العقد المختار.'
                 );
-
-                return;
             }
-
-            $draft = Contract::query()
-                ->notDeleted()
-                ->whereKey($draftId)
-                ->first();
-
-            if (! $draft) {
-                $validator->errors()->add(
-                    'draft_contract_number',
-                    trans('api.invalid_draft_contract_number')
-                );
-
-                return;
-            }
-
-            $this->merge(['draft_contract_id' => $draft->id]);
         });
     }
 }
