@@ -78,15 +78,7 @@ class ContractPaymentController extends Controller
     {
         $this->paymentService->processIpn($request, $uuid);
 
-        return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload(
-                $uuid,
-                'success',
-                $request->input('id') ?? $request->input('payment_id'),
-                $request->input('invoice_id')
-            ),
-            trans('api.success')
-        );
+        return redirect()->away($this->frontendPaymentRedirectUrl('success', $uuid));
     }
 
     /**
@@ -96,15 +88,23 @@ class ContractPaymentController extends Controller
     {
         $this->paymentService->processIpn($request, $uuid);
 
-        return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload(
-                $uuid,
-                'error',
-                $request->input('id') ?? $request->input('payment_id'),
-                $request->input('invoice_id')
-            ),
-            trans('api.error'),
-            400
-        );
+        return redirect()->away($this->frontendPaymentRedirectUrl('error', $uuid));
+    }
+
+    private function frontendPaymentRedirectUrl(string $type, string $uuid): string
+    {
+        $templateKey = $type === 'error'
+            ? 'services.moyasar.payment_error_url_template'
+            : 'services.moyasar.payment_success_url_template';
+
+        $template = (string) config($templateKey, '');
+        if ($template !== '') {
+            return str_replace('{uuid}', $uuid, $template);
+        }
+
+        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
+        $path = $type === 'error' ? 'error' : 'success';
+
+        return "{$base}/payment/{$path}/{$uuid}";
     }
 }

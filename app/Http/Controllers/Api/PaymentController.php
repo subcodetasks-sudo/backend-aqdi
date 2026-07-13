@@ -57,14 +57,18 @@ class PaymentController extends Controller
     private function requestLooksLikeWebFrontend(Request $request): bool
     {
         $frontendBase = rtrim((string) config('services.moyasar.payment_frontend_url', ''), '/');
-        if ($frontendBase === '') {
-            return false;
+        $hosts = [];
+
+        if ($frontendBase !== '') {
+            $frontendHost = parse_url($frontendBase, PHP_URL_HOST);
+            if (is_string($frontendHost) && $frontendHost !== '') {
+                $hosts[] = strtolower($frontendHost);
+            }
         }
 
-        $frontendHost = parse_url($frontendBase, PHP_URL_HOST);
-        if (! is_string($frontendHost) || $frontendHost === '') {
-            return false;
-        }
+        // Always treat the known AQDI frontend host as web.
+        $hosts[] = 'aqdi-front-end.vercel.app';
+        $hosts = array_values(array_unique($hosts));
 
         foreach ([$request->headers->get('Origin'), $request->headers->get('Referer')] as $url) {
             if (! is_string($url) || $url === '') {
@@ -72,7 +76,11 @@ class PaymentController extends Controller
             }
 
             $host = parse_url($url, PHP_URL_HOST);
-            if (is_string($host) && strcasecmp($host, $frontendHost) === 0) {
+            if (! is_string($host) || $host === '') {
+                continue;
+            }
+
+            if (in_array(strtolower($host), $hosts, true)) {
                 return true;
             }
         }
@@ -103,31 +111,69 @@ class PaymentController extends Controller
     {
         $this->paymentService->processIpn($request, (string) $uuid);
 
-        return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload(
-                (string) $uuid,
-                'success',
-                $request->input('id') ?? $request->input('payment_id'),
-                $request->input('invoice_id')
-            ),
-            trans('api.success')
-        );
+        $frontendUrl = $this->frontendPaymentRedirectUrl('success', (string) $uuid);
+
+        if ($this->wantsJsonPaymentResponse($request)) {
+            return $this->apiResponse(
+                $this->paymentService->paymentStatusPayload(
+                    (string) $uuid,
+                    'success',
+                    $request->input('id') ?? $request->input('payment_id'),
+                    $request->input('invoice_id')
+                ),
+                trans('api.success')
+            );
+        }
+
+        return redirect()->away($frontendUrl);
     }
 
     public function error(Request $request, $uuid)
     {
         $this->paymentService->processIpn($request, (string) $uuid);
 
-        return $this->apiResponse(
-            $this->paymentService->paymentStatusPayload(
-                (string) $uuid,
-                'error',
-                $request->input('id') ?? $request->input('payment_id'),
-                $request->input('invoice_id')
-            ),
-            trans('api.error'),
-            400
-        );
+        $frontendUrl = $this->frontendPaymentRedirectUrl('error', (string) $uuid);
+
+        if ($this->wantsJsonPaymentResponse($request)) {
+            return $this->apiResponse(
+                $this->paymentService->paymentStatusPayload(
+                    (string) $uuid,
+                    'error',
+                    $request->input('id') ?? $request->input('payment_id'),
+                    $request->input('invoice_id')
+                ),
+                trans('api.error'),
+                400
+            );
+        }
+
+        return redirect()->away($frontendUrl);
+    }
+
+    private function frontendPaymentRedirectUrl(string $type, string $uuid): string
+    {
+        $templateKey = $type === 'error'
+            ? 'services.moyasar.payment_error_url_template'
+            : 'services.moyasar.payment_success_url_template';
+
+        $template = (string) config($templateKey, '');
+        if ($template !== '') {
+            return str_replace('{uuid}', $uuid, $template);
+        }
+
+        $base = rtrim((string) config('services.moyasar.payment_frontend_url', 'http://localhost:3000'), '/');
+        $path = $type === 'error' ? 'error' : 'success';
+
+        return "{$base}/payment/{$path}/{$uuid}";
+    }
+
+    private function wantsJsonPaymentResponse(Request $request): bool
+    {
+        if ($request->query('format') === 'json') {
+            return true;
+        }
+
+        return $request->expectsJson() && ! $request->acceptsHtml();
     }
 
     public function syncFromGateway(Request $request, string $uuid)
