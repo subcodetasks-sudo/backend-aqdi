@@ -154,25 +154,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/status/{uuid}/success', [PaymentController::class, 'updateCartByIPN'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('callback');
+    ->name('v2.callback');
 
 Route::post('/status/{uuid}', [PaymentController::class, 'Callback'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('return');
+    ->name('v2.return');
 
 Route::get('/status/success/{uuid}', [PaymentController::class, 'success'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('status.success');
+    ->name('v2.status.success');
 
 Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('status.error');
+    ->name('v2.status.error');
 
 Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('payment.show');
+    ->name('v2.payment.show');
 
 Route::get('/payment/sync/{uuid}', [PaymentController::class, 'syncFromGateway'])
     ->withoutMiddleware([CheckApi::class, ApiLocalization::class, 'auth:sanctum'])
-    ->name('payment.sync');
+    ->name('v2.payment.sync');
 

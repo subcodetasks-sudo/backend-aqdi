@@ -82,6 +82,19 @@ use Illuminate\Support\Facades\Route;
         });
     });
 
+    // Firebase notifications
+    Route::prefix('notifications')->name('notifications.')->controller(NotificationController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::post('/send', 'send')->name('send');
+            Route::post('/user', 'sendToUser')->name('user');
+            Route::post('/custom-user', 'sendToCustomUser')->name('custom-user');
+            Route::post('/employee', 'sendToEmployee')->name('employee');
+            Route::post('/custom-employee', 'sendToCustomEmployee')->name('custom-employee');
+            Route::post('/all-users', 'sendToAllUsers')->name('all-users');
+            Route::post('/all-employees', 'sendToAllEmployees')->name('all-employees');
+        });
+
     // Analytics & Dashboard
     Route::controller(HomeAdminController::class)->group(function () {
         Route::get('/analytics', 'analysis')->name('analytics');
