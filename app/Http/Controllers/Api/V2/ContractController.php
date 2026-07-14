@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V2\Contract\ContractTypeRequest;
+use App\Http\Requests\Api\V2\Contract\DocFeePreviewRequest;
 use App\Http\Requests\Api\V2\Contract\SetContractDraftRequest;
 use App\Http\Requests\Api\V2\Contract\Step1Request;
 use App\Http\Requests\Api\V2\Contract\Step2Request;
@@ -28,7 +29,9 @@ use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Support\ContractStartingDateInput;
 use App\Support\DateInputNormalizer;
+use App\Support\DocFee;
 use App\Support\HijriDobParts;
+use App\Support\MeterFees;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -679,10 +682,18 @@ class ContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
+        $preset = (string) $request->input('duration_preset');
+        $years = $preset === 'other' ? (int) $request->input('duration_years', 0) : 0;
+        $months = $preset === 'other' ? (int) $request->input('duration_months', 0) : 0;
+        $docFee = DocFee::summarize((string) $contract->contract_type, $preset, $years, $months);
+
         $data = [
             'contract_starting_date' => ContractStartingDateInput::resolveForStorage($request),
             'type_contract_starting_date' => $request->input('type_contract_starting_date', 'hijri'),
-            'contract_term_in_years' => $request->contract_term_in_years,
+            'duration_preset' => $docFee['duration_preset'],
+            'duration_years' => $docFee['duration_years'],
+            'duration_months' => $docFee['duration_months'],
+            'total_months' => $docFee['total_months'],
             'annual_rent_amount_for_the_unit' => $request->annual_rent_amount_for_the_unit,
             'payment_type_id' => $request->payment_type_id,
             'additional_terms' => $request->additional_terms ?? 0,
@@ -690,6 +701,10 @@ class ContractController extends Controller
             'tenant_roles' => $request->boolean('tenant_roles'),
             'step' => 7,
         ];
+
+        if ($request->filled('contract_term_in_years')) {
+            $data['contract_term_in_years'] = $request->contract_term_in_years;
+        }
 
         [$tenantRoleIds, $firstTenantRoleId] = $this->normalizeTenantRoleIdsFromStep6Request($request);
         $data['tenant_role_ids'] = $tenantRoleIds !== [] ? $tenantRoleIds : null;
@@ -704,15 +719,38 @@ class ContractController extends Controller
         }
 
         $contract->update($data);
+        $contract = $contract->fresh(['realEstate', 'contractStatus', 'contractTermInYears']);
 
         return response()->json([
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
             'data' => [
-                'contract' => new ContractResource($contract->fresh(['realEstate', 'contractStatus'])),
-                'price_contract_term' => $contract->contractTermInYears->price ?? null,
+                'contract' => new ContractResource($contract),
+                'price_contract_term' => $docFee['doc_fee'],
+                'doc_fee' => $docFee,
             ],
+        ]);
+    }
+
+    /**
+     * معاينة رسوم التوثيق حسب المدة (بدون حفظ).
+     * POST /api/v2/contract/doc-fee
+     */
+    public function docFeePreview(DocFeePreviewRequest $request)
+    {
+        $summary = DocFee::summarize(
+            (string) $request->input('contract_type'),
+            (string) $request->input('duration_preset'),
+            (int) $request->input('duration_years', 0),
+            (int) $request->input('duration_months', 0),
+        );
+
+        return response()->json([
+            'message' => trans('api.success'),
+            'code' => 200,
+            'success' => true,
+            'data' => $summary,
         ]);
     }
 
@@ -764,9 +802,14 @@ class ContractController extends Controller
             ? $contractCoupon->calculateDiscountedPrice($contract)
             : ($contract->getPriceContractAttribute() + $totalPricing);
 
-        $contractPeriodPrice = ContractPeriod::where('contract_type', $contract->contract_type)
+        $docFeeSummary = DocFee::forContract($contract);
+        $docFeeAmount = $docFeeSummary['doc_fee'] ?? null;
+
+        $legacyPeriodPrice = ContractPeriod::where('contract_type', $contract->contract_type)
             ->where('id', $contract->contract_term_in_years)
             ->value('price') ?? 0;
+
+        $contractPeriodPrice = $docFeeAmount !== null ? (float) $docFeeAmount : (float) $legacyPeriodPrice;
 
         $setting = Setting::first();
         $appFees = $setting ? (int) $setting->application_fees : 0;
@@ -774,7 +817,7 @@ class ContractController extends Controller
             ? ($contract->contract_type === 'housing' ? (int) $setting->housing_tax : (int) $setting->commercial_tax)
             : 0;
 
-        $meterFees = \App\Support\MeterFees::forContract($contract, $setting);
+        $meterFees = MeterFees::forContract($contract, $setting);
 
         $priceDetails = [
             'contract_period_price' => $contractPeriodPrice,
@@ -783,6 +826,16 @@ class ContractController extends Controller
             'electricity_meter_fee' => $meterFees['electricity_meter_fee'],
             'water_meter_fee' => $meterFees['water_meter_fee'],
         ];
+
+        if ($docFeeSummary) {
+            $priceDetails['doc_fee'] = $docFeeSummary['doc_fee'];
+            $priceDetails['billable_years'] = $docFeeSummary['billable_years'];
+            $priceDetails['total_months'] = $docFeeSummary['total_months'];
+            $priceDetails['has_extra_months'] = $docFeeSummary['has_extra_months'];
+            $priceDetails['duration_preset'] = $docFeeSummary['duration_preset'];
+            $priceDetails['duration_years'] = $docFeeSummary['duration_years'];
+            $priceDetails['duration_months'] = $docFeeSummary['duration_months'];
+        }
 
         $services = $pricing->map(function ($service) {
             return [
@@ -809,6 +862,13 @@ class ContractController extends Controller
             'meter_fees_total' => $meterFees['meter_fees_total'],
             'total_price' => $finalContractPrice + $couponAmount,
         ];
+
+        if ($docFeeSummary) {
+            $responseData['doc_fee'] = $docFeeSummary['doc_fee'];
+            $responseData['doc_fee_lines'] = $docFeeSummary['doc_fee_lines'];
+            $responseData['billable_years'] = $docFeeSummary['billable_years'];
+            $responseData['has_extra_months'] = $docFeeSummary['has_extra_months'];
+        }
 
         if ($contractCoupon) {
             $responseData['coupon'] = $couponAmount;

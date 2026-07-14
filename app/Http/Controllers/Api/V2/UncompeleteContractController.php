@@ -11,6 +11,7 @@ use App\Http\Resources\Api\V2\Contract\Step5Resource;
 use App\Http\Resources\Api\V2\ContractResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
+use App\Support\DocFee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -127,7 +128,9 @@ class UncompeleteContractController extends Controller
             5 => new Step5Resource($contract),
             6 => [
                 'contract' => new ContractResource($contract),
-                'price_contract_term' => $contract->contractTermInYears->price ?? null,
+                'price_contract_term' => DocFee::forContract($contract)['doc_fee']
+                    ?? ($contract->contractTermInYears->price ?? null),
+                'doc_fee' => DocFee::forContract($contract),
             ],
             default => [],
         };

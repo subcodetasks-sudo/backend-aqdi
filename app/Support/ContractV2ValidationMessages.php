@@ -66,6 +66,9 @@ final class ContractV2ValidationMessages
         'The_number_of_kitchens' => 'عدد المطابخ',
         'The_number_of_the_toilet' => 'عدد دورات المياه',
         'type_contract_starting_date' => 'نوع تقويم تاريخ بداية العقد',
+        'duration_preset' => 'مدة العقد',
+        'duration_years' => 'عدد سنوات العقد',
+        'duration_months' => 'أشهر مدة العقد الإضافية',
         'conditions' => 'الشروط الإضافية',
         'tenant_role_ids.*' => 'صفة المستأجر',
     ];

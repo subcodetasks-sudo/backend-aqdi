@@ -5,7 +5,9 @@ namespace App\Http\Requests\Api\V2\Contract;
 use App\Http\Requests\Api\V2\BaseApiV2Request;
 use App\Http\Requests\Api\V2\Concerns\ResolvesContractIdInput;
 use App\Support\ContractStartingDateInput;
+use App\Support\DocFee;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Rule;
 
 class Step6Request extends BaseApiV2Request
 {
@@ -40,6 +42,13 @@ class Step6Request extends BaseApiV2Request
                 'tenant_role_ids' => [(int) $legacy],
             ]);
         }
+
+        if ($this->input('duration_preset') === 'other') {
+            $this->merge([
+                'duration_years' => (int) $this->input('duration_years', 0),
+                'duration_months' => (int) $this->input('duration_months', 0),
+            ]);
+        }
     }
 
     public function authorize(): bool
@@ -55,7 +64,10 @@ class Step6Request extends BaseApiV2Request
             'contract_starting_date_month' => 'nullable',
             'contract_starting_date_year' => 'nullable',
             'type_contract_starting_date' => 'nullable|in:hijri,gregorian',
-            'contract_term_in_years' => 'required|exists:contract_periods,id',
+            'duration_preset' => ['required', Rule::in(DocFee::presetKeys())],
+            'duration_years' => 'nullable|integer|min:1|max:30|required_if:duration_preset,other',
+            'duration_months' => 'nullable|integer|min:0|max:11|required_if:duration_preset,other',
+            'contract_term_in_years' => 'nullable|exists:contract_periods,id',
             'annual_rent_amount_for_the_unit' => 'required|numeric',
             'payment_type_id' => 'required|exists:payment_types,id',
             'conditions' => 'required|boolean',
@@ -76,6 +88,11 @@ class Step6Request extends BaseApiV2Request
                     $v->errors()->add($key, $m);
                 }
             }
+
+            if ($this->input('duration_preset') === 'other'
+                && (int) $this->input('duration_years', 0) < 1) {
+                $v->errors()->add('duration_years', 'عدد السنوات مطلوب عند اختيار مدة أخرى.');
+            }
         });
     }
 
@@ -88,6 +105,9 @@ class Step6Request extends BaseApiV2Request
             'contract_starting_date_month',
             'contract_starting_date_year',
             'type_contract_starting_date',
+            'duration_preset',
+            'duration_years',
+            'duration_months',
             'contract_term_in_years',
             'annual_rent_amount_for_the_unit',
             'payment_type_id',
@@ -98,9 +118,12 @@ class Step6Request extends BaseApiV2Request
             'tenant_role_id',
             'tenant_role_ids',
         ], [
+            'duration_preset.required' => 'مدة العقد مطلوبة.',
+            'duration_preset.in' => 'مدة العقد غير صالحة.',
+            'duration_years.required_if' => 'عدد السنوات مطلوب عند اختيار مدة أخرى.',
+            'duration_months.required_if' => 'عدد الأشهر مطلوب عند اختيار مدة أخرى.',
             'tenant_role_ids.*.exists' => 'إحدى صفات المستأجر المحددة غير موجودة.',
             'tenant_role_ids.*.integer' => 'صفة المستأجر يجب أن تكون رقماً صحيحاً.',
         ]);
     }
 }
-

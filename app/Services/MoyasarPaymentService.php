@@ -10,6 +10,7 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Payment;
 use App\Models\ServicesPricing;
+use App\Support\DocFee;
 use App\Support\MeterFees;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ], 422);
         }
 
-        if (! $contract->contract_term_in_years) {
+        if (! $contract->contract_term_in_years && ! $contract->duration_preset && ! $contract->total_months) {
             return response()->json([
                 'message' => trans('api.contract_period_not_set_for_payment'),
                 'success' => false,
@@ -54,6 +55,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         }
 
         $meterFees = MeterFees::forContract($contract);
+        $docFeeSummary = DocFee::forContract($contract);
         $cartAmount = $this->calculateCartAmount($contract);
 
         if ($cartAmount <= 0) {
@@ -62,6 +64,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 'success' => false,
                 'cart_amount' => $cartAmount,
                 'meter_fees_total' => $meterFees['meter_fees_total'],
+                'doc_fee' => $docFeeSummary['doc_fee'] ?? 0,
             ], 422);
         }
 
@@ -97,6 +100,8 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             'meter_fees_total' => $meterFees['meter_fees_total'],
             'electricity_meter_fee' => $meterFees['electricity_meter_fee'],
             'water_meter_fee' => $meterFees['water_meter_fee'],
+            'doc_fee' => $docFeeSummary['doc_fee'] ?? null,
+            'doc_fee_lines' => $docFeeSummary['doc_fee_lines'] ?? [],
             'payment_success_url' => $redirectUrls['success'],
             'payment_error_url' => $redirectUrls['error'],
         ]);
@@ -357,12 +362,17 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $couponDiscount = $this->resolveCouponDiscount($contract, $contractBaseTotal);
         $netContractTotal = max(0, $contractBaseTotal - $couponDiscount);
 
-        $contractPeriodPrice = 0.0;
-        if ($contract->contract_term_in_years) {
-            $contractPeriodPrice = (float) (ContractPeriod::query()
-                ->where('contract_type', $contract->contract_type)
-                ->where('id', $contract->contract_term_in_years)
-                ->value('price') ?? 0);
+        $docFeeSummary = DocFee::forContract($contract);
+        if ($docFeeSummary !== null) {
+            $contractPeriodPrice = (float) $docFeeSummary['doc_fee'];
+        } else {
+            $contractPeriodPrice = 0.0;
+            if ($contract->contract_term_in_years) {
+                $contractPeriodPrice = (float) (ContractPeriod::query()
+                    ->where('contract_type', $contract->contract_type)
+                    ->where('id', $contract->contract_term_in_years)
+                    ->value('price') ?? 0);
+            }
         }
 
         $meterFeesTotal = MeterFees::totalForContract($contract);
