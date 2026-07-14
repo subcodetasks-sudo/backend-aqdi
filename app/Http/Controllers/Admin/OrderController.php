@@ -47,10 +47,15 @@ class OrderController extends Controller
     /**
      * Returned contracts (contract_status_id = 2).
      * GET /api/admin/orders/return
+     *
+     * Filter: return_status=pending|accept|reject
+     * Aliases: accept_retrun_status, acceptance_status
      */
     public function returnOrders(Request $request)
     {
         try {
+            $returnStatus = $this->resolveReturnAcceptanceFilter($request);
+
             $contracts = $this->returnContractsQuery($request)
                 ->with($this->orderListRelations())
                 ->paginate($this->perPageFromRequest($request));
@@ -59,8 +64,14 @@ class OrderController extends Controller
                 $contracts,
                 OrderResource::collection($contracts),
                 trans('api.success'),
-                ['contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID]
+                [
+                    'contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID,
+                    'return_status' => $returnStatus,
+                    'return_status_filters' => ['pending', 'accept', 'reject'],
+                ]
             );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (\Throwable $e) {
             return $this->apiResponse(
                 null,
@@ -284,6 +295,7 @@ class OrderController extends Controller
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->where('contract_status_id', RefundableContractService::RETURN_CONTRACT_STATUS_ID)
+            ->tap(fn ($q) => $this->applyReturnAcceptanceFilterToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
@@ -298,6 +310,59 @@ class OrderController extends Controller
                 $request->get('sort_by', 'created_at'),
                 $request->get('sort_order', 'desc')
             );
+    }
+
+    /**
+     * pending = لم يُبت فيها بعد (employee_id null)
+     * accept  = accept_retrun_contract = true
+     * reject  = رُفضت (false + employee_id موجود)
+     */
+    private function applyReturnAcceptanceFilterToQuery($query, Request $request): void
+    {
+        $status = $this->resolveReturnAcceptanceFilter($request);
+        if ($status === null) {
+            return;
+        }
+
+        match ($status) {
+            'pending' => $query->whereNull('accept_retrun_contract_employee_id'),
+            'accept' => $query->where('accept_retrun_contract', true),
+            'reject' => $query
+                ->where('accept_retrun_contract', false)
+                ->whereNotNull('accept_retrun_contract_employee_id'),
+        };
+    }
+
+    /**
+     * @return 'pending'|'accept'|'reject'|null
+     */
+    private function resolveReturnAcceptanceFilter(Request $request): ?string
+    {
+        $raw = $request->input('return_status')
+            ?? $request->input('accept_retrun_status')
+            ?? $request->input('acceptance_status');
+
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        $status = strtolower(trim((string) $raw));
+
+        // aliases
+        $status = match ($status) {
+            'accepted', 'approve', 'approved', '1', 'true' => 'accept',
+            'rejected', 'reject', '0', 'false' => 'reject',
+            'pending', 'wait', 'waiting' => 'pending',
+            default => $status,
+        };
+
+        if (! in_array($status, ['pending', 'accept', 'reject'], true)) {
+            throw new InvalidArgumentException(
+                'return_status يجب أن يكون: pending أو accept أو reject'
+            );
+        }
+
+        return $status;
     }
 
     private function orderListRelations(): array
@@ -605,6 +670,7 @@ class OrderController extends Controller
                 'accept_retrun_contract' => (bool) Arr::get($detail, 'accept_retrun_contract', false),
                 'accept_retrun_contract_employee_id' => Arr::get($detail, 'accept_retrun_contract_employee_id'),
                 'accept_retrun_contract_employee' => Arr::get($detail, 'accept_retrun_contract_employee'),
+                'return_status' => Arr::get($detail, 'return_status'),
                 'return_contract' => (bool) Arr::get($detail, 'return_contract', false),
                 'draft_contract_number' => Arr::get($detail, 'draft_contract_number'),
                 'refund_amount' => Arr::get($detail, 'refund_amount'),
