@@ -728,7 +728,11 @@ class ContractController extends Controller
             'data' => [
                 'contract' => new ContractResource($contract),
                 'price_contract_term' => $docFee['doc_fee'],
-                'doc_fee' => $docFee,
+                'doc_fee' => $docFee['doc_fee'],
+                'doc_fee_lines' => $docFee['doc_fee_lines'],
+                'billable_years' => $docFee['billable_years'],
+                'has_extra_months' => $docFee['has_extra_months'],
+                'duration' => $docFee,
             ],
         ]);
     }

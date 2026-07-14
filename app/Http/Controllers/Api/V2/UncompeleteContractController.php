@@ -126,12 +126,20 @@ class UncompeleteContractController extends Controller
             3 => new Step3Resource($contract),
             4 => new Step4Resource($contract),
             5 => new Step5Resource($contract),
-            6 => [
-                'contract' => new ContractResource($contract),
-                'price_contract_term' => DocFee::forContract($contract)['doc_fee']
-                    ?? ($contract->contractTermInYears->price ?? null),
-                'doc_fee' => DocFee::forContract($contract),
-            ],
+            6 => (static function (Contract $contract): array {
+                $doc = DocFee::forContract($contract);
+
+                return [
+                    'contract' => new ContractResource($contract),
+                    'price_contract_term' => $doc['doc_fee']
+                        ?? ($contract->contractTermInYears->price ?? null),
+                    'doc_fee' => $doc['doc_fee'] ?? null,
+                    'doc_fee_lines' => $doc['doc_fee_lines'] ?? [],
+                    'billable_years' => $doc['billable_years'] ?? null,
+                    'has_extra_months' => $doc['has_extra_months'] ?? false,
+                    'duration' => $doc,
+                ];
+            })($contract),
             default => [],
         };
     }

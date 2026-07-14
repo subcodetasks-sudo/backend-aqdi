@@ -164,7 +164,9 @@ final class DocFee
             'first_year_fee' => self::firstYearFee($contractType),
             'extra_year_fee' => self::extraYearFee($contractType),
             'doc_fee' => self::amount($totalMonths, $contractType),
-            'doc_fee_lines' => self::lines($totalMonths, $contractType, $hasExtra),
+            'doc_fee_lines' => $preset === 'other'
+                ? self::lines($totalMonths, $contractType, $hasExtra)
+                : [],
         ];
     }
 
@@ -192,9 +194,11 @@ final class DocFee
 
         $totalMonths = (int) $contract->total_months;
         $hasExtra = ((int) ($contract->duration_months ?? 0)) > 0;
+        $preset = $contract->duration_preset;
+        $isOther = $preset === 'other' || ($preset === null && $hasExtra);
 
         return [
-            'duration_preset' => null,
+            'duration_preset' => $preset,
             'duration_years' => $contract->duration_years,
             'duration_months' => $contract->duration_months,
             'total_months' => $totalMonths,
@@ -203,7 +207,9 @@ final class DocFee
             'first_year_fee' => self::firstYearFee((string) $contract->contract_type),
             'extra_year_fee' => self::extraYearFee((string) $contract->contract_type),
             'doc_fee' => self::amount($totalMonths, (string) $contract->contract_type),
-            'doc_fee_lines' => self::lines($totalMonths, (string) $contract->contract_type, $hasExtra),
+            'doc_fee_lines' => $isOther
+                ? self::lines($totalMonths, (string) $contract->contract_type, $hasExtra)
+                : [],
         ];
     }
 }
