@@ -22,9 +22,6 @@ class SettingContractResource extends JsonResource
             'realestate' => (bool) $this->realestate,
             'contract' => (bool) $this->contract,
             'label' => $this->label,
-            'sms_user' => $this->sms_user,
-            'sms_owner' => $this->sms_owner,
-            'sms_employee' => $this->sms_employee,
             'electricity_meter_fee_commercial_tenant' => $this->electricity_meter_fee_commercial_tenant !== null
                 ? (float) $this->electricity_meter_fee_commercial_tenant
                 : null,

@@ -15,9 +15,6 @@ return new class extends Migration
             $table->boolean('realestate')->default(false);
             $table->boolean('contract')->default(false);
             $table->string('label')->nullable();
-            $table->text('sms_user')->nullable();
-            $table->text('sms_owner')->nullable();
-            $table->text('sms_employee')->nullable();
             $table->timestamps();
         });
     }

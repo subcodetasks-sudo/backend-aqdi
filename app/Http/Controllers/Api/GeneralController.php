@@ -303,6 +303,9 @@ class GeneralController extends Controller
             'open_payment' => $setting->open_payment ?? null,
             'is_open' => $setting->is_open ?? null,
             'working_hours' => $setting->working_hours ?? null,
+            'sms_user' => $setting?->sms_user,
+            'sms_owner' => $setting?->sms_owner,
+            'sms_employee' => $setting?->sms_employee,
             'terms' => [
                 'description' => $terms ? $terms->description_trans : '',
             ],

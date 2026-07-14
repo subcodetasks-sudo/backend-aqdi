@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\PopupContractController;
 use App\Http\Controllers\Admin\PaymentMessageController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\SettingContractController;
+use App\Http\Controllers\Admin\SmsSettingController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -431,6 +432,14 @@ use Illuminate\Support\Facades\Route;
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
     });
 
+    // Alias used by admin frontend
+    Route::prefix('instrument-type-settings')->name('instrument-type-settings.')->controller(SettingContractController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+    });
+
     // FAQ Management
     Route::prefix('faqs')->name('faqs.')->controller(FaqController::class)->group(function () {
         Route::get('/', 'index')->name('index');
@@ -515,6 +524,12 @@ use Illuminate\Support\Facades\Route;
         Route::delete('/{id}', 'destroy')->name('destroy');
         Route::post('/{id}/toggle-active', 'toggleActive')->name('toggle-active');
         Route::get('/statistics', 'statistics')->name('statistics');
+    });
+
+    // Project-wide SMS message templates (single settings row)
+    Route::prefix('sms-settings')->name('sms-settings.')->controller(SmsSettingController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
+        Route::post('/', 'update')->name('update');
     });
 
     // App settings (taxes, social, banner, terms & privacy)

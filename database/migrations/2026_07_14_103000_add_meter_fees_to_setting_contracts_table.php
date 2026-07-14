@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('setting_contracts', function (Blueprint $table) {
-            $table->decimal('electricity_meter_fee_commercial_tenant', 12, 2)->nullable()->after('sms_employee');
+            $table->decimal('electricity_meter_fee_commercial_tenant', 12, 2)->nullable()->after('label');
             $table->decimal('electricity_meter_fee_housing_tenant', 12, 2)->nullable()->after('electricity_meter_fee_commercial_tenant');
             $table->decimal('water_meter_fee_commercial_tenant', 12, 2)->nullable()->after('electricity_meter_fee_housing_tenant');
             $table->decimal('water_meter_fee_housing_tenant', 12, 2)->nullable()->after('water_meter_fee_commercial_tenant');
