@@ -139,6 +139,14 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 $status = $this->resolveStatusFromPayload($request);
             }
 
+            // If Moyasar redirect/query had no status, still reconcile from gateway by contract uuid.
+            if (($status === null || $status === '') && ! $this->hasSuccessfulPayment($uuid)) {
+                $verified = $verified ?? $this->resolveGatewayPaymentForSync($uuid, $paymentId, $invoiceId);
+                if ($verified !== null && ! empty($verified['status'])) {
+                    $status = (string) $verified['status'];
+                }
+            }
+
             if ($status === 'paid') {
                 if ($verified === null) {
                     $verified = $this->resolveGatewayPaymentForSync($uuid, $paymentId, $invoiceId);
@@ -162,6 +170,13 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             }
 
             if (in_array($status, ['failed', 'voided', 'refunded'], true)) {
+                // Never overwrite a successful local payment with a later failed callback.
+                if ($this->hasSuccessfulPayment($uuid)) {
+                    $this->markContractAsCompleted($uuid);
+
+                    return;
+                }
+
                 if ($verified !== null) {
                     $this->persistPaymentFromGateway($verified, $uuid, 'failed');
                 } else {

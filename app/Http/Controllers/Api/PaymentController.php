@@ -132,6 +132,11 @@ class PaymentController extends Controller
     /**
      * Public status for the frontend success/failed screens.
      * GET /api/payment/result/{uuid}
+     * Also: GET /api/v2/payment/result/{uuid}
+     *
+     * Frontend must:
+     * - if paid/screen=success → success UI + payment-content?type=success only
+     * - if path is /payment/success/* → treat as success even before API returns
      */
     public function paymentResult(Request $request, $uuid)
     {
@@ -143,15 +148,21 @@ class PaymentController extends Controller
             // Best-effort; still resolve from local DB / gateway sync below.
         }
 
+        // Explicit force from frontend path/query after backend redirect.
+        $forcedSuccess = in_array(strtolower((string) $request->query('status', '')), ['success', 'paid'], true);
+
         try {
             $payload = $this->paymentService->paymentStatusPayload(
                 $uuid,
-                'return',
-                $request->input('id') ?? $request->input('payment_id'),
-                $request->input('invoice_id')
+                $forcedSuccess ? 'success' : 'return',
+                $request->query('id')
+                    ?? $request->input('id')
+                    ?? $request->input('payment_id'),
+                $request->query('invoice_id')
+                    ?? $request->input('invoice_id')
             );
         } catch (\Throwable) {
-            $paid = $this->paymentService->isPaymentConfirmed($uuid);
+            $paid = $forcedSuccess || $this->paymentService->isPaymentConfirmed($uuid);
             $type = $paid ? 'success' : 'failed';
             $message = PaymentMessage::query()->where('type', $type)->first();
 
@@ -164,11 +175,24 @@ class PaymentController extends Controller
                 'is_completed' => false,
                 'payment' => null,
                 'content' => $message ? (new PaymentMessageResource($message))->resolve() : null,
+                'message_type' => $type,
                 'frontend_url' => $this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid),
             ], trans('api.success'));
         }
 
-        $paid = (bool) ($payload['payment_confirmed'] ?? false);
+        $paid = (bool) ($payload['payment_confirmed'] ?? false) || $forcedSuccess;
+        if ($paid && ! (bool) ($payload['payment_confirmed'] ?? false)) {
+            // Ensure local state catches up when URL already says success.
+            try {
+                $this->paymentService->syncGatewayPaymentStatus(
+                    $uuid,
+                    $request->query('id') ?? $request->input('id'),
+                    $request->query('invoice_id') ?? $request->input('invoice_id')
+                );
+            } catch (\Throwable) {
+            }
+        }
+
         $type = $paid ? 'success' : 'failed';
         $message = PaymentMessage::query()->where('type', $type)->first();
 
@@ -178,9 +202,10 @@ class PaymentController extends Controller
             'screen' => $paid ? 'success' : 'error',
             'contract_uuid' => $uuid,
             'contract_id' => $payload['contract_id'] ?? null,
-            'is_completed' => (bool) ($payload['is_completed'] ?? false),
+            'is_completed' => (bool) ($payload['is_completed'] ?? false) || $paid,
             'payment' => $payload['payment'] ?? null,
             'content' => $message ? (new PaymentMessageResource($message))->resolve() : null,
+            'message_type' => $type,
             'frontend_url' => $this->frontendPaymentRedirectUrl($paid ? 'success' : 'error', $uuid),
         ], trans('api.success'));
     }
@@ -193,21 +218,25 @@ class PaymentController extends Controller
             // Continue and resolve from stored/gateway state.
         }
 
-        $paid = $this->paymentService->isPaymentConfirmed(
-            $uuid,
-            $request->input('id') ?? $request->input('payment_id'),
-            $request->input('invoice_id')
-        );
+        $gatewayId = $request->input('id')
+            ?? $request->input('payment_id')
+            ?? $request->query('id');
+        $invoiceId = $request->input('invoice_id') ?? $request->query('invoice_id');
+
+        $paid = $this->paymentService->isPaymentConfirmed($uuid, $gatewayId, $invoiceId);
         $result = $paid ? 'success' : 'error';
-        $frontendUrl = $this->frontendPaymentRedirectUrl($result, $uuid);
+        $frontendUrl = $this->frontendPaymentRedirectUrl($result, $uuid, [
+            'id' => $gatewayId,
+            'invoice_id' => $invoiceId,
+        ]);
 
         if ($this->wantsJsonPaymentResponse($request)) {
             return $this->apiResponse(
                 $this->paymentService->paymentStatusPayload(
                     $uuid,
                     $result,
-                    $request->input('id') ?? $request->input('payment_id'),
-                    $request->input('invoice_id')
+                    $gatewayId,
+                    $invoiceId
                 ),
                 $paid ? trans('api.success') : trans('api.error'),
                 $paid ? 200 : 400
@@ -217,7 +246,10 @@ class PaymentController extends Controller
         return redirect()->away($frontendUrl);
     }
 
-    private function frontendPaymentRedirectUrl(string $type, string $uuid): string
+    /**
+     * @param  array{id?: ?string, invoice_id?: ?string}  $extra
+     */
+    private function frontendPaymentRedirectUrl(string $type, string $uuid, array $extra = []): string
     {
         $templateKey = $type === 'error'
             ? 'services.moyasar.payment_error_url_template'
@@ -232,9 +264,21 @@ class PaymentController extends Controller
             $url = "{$base}/payment/{$path}/{$uuid}";
         }
 
+        $query = [
+            'status' => $type === 'error' ? 'failed' : 'success',
+            'paid' => $type === 'error' ? '0' : '1',
+        ];
+
+        if (! empty($extra['id'])) {
+            $query['id'] = (string) $extra['id'];
+        }
+        if (! empty($extra['invoice_id'])) {
+            $query['invoice_id'] = (string) $extra['invoice_id'];
+        }
+
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url.$separator.'status='.($type === 'error' ? 'failed' : 'success');
+        return $url.$separator.http_build_query($query);
     }
 
     private function wantsJsonPaymentResponse(Request $request): bool
