@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreSettingContractRequest;
+use App\Http\Requests\Admin\UpdateSettingContractRequest;
 use App\Http\Resources\Admin\V2\Api\SettingContractResource;
 use App\Http\Traits\Responser;
-use App\Models\Contract;
 use App\Models\SettingContract;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SettingContractController extends Controller
@@ -17,6 +17,7 @@ class SettingContractController extends Controller
 
     /**
      * GET /api/admin/setting-contracts
+     * Alias: GET /api/admin/instrument-type-settings
      */
     public function index(Request $request)
     {
@@ -52,10 +53,10 @@ class SettingContractController extends Controller
     /**
      * POST /api/admin/setting-contracts
      */
-    public function store(Request $request)
+    public function store(StoreSettingContractRequest $request)
     {
         try {
-            $setting = $this->persistSetting($request);
+            $setting = SettingContract::query()->create($request->validated());
 
             return $this->apiResponse(
                 new SettingContractResource($setting),
@@ -91,14 +92,14 @@ class SettingContractController extends Controller
     /**
      * POST /api/admin/setting-contracts/{id}
      */
-    public function update(Request $request, int $id)
+    public function update(UpdateSettingContractRequest $request, int $id)
     {
         try {
             $setting = SettingContract::query()->findOrFail($id);
-            $setting = $this->persistSetting($request, $setting);
+            $setting->update($request->validated());
 
             return $this->apiResponse(
-                new SettingContractResource($setting),
+                new SettingContractResource($setting->fresh()),
                 trans('api.updated_successfully')
             );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
@@ -108,56 +109,5 @@ class SettingContractController extends Controller
         } catch (\Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
-    }
-
-    private function persistSetting(Request $request, ?SettingContract $setting = null): SettingContract
-    {
-        if ($request->filled('instrument_type')) {
-            // Keep exact instrument keys (do not alias ministry-of-justice → electronic).
-            $request->merge([
-                'instrument_type' => strtolower(trim((string) $request->input('instrument_type'))),
-            ]);
-        }
-
-        $validated = $request->validate($this->rules($setting));
-
-        if (array_key_exists('realestate', $validated)) {
-            $validated['realestate'] = $request->boolean('realestate');
-        }
-
-        if (array_key_exists('contract', $validated)) {
-            $validated['contract'] = $request->boolean('contract');
-        }
-
-        if ($setting) {
-            $setting->update($validated);
-
-            return $setting->fresh();
-        }
-
-        return SettingContract::query()->create($validated);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function rules(?SettingContract $setting = null): array
-    {
-        $isUpdate = $setting !== null;
-
-        return [
-            'instrument_type' => [
-                $isUpdate ? 'sometimes' : 'required',
-                Rule::in(Contract::instrumentTypes()),
-                Rule::unique('setting_contracts', 'instrument_type')->ignore($setting?->id),
-            ],
-            'realestate' => ($isUpdate ? 'sometimes|' : 'required|').'boolean',
-            'contract' => ($isUpdate ? 'sometimes|' : 'required|').'boolean',
-            'label' => 'nullable|string|max:500',
-            'electricity_meter_fee_commercial_tenant' => 'nullable|numeric|min:0',
-            'electricity_meter_fee_housing_tenant' => 'nullable|numeric|min:0',
-            'water_meter_fee_commercial_tenant' => 'nullable|numeric|min:0',
-            'water_meter_fee_housing_tenant' => 'nullable|numeric|min:0',
-        ];
     }
 }
