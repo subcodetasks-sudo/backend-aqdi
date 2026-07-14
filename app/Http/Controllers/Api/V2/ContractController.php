@@ -17,6 +17,7 @@ use App\Http\Resources\Api\V2\Contract\Step2Resource;
 use App\Http\Resources\Api\V2\Contract\Step3Resource;
 use App\Http\Resources\Api\V2\Contract\Step4Resource;
 use App\Http\Resources\Api\V2\Contract\Step5Resource;
+use App\Http\Resources\Api\V2\Contract\Step6Resource;
 use App\Http\Resources\Api\V2\ContractResource;
 use App\Http\Traits\Responser;
 use App\Models\City;
@@ -682,19 +683,12 @@ class ContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
-        $preset = (string) $request->input('duration_preset');
-        $years = $preset === 'other' ? (int) $request->input('duration_years', 0) : 0;
-        $months = $preset === 'other' ? (int) $request->input('duration_months', 0) : 0;
-        $docFee = DocFee::summarize((string) $contract->contract_type, $preset, $years, $months);
+        $isOther = $request->input('duration_preset') === 'other';
+        $docFee = null;
 
         $data = [
             'contract_starting_date' => ContractStartingDateInput::resolveForStorage($request),
             'type_contract_starting_date' => $request->input('type_contract_starting_date', 'hijri'),
-            'duration_preset' => $docFee['duration_preset'],
-            'duration_years' => $docFee['duration_years'],
-            'duration_months' => $docFee['duration_months'],
-            'total_months' => $docFee['total_months'],
-            'annual_rent_amount_for_the_unit' => $request->annual_rent_amount_for_the_unit,
             'payment_type_id' => $request->payment_type_id,
             'additional_terms' => $request->additional_terms ?? 0,
             'text_additional_terms' => $request->text_additional_terms,
@@ -702,8 +696,30 @@ class ContractController extends Controller
             'step' => 7,
         ];
 
-        if ($request->filled('contract_term_in_years')) {
+        if ($request->filled('annual_rent_amount_for_the_unit')) {
+            $data['annual_rent_amount_for_the_unit'] = $request->annual_rent_amount_for_the_unit;
+        }
+
+        if ($isOther) {
+            $years = (int) $request->input('duration_years', 0);
+            $months = (int) $request->input('duration_months', 0);
+            $docFee = DocFee::summarize((string) $contract->contract_type, 'other', $years, $months);
+
+            $data['duration_preset'] = 'other';
+            $data['duration_years'] = $docFee['duration_years'];
+            $data['duration_months'] = $docFee['duration_months'];
+            $data['total_months'] = $docFee['total_months'];
+            // المدة الأساسية مش مطلوبة مع مدة أخرى
+            $data['contract_term_in_years'] = $request->filled('contract_term_in_years')
+                ? $request->contract_term_in_years
+                : null;
+        } else {
             $data['contract_term_in_years'] = $request->contract_term_in_years;
+            // امسح مسار مدة أخرى لو رجع لزر جاهز
+            $data['duration_preset'] = null;
+            $data['duration_years'] = null;
+            $data['duration_months'] = null;
+            $data['total_months'] = null;
         }
 
         [$tenantRoleIds, $firstTenantRoleId] = $this->normalizeTenantRoleIdsFromStep6Request($request);
@@ -725,15 +741,7 @@ class ContractController extends Controller
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => [
-                'contract' => new ContractResource($contract),
-                'price_contract_term' => $docFee['doc_fee'],
-                'doc_fee' => $docFee['doc_fee'],
-                'doc_fee_lines' => $docFee['doc_fee_lines'],
-                'billable_years' => $docFee['billable_years'],
-                'has_extra_months' => $docFee['has_extra_months'],
-                'duration' => $docFee,
-            ],
+            'data' => new Step6Resource($contract),
         ]);
     }
 

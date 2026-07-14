@@ -8,10 +8,9 @@ use App\Http\Resources\Api\V2\Contract\Step2Resource;
 use App\Http\Resources\Api\V2\Contract\Step3Resource;
 use App\Http\Resources\Api\V2\Contract\Step4Resource;
 use App\Http\Resources\Api\V2\Contract\Step5Resource;
-use App\Http\Resources\Api\V2\ContractResource;
+use App\Http\Resources\Api\V2\Contract\Step6Resource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
-use App\Support\DocFee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -116,7 +115,7 @@ class UncompeleteContractController extends Controller
     }
 
     /**
-     * @return array<string, mixed>|Step1Resource|Step2Resource|Step3Resource|Step4Resource|Step5Resource
+     * @return array<string, mixed>|Step1Resource|Step2Resource|Step3Resource|Step4Resource|Step5Resource|Step6Resource
      */
     private function resolveStepPayload(int $stepNumber, Contract $contract): mixed
     {
@@ -126,20 +125,7 @@ class UncompeleteContractController extends Controller
             3 => new Step3Resource($contract),
             4 => new Step4Resource($contract),
             5 => new Step5Resource($contract),
-            6 => (static function (Contract $contract): array {
-                $doc = DocFee::forContract($contract);
-
-                return [
-                    'contract' => new ContractResource($contract),
-                    'price_contract_term' => $doc['doc_fee']
-                        ?? ($contract->contractTermInYears->price ?? null),
-                    'doc_fee' => $doc['doc_fee'] ?? null,
-                    'doc_fee_lines' => $doc['doc_fee_lines'] ?? [],
-                    'billable_years' => $doc['billable_years'] ?? null,
-                    'has_extra_months' => $doc['has_extra_months'] ?? false,
-                    'duration' => $doc,
-                ];
-            })($contract),
+            6 => new Step6Resource($contract->loadMissing('contractTermInYears')),
             default => [],
         };
     }
