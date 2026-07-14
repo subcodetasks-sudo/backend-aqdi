@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\V2\SettingContractResource;
 use App\Http\Traits\Responser;
-use App\Models\Contract;
 use App\Models\SettingContract;
 use Illuminate\Http\Request;
 
@@ -24,7 +23,7 @@ class SettingContractController extends Controller
         if ($request->filled('instrument_type')) {
             $query->where(
                 'instrument_type',
-                Contract::normalizeInstrumentType($request->string('instrument_type')->toString())
+                strtolower(trim($request->string('instrument_type')->toString()))
             );
         }
 

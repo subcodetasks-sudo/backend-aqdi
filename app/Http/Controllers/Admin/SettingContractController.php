@@ -26,7 +26,7 @@ class SettingContractController extends Controller
             if ($request->filled('instrument_type')) {
                 $query->where(
                     'instrument_type',
-                    Contract::normalizeInstrumentType($request->string('instrument_type')->toString())
+                    strtolower(trim($request->string('instrument_type')->toString()))
                 );
             }
 
@@ -113,8 +113,9 @@ class SettingContractController extends Controller
     private function persistSetting(Request $request, ?SettingContract $setting = null): SettingContract
     {
         if ($request->filled('instrument_type')) {
+            // Keep exact instrument keys (do not alias ministry-of-justice → electronic).
             $request->merge([
-                'instrument_type' => Contract::normalizeInstrumentType($request->input('instrument_type')),
+                'instrument_type' => strtolower(trim((string) $request->input('instrument_type'))),
             ]);
         }
 
