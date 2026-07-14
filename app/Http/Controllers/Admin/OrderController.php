@@ -29,11 +29,12 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
-            ->whereHas('receivedContract')
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
             )
+            // Default: received only. Notifications keep ?is_received=false unchanged.
+            ->tap(fn ($q) => $this->applyOrdersReceivedFilter($q, $request))
             ->with($this->orderListRelations())
             ->latest()
             ->paginate($this->perPageFromRequest($request, 120, 200));
@@ -1047,6 +1048,24 @@ class OrderController extends Controller
         } else {
             $query->whereDoesntHave('receivedContract');
         }
+    }
+
+    /**
+     * Main orders list: default = received only.
+     * ?is_received=false keeps the notifications inbox (unreceived) unchanged.
+     */
+    private function applyOrdersReceivedFilter($query, Request $request): void
+    {
+        $wantReceived = $this->parseReceivedContractQueryFilter($request);
+
+        if ($wantReceived === false) {
+            $query->whereDoesntHave('receivedContract');
+
+            return;
+        }
+
+        // Default and is_received=true → received only
+        $query->whereHas('receivedContract');
     }
 
     /**
