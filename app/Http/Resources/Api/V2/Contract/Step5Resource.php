@@ -45,6 +45,8 @@ class Step5Resource extends JsonResource
             'type_furnished' => $this->type_furnished,
             'electricity_meter' => $this->asBool($this->electricity_meter),
             'water_meter' => $this->asBool($this->water_meter),
+            'electricity_meter_ownership' => $this->electricity_meter_ownership,
+            'water_meter_ownership' => $this->water_meter_ownership,
             ...$this->contractStatusFields(),
             'step' => $this->step,
         ];

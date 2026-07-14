@@ -149,6 +149,25 @@
         </div>
     </div>
 
+    <div class="row-state">
+        <div class="form-group-state">
+            <label for="electricity-meter-ownership" class="label-state">ملكية عداد الكهرباء (اختياري)</label>
+            <select id="electricity-meter-ownership" class="select-state" name="electricity_meter_ownership">
+                <option value="">اختر ملكية عداد الكهرباء</option>
+                <option value="owner" @if(old('electricity_meter_ownership', $contract->electricity_meter_ownership) === 'owner') selected @endif>مالك</option>
+                <option value="tenant" @if(old('electricity_meter_ownership', $contract->electricity_meter_ownership) === 'tenant') selected @endif>مستأجر</option>
+            </select>
+        </div>
+        <div class="form-group-state">
+            <label for="water-meter-ownership" class="label-state">ملكية عداد المياه (اختياري)</label>
+            <select id="water-meter-ownership" class="select-state" name="water_meter_ownership">
+                <option value="">اختر ملكية عداد المياه</option>
+                <option value="owner" @if(old('water_meter_ownership', $contract->water_meter_ownership) === 'owner') selected @endif>مالك</option>
+                <option value="tenant" @if(old('water_meter_ownership', $contract->water_meter_ownership) === 'tenant') selected @endif>مستأجر</option>
+            </select>
+        </div>
+    </div>
+
     <div class="buttons-state">
         <a href="{{ route('contract.step4', $contract->uuid) }}" class="back-button-state">عودة</a>
 

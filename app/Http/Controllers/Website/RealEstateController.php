@@ -79,7 +79,9 @@ class RealEstateController extends Controller
         'property_type_id' => 'nullable|exists:rea_estat_types,id', 
         'property_usages_id' => 'nullable|exists:rea_estat_usages,id', 
         'number_of_floors' => 'nullable|integer|min:1|max:10',  
-        'number_of_units_in_realestate' => 'nullable|integer|min:1|max:10',  
+        'number_of_units_in_realestate' => 'nullable|integer|min:1|max:10',
+        'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+        'water_meter_ownership' => 'nullable|in:owner,tenant',
     ], 
     [
         'instrument_type.required' => 'اختر نوع الصك',
@@ -120,7 +122,9 @@ class RealEstateController extends Controller
     $realEstate->real_estate_registry_number = $RealEstateRegistryNumber; 
     $realEstate->property_usages_id = $propertyUsage; 
     $realEstate->number_of_floors = $floorsNumber; 
-    $realEstate->number_of_units_in_realestate = $unitsNumber; 
+    $realEstate->number_of_units_in_realestate = $unitsNumber;
+    $realEstate->electricity_meter_ownership = $request->input('electricity_meter_ownership') ?: null;
+    $realEstate->water_meter_ownership = $request->input('water_meter_ownership') ?: null;
     $realEstate->step = 1;
     $realEstate->save();  
  

@@ -131,6 +131,25 @@
             </div>
         </div>
 
+        <div class="row-state">
+            <div class="form-group-state">
+                <label for="electricity-meter-ownership" class="label-state">ملكية عداد الكهرباء (اختياري)</label>
+                <select id="electricity-meter-ownership" class="select-state" name="electricity_meter_ownership">
+                    <option value="">اختر ملكية عداد الكهرباء</option>
+                    <option value="owner" {{ old('electricity_meter_ownership', $realEstate->electricity_meter_ownership) === 'owner' ? 'selected' : '' }}>مالك</option>
+                    <option value="tenant" {{ old('electricity_meter_ownership', $realEstate->electricity_meter_ownership) === 'tenant' ? 'selected' : '' }}>مستأجر</option>
+                </select>
+            </div>
+            <div class="form-group-state">
+                <label for="water-meter-ownership" class="label-state">ملكية عداد المياه (اختياري)</label>
+                <select id="water-meter-ownership" class="select-state" name="water_meter_ownership">
+                    <option value="">اختر ملكية عداد المياه</option>
+                    <option value="owner" {{ old('water_meter_ownership', $realEstate->water_meter_ownership) === 'owner' ? 'selected' : '' }}>مالك</option>
+                    <option value="tenant" {{ old('water_meter_ownership', $realEstate->water_meter_ownership) === 'tenant' ? 'selected' : '' }}>مستأجر</option>
+                </select>
+            </div>
+        </div>
+
         <div class="buttons-state">
             <a type="button" href="{{ url()->previous() }}" class="back-button-state">عودة</a>
             <button type="submit" class="next-button-state">

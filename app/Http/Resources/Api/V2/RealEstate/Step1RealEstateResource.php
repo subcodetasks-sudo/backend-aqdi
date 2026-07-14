@@ -12,6 +12,8 @@ class Step1RealEstateResource extends JsonResource
         return [
             'id' => $this->id,
             'contract_ownership' => $this->contract_ownership,
+            'electricity_meter_ownership' => $this->electricity_meter_ownership,
+            'water_meter_ownership' => $this->water_meter_ownership,
             'contract_type' => $this->contract_type,
             'instrument_type' => $this->instrument_type,
             'property_type_id' => $this->property_type_id,

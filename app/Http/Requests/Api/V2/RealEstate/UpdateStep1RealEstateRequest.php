@@ -35,6 +35,8 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'id' => 'required|exists:real_estates,id',
             'name_real_estate' => 'nullable|string|max:255',
             'contract_ownership' => 'nullable|in:owner,tenant',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
             'contract_type' => 'nullable|in:housing,commercial',
             'property_owner_is_deceased' => 'nullable|boolean',
             'instrument_history' => 'nullable|date',
@@ -170,6 +172,13 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
 
         if ($this->filled('contract_ownership')) {
             $data['contract_ownership'] = $this->input('contract_ownership');
+        }
+
+        foreach (['electricity_meter_ownership', 'water_meter_ownership'] as $ownership) {
+            if ($this->exists($ownership)) {
+                $value = $this->input($ownership);
+                $data[$ownership] = ($value === '' || $value === null) ? null : $value;
+            }
         }
 
         if ($this->input('instrument_type') === RealEstate::INSTRUMENT_TYPE_OWNER_ENDOWMENT) {

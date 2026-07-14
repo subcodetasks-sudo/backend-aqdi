@@ -62,6 +62,8 @@ class PropertyController extends Controller
             'unit_area' => $contract->unit_area ?? null,
             'electricity_meter_number' => $contract->electricity_meter_number ?? null,
             'water_meter_number' => $contract->water_meter_number ?? null,
+            'electricity_meter_ownership' => $contract->electricity_meter_ownership ?? null,
+            'water_meter_ownership' => $contract->water_meter_ownership ?? null,
             'Gasmeter' => $contract->Gasmeter ?? null,
             'window_ac' => $contract->window_ac ?? null,
             'split_ac' => $contract->split_ac ?? null,

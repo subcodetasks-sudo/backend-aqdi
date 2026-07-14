@@ -653,6 +653,8 @@ class ContractController extends Controller
             'type_furnished' => \App\Support\TypeFurnished::normalize($request->type_furnished),
             'electricity_meter' => (int) $request->boolean('electricity_meter'),
             'water_meter' => (int) $request->boolean('water_meter'),
+            'electricity_meter_ownership' => $request->input('electricity_meter_ownership'),
+            'water_meter_ownership' => $request->input('water_meter_ownership'),
         ];
 
         if ($request->exists('unit_usage_id')) {

@@ -591,6 +591,8 @@ class ContractRealEstate extends Controller
                 'split_ac' => 'nullable|integer|min:0|max:10',
                 'electricity_meter_number' => 'nullable|string|max:255',
                 'water_meter_number' => 'nullable|string|max:255',
+                'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+                'water_meter_ownership' => 'nullable|in:owner,tenant',
             ]);
             //  try {
                 // Update contract data with validated values

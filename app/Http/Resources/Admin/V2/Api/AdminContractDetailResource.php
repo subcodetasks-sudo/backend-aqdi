@@ -414,6 +414,8 @@ class AdminContractDetailResource extends JsonResource
                 'postal_code',
                 'real_estate_registry_number',
                 'address_url',
+                'electricity_meter_ownership',
+                'water_meter_ownership',
             ])
         );
     }
@@ -433,6 +435,8 @@ class AdminContractDetailResource extends JsonResource
             'unit_type_id' => $m->unit_type_id ?? null,
             'electricity_meter_number' => $m->electricity_meter_number ?? null,
             'water_meter_number' => $m->water_meter_number ?? null,
+            'electricity_meter_ownership' => $m->electricity_meter_ownership ?? null,
+            'water_meter_ownership' => $m->water_meter_ownership ?? null,
         ];
     }
 

@@ -529,6 +529,8 @@ public function submitStep3(Request $request, $uuid)
             'split_ac' => 'nullable|integer|max:10',
             'electricity_meter_number' => 'nullable|string|max:255',
             'water_meter_number' => 'nullable|string|max:255',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
         ]);
     
         $user_id = Auth::user()->id;
@@ -552,6 +554,8 @@ public function submitStep3(Request $request, $uuid)
             'split_ac' => $validatedData['split_ac']?? null,
             'electricity_meter_number' => $validatedData['electricity_meter_number']?? null,
             'water_meter_number' => $validatedData['water_meter_number']?? null,
+            'electricity_meter_ownership' => $validatedData['electricity_meter_ownership'] ?? null,
+            'water_meter_ownership' => $validatedData['water_meter_ownership'] ?? null,
         ]);
     
          $contract->update(['step' => 6]);

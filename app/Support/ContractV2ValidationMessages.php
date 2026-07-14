@@ -58,6 +58,8 @@ final class ContractV2ValidationMessages
         'type_furnished' => 'نوع التأثيث',
         'electricity_meter' => 'عداد الكهرباء',
         'water_meter' => 'عداد الماء',
+        'electricity_meter_ownership' => 'ملكية عداد الكهرباء',
+        'water_meter_ownership' => 'ملكية عداد المياه',
         'is_draft' => 'حالة المسودة',
         'The_number_of_halls' => 'عدد الصالات',
         'number_of_councils' => 'عدد المجالس',

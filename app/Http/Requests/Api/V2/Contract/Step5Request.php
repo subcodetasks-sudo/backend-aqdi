@@ -55,12 +55,21 @@ class Step5Request extends BaseApiV2Request
             }
         }
 
+        $ownershipNormalized = [];
+        foreach (['electricity_meter_ownership', 'water_meter_ownership'] as $key) {
+            if (! $this->exists($key)) {
+                continue;
+            }
+            $value = $this->input($key);
+            $ownershipNormalized[$key] = ($value === '' || $value === null) ? null : $value;
+        }
+
         $this->merge(array_merge([
             'kitchen_tank' => 0,
             'furnished' => 0,
             'electricity_meter' => 0,
             'water_meter' => 0,
-        ], $normalizedBooleans));
+        ], $normalizedBooleans, $ownershipNormalized));
     }
 
     public function authorize(): bool
@@ -95,6 +104,8 @@ class Step5Request extends BaseApiV2Request
             'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
         ];
     }
 
@@ -121,6 +132,8 @@ class Step5Request extends BaseApiV2Request
             'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
         ];
     }
 
@@ -155,6 +168,8 @@ class Step5Request extends BaseApiV2Request
             'type_furnished',
             'electricity_meter',
             'water_meter',
+            'electricity_meter_ownership',
+            'water_meter_ownership',
         ]);
     }
 }

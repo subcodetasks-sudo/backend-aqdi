@@ -86,6 +86,7 @@ class RealEstate extends Model
         'copy_of_guardians_power_of_attorney_for_agent',
         'is_multiple_trusteeship_deed_copy',
         'image_instrument', 'age_of_the_property', 'number_of_units_per_floor', 'image_address', 'address_url', 'latitude', 'longitude',
+        'electricity_meter_ownership', 'water_meter_ownership',
         'step',
     ];
 

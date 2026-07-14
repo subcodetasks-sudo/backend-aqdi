@@ -135,6 +135,8 @@ class UnitEstateController extends Controller
             'type_furnished' => \App\Support\TypeFurnished::rules(),
             'electricity_meter' => 'nullable|boolean',
             'water_meter' => 'nullable|boolean',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
         ];
 
         $this->validate($request, $rules);
@@ -161,6 +163,12 @@ class UnitEstateController extends Controller
             'type_furnished' => \App\Support\TypeFurnished::normalize($request->input('type_furnished')),
             'electricity_meter' => $request->boolean('electricity_meter'),
             'water_meter' => $request->boolean('water_meter'),
+            'electricity_meter_ownership' => ($request->input('electricity_meter_ownership') === '' || $request->input('electricity_meter_ownership') === null)
+                ? null
+                : $request->input('electricity_meter_ownership'),
+            'water_meter_ownership' => ($request->input('water_meter_ownership') === '' || $request->input('water_meter_ownership') === null)
+                ? null
+                : $request->input('water_meter_ownership'),
             'user_id' => $user->id,
         ];
 
@@ -199,6 +207,8 @@ class UnitEstateController extends Controller
             'type_furnished' => \App\Support\TypeFurnished::rules(true),
             'electricity_meter' => 'sometimes|boolean',
             'water_meter' => 'sometimes|boolean',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
         ];
 
         $this->validate($request, $rules);
@@ -225,6 +235,8 @@ class UnitEstateController extends Controller
             'type_furnished',
             'electricity_meter',
             'water_meter',
+            'electricity_meter_ownership',
+            'water_meter_ownership',
         ]);
 
         $data['user_id'] = auth()->id();
@@ -232,6 +244,13 @@ class UnitEstateController extends Controller
         foreach (['kitchen_tank', 'furnished', 'electricity_meter', 'water_meter'] as $flag) {
             if ($request->exists($flag)) {
                 $data[$flag] = (int) $request->boolean($flag);
+            }
+        }
+
+        foreach (['electricity_meter_ownership', 'water_meter_ownership'] as $ownership) {
+            if ($request->exists($ownership)) {
+                $value = $request->input($ownership);
+                $data[$ownership] = ($value === '' || $value === null) ? null : $value;
             }
         }
 

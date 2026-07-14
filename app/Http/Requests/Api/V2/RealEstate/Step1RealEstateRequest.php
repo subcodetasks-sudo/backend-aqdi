@@ -41,6 +41,8 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'number_of_floors'   => 'nullable',
             'contract_type'    => 'nullable|in:housing,commercial',
             'contract_ownership' => 'nullable|in:owner,tenant',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
             'property_type_id'   => 'nullable|exists:rea_estat_types,id',
             'property_usages_id' => 'nullable|exists:rea_estat_usages,id',
 
@@ -151,6 +153,16 @@ class Step1RealEstateRequest extends BaseApiV2Request
 
         if ($this->filled('contract_ownership')) {
             $payload['contract_ownership'] = $this->input('contract_ownership');
+        }
+
+        if ($this->exists('electricity_meter_ownership')) {
+            $value = $this->input('electricity_meter_ownership');
+            $payload['electricity_meter_ownership'] = ($value === '' || $value === null) ? null : $value;
+        }
+
+        if ($this->exists('water_meter_ownership')) {
+            $value = $this->input('water_meter_ownership');
+            $payload['water_meter_ownership'] = ($value === '' || $value === null) ? null : $value;
         }
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {

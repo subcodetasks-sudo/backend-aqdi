@@ -111,6 +111,8 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
             'latitude' => $contract->latitude,
             'longitude' => $contract->longitude,
             'contract_ownership' => $contract->contract_ownership,
+            'electricity_meter_ownership' => $contract->electricity_meter_ownership,
+            'water_meter_ownership' => $contract->water_meter_ownership,
             'add_legal_agent_of_owner' => $contract->add_legal_agent_of_owner,
             'id_num_of_property_owner_agent' => $contract->id_num_of_property_owner_agent,
             'dob_of_property_owner_agent' => $contract->dob_of_property_owner_agent,
@@ -160,6 +162,8 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
             'type_furnished' => \App\Support\TypeFurnished::normalize($contract->type_furnished),
             'electricity_meter' => (bool) $contract->electricity_meter,
             'water_meter' => (bool) $contract->water_meter,
+            'electricity_meter_ownership' => $contract->electricity_meter_ownership,
+            'water_meter_ownership' => $contract->water_meter_ownership,
             'Number_parking_spaces' => $attrs['Number_parking_spaces'] ?? null,
         ];
     }

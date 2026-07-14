@@ -56,12 +56,15 @@ class UnitEstateController extends Controller
          $data = $request->only([
             'unit_type_id', 'unit_usage_id', 'The_number_of_halls','unit_area', 'floor_number', 'sub_delay',
             'rooms_number', 'tootal_rooms','The_number_of_toilets', 'The_number_of_kitchens',
-            'window_ac', 'split_ac', 'electricity_meter_number', 'water_meter_number', 'unit_number'
+            'window_ac', 'split_ac', 'electricity_meter_number', 'water_meter_number',
+            'electricity_meter_ownership', 'water_meter_ownership', 'unit_number'
         ]);
         
 
         $data['real_estates_units_id'] = $realEstate->id;
         $data['user_id'] = Auth::id();
+        $data['electricity_meter_ownership'] = $request->input('electricity_meter_ownership') ?: null;
+        $data['water_meter_ownership'] = $request->input('water_meter_ownership') ?: null;
     
          UnitsReal::create($data);
     
@@ -102,6 +105,8 @@ class UnitEstateController extends Controller
          $rules = [
             'water_meter_number' =>'nullable',
             'electricity_meter_number' =>'nullable',
+            'electricity_meter_ownership' => 'nullable|in:owner,tenant',
+            'water_meter_ownership' => 'nullable|in:owner,tenant',
             'Number_parking_spaces' =>'nullable',
             'Gasmeter' =>'nullable',
             'unit_area' =>'required',
@@ -118,12 +123,15 @@ class UnitEstateController extends Controller
             'tootal_rooms', 'The_number_of_the_toilet', 'real_estates_units',
             'The_number_of_halls','sub_delay' ,'The_number_of_kitchens', 'property_city_id', 
             'unit_area', 'number_of_unit_air_conditioners','split_ac','window_ac' ,'water_meter_number',
-            'electricity_meter_number', 'Services', 'unit_number', 'unit_usage_id',
+            'electricity_meter_number', 'electricity_meter_ownership', 'water_meter_ownership',
+            'Services', 'unit_number', 'unit_usage_id',
             'unit_type_id', 'floor_number', 'Gasmeter', 'real_estates_units_id', 'The_number_of_toilets',
             'Number_parking_spaces',
         ]);
     
          $data['user_id'] = Auth::id();
+         $data['electricity_meter_ownership'] = $request->input('electricity_meter_ownership') ?: null;
+         $data['water_meter_ownership'] = $request->input('water_meter_ownership') ?: null;
     
          $unitReal->update($data);
     

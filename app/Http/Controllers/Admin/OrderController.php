@@ -655,6 +655,8 @@ class OrderController extends Controller
                 'type_furnished',
                 'electricity_meter',
                 'water_meter',
+                'electricity_meter_ownership',
+                'water_meter_ownership',
                 'unit',
             ]), [
                 'unit_type_name' => $this->relationName(Arr::get($detail, 'unit_type')),

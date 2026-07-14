@@ -327,6 +327,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
         if (in_array($gatewayStatus, ['failed', 'voided', 'refunded'], true)) {
             $this->persistPaymentFromGateway($gatewayPayment, $contractUuid, 'failed');
+            $this->revertContractCompletionWithoutSuccessfulPayment($contractUuid);
 
             return [
                 'contract_uuid' => $contractUuid,
@@ -504,7 +505,25 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     {
         $verified = $this->resolveVerifiedGatewayPayment($contractUuid, $paymentId, $invoiceId);
         if ($verified !== null) {
+            // Never invent a "paid" match from other invoices when this callback
+            // already resolved to a failed/voided/refunded attempt.
+            $status = strtolower((string) ($verified['status'] ?? ''));
+            if (in_array($status, ['failed', 'voided', 'refunded', 'paid'], true)) {
+                return $verified;
+            }
+        }
+
+        // Only search other gateway rows when we have no redirect id at all.
+        $hasExplicitId = (is_string($paymentId) && $paymentId !== '')
+            || (is_string($invoiceId) && $invoiceId !== '');
+
+        if ($hasExplicitId && $verified !== null) {
             return $verified;
+        }
+
+        if ($hasExplicitId && $verified === null) {
+            // Explicit id was given but not found/paid — do not upgrade via stale paid search.
+            return $this->fetchLatestPaymentByContractUuid($contractUuid);
         }
 
         $invoicePayment = $this->extractPaidPaymentFromInvoice(
@@ -539,12 +558,21 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 return $payment;
             }
 
-            $fromInvoice = $this->extractPaidPaymentFromInvoice(
-                $this->fetchInvoice($candidateId),
-                $contractUuid
-            );
+            $invoice = $this->fetchInvoice($candidateId);
+            if ($invoice === null) {
+                continue;
+            }
+
+            $fromInvoice = $this->extractPaidPaymentFromInvoice($invoice, $contractUuid);
             if ($fromInvoice !== null) {
                 return $fromInvoice;
+            }
+
+            // Invoice exists but is not paid — return its real final payment/status
+            // so failed redirects are not upgraded by a different "paid" invoice.
+            $failedOrPending = $this->extractAnyPaymentFromInvoice($invoice, $contractUuid);
+            if ($failedOrPending !== null) {
+                return $failedOrPending;
             }
         }
 
@@ -598,24 +626,80 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     }
 
     /**
+     * Prefer final unsuccessful payments on an invoice (failed/voided/refunded),
+     * otherwise the latest payment, otherwise the invoice status itself.
+     *
+     * @param  array<string, mixed>  $invoice
+     * @return array<string, mixed>|null
+     */
+    private function extractAnyPaymentFromInvoice(array $invoice, string $contractUuid): ?array
+    {
+        $invoiceMetadata = is_array($invoice['metadata'] ?? null) ? $invoice['metadata'] : [];
+        $resolvedContractUuid = (string) ($invoiceMetadata['contract_uuid'] ?? $contractUuid);
+        $payments = is_array($invoice['payments'] ?? null) ? $invoice['payments'] : [];
+
+        $failed = null;
+        $latest = null;
+        $latestTs = 0;
+
+        foreach ($payments as $payment) {
+            if (! is_array($payment)) {
+                continue;
+            }
+
+            $status = strtolower((string) ($payment['status'] ?? ''));
+            $ts = strtotime((string) ($payment['created_at'] ?? '')) ?: 0;
+            if ($ts >= $latestTs) {
+                $latestTs = $ts;
+                $latest = $payment;
+            }
+
+            if (in_array($status, ['failed', 'voided', 'refunded'], true)) {
+                $failed = $payment;
+            }
+        }
+
+        $chosen = $failed ?? $latest;
+        if ($chosen !== null) {
+            $paymentMetadata = is_array($chosen['metadata'] ?? null) ? $chosen['metadata'] : [];
+
+            return array_merge($chosen, [
+                'metadata' => array_merge($paymentMetadata, [
+                    'contract_uuid' => (string) ($paymentMetadata['contract_uuid'] ?? $resolvedContractUuid),
+                ]),
+                'invoice_id' => $invoice['id'] ?? null,
+            ]);
+        }
+
+        $invoiceStatus = strtolower((string) ($invoice['status'] ?? ''));
+        if ($invoiceStatus === '' || $invoiceStatus === 'paid') {
+            return null;
+        }
+
+        return [
+            'id' => $invoice['id'] ?? null,
+            'status' => $invoiceStatus,
+            'amount' => $invoice['amount'] ?? 0,
+            'currency' => $invoice['currency'] ?? $this->currency,
+            'metadata' => array_merge($invoiceMetadata, [
+                'contract_uuid' => $resolvedContractUuid,
+            ]),
+            'source' => [],
+            'invoice_id' => $invoice['id'] ?? null,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function fetchLatestInvoiceByContractUuid(string $contractUuid): ?array
     {
         $byMetadata = $this->fetchLatestGatewayResourceByMetadata('/v1/invoices', 'invoices', $contractUuid);
         if ($byMetadata !== null) {
-            // Prefer a paid invoice when metadata search returns multiple shapes.
-            if (($byMetadata['status'] ?? null) === 'paid') {
-                return $byMetadata;
-            }
+            return $byMetadata;
         }
 
-        $byDescription = $this->fetchLatestInvoiceByDescription($contractUuid);
-        if ($byDescription !== null) {
-            return $byDescription;
-        }
-
-        return $byMetadata;
+        return $this->fetchLatestInvoiceByDescription($contractUuid);
     }
 
     /**
@@ -653,7 +737,8 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             $description = (string) ($row['description'] ?? '');
             $metaUuid = (string) ($metadata['contract_uuid'] ?? '');
 
-            if ($metaUuid === $contractUuid || $description === $needle || str_contains($description, $contractUuid)) {
+            // Exact match only — str_contains on 6-digit uuids falsely links other contracts.
+            if ($metaUuid === $contractUuid || $description === $needle) {
                 $matches[] = $row;
             }
         }
@@ -662,13 +747,8 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             return null;
         }
 
+        // Newest invoice for this contract (do not prefer unrelated older "paid" rows).
         usort($matches, static function (array $a, array $b): int {
-            $rank = static fn (array $row): int => ($row['status'] ?? null) === 'paid' ? 2 : 1;
-            $byStatus = $rank($b) <=> $rank($a);
-            if ($byStatus !== 0) {
-                return $byStatus;
-            }
-
             return strtotime((string) ($b['created_at'] ?? '')) <=> strtotime((string) ($a['created_at'] ?? ''));
         });
 

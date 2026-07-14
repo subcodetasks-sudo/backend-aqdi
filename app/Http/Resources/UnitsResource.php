@@ -27,6 +27,8 @@ class UnitsResource extends JsonResource
              'real_estates_units_id'=> $this->real_estates_units_id, 
             'unit_area'=> $this-> unit_area,
              'water_meter_number'=>$this->water_meter_number,
+             'electricity_meter_ownership'=>$this->electricity_meter_ownership,
+             'water_meter_ownership'=>$this->water_meter_ownership,
              
             'floor_number'=>$this->floor_number,
             'unit_usage_id'=> $this->unit_usage_id,

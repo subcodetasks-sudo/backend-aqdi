@@ -15,6 +15,8 @@ class RealEstateResource extends JsonResource
             'name_owner' => $this->name_owner,
             'contract_type' => $this->contract_type,
             'contract_ownership' => $this->contract_ownership,
+            'electricity_meter_ownership' => $this->electricity_meter_ownership,
+            'water_meter_ownership' => $this->water_meter_ownership,
             'instrument_type' => $this->instrument_type,
             'instrument_number' => $this->instrument_number,
             'instrument_history' => $this->instrument_history,
