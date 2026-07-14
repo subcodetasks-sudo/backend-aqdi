@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V2\ContentPageController as V2ContentPageController
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\SettingContractController as V2SettingContractController;
 use App\Http\Controllers\Api\V2\SmsSettingController as V2SmsSettingController;
+use App\Http\Controllers\Api\V2\MeterFeeSettingController as V2MeterFeeSettingController;
 use App\Http\Controllers\Api\V2\UncompeleteContractController as V2UncompeleteContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
 use App\Http\Controllers\Api\V2\RealEstateControllor as V2RealEstateControllor;
@@ -65,6 +66,7 @@ Route::prefix('instrument-type-settings')->controller(V2SettingContractControlle
 });
 
 Route::get('/sms-settings', [V2SmsSettingController::class, 'show']);
+Route::get('/meter-fee-settings', [V2MeterFeeSettingController::class, 'show']);
 
 Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {
     Route::get('/', 'index');

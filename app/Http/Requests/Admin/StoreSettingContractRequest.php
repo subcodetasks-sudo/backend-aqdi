@@ -50,10 +50,6 @@ class StoreSettingContractRequest extends FormRequest
             'realestate' => ['present', 'boolean'],
             'contract' => ['present', 'boolean'],
             'label' => ['nullable', 'string', 'max:500'],
-            'electricity_meter_fee_commercial_tenant' => ['nullable', 'numeric', 'min:0'],
-            'electricity_meter_fee_housing_tenant' => ['nullable', 'numeric', 'min:0'],
-            'water_meter_fee_commercial_tenant' => ['nullable', 'numeric', 'min:0'],
-            'water_meter_fee_housing_tenant' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

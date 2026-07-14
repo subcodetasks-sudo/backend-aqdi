@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\PaymentMessageController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\SettingContractController;
 use App\Http\Controllers\Admin\SmsSettingController;
+use App\Http\Controllers\Admin\MeterFeeSettingController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -528,6 +529,12 @@ use Illuminate\Support\Facades\Route;
 
     // Project-wide SMS message templates (single settings row)
     Route::prefix('sms-settings')->name('sms-settings.')->controller(SmsSettingController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
+        Route::post('/', 'update')->name('update');
+    });
+
+    // Project-wide meter fees (housing/commercial only)
+    Route::prefix('meter-fee-settings')->name('meter-fee-settings.')->controller(MeterFeeSettingController::class)->group(function () {
         Route::get('/', 'show')->name('show');
         Route::post('/', 'update')->name('update');
     });

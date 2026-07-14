@@ -306,6 +306,18 @@ class GeneralController extends Controller
             'sms_user' => $setting?->sms_user,
             'sms_owner' => $setting?->sms_owner,
             'sms_employee' => $setting?->sms_employee,
+            'electricity_meter_fee_commercial_tenant' => $setting?->electricity_meter_fee_commercial_tenant !== null
+                ? (float) $setting->electricity_meter_fee_commercial_tenant
+                : null,
+            'electricity_meter_fee_housing_tenant' => $setting?->electricity_meter_fee_housing_tenant !== null
+                ? (float) $setting->electricity_meter_fee_housing_tenant
+                : null,
+            'water_meter_fee_commercial_tenant' => $setting?->water_meter_fee_commercial_tenant !== null
+                ? (float) $setting->water_meter_fee_commercial_tenant
+                : null,
+            'water_meter_fee_housing_tenant' => $setting?->water_meter_fee_housing_tenant !== null
+                ? (float) $setting->water_meter_fee_housing_tenant
+                : null,
             'terms' => [
                 'description' => $terms ? $terms->description_trans : '',
             ],

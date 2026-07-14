@@ -22,18 +22,6 @@ class SettingContractResource extends JsonResource
             'realestate' => (bool) $this->realestate,
             'contract' => (bool) $this->contract,
             'label' => $this->label,
-            'electricity_meter_fee_commercial_tenant' => $this->electricity_meter_fee_commercial_tenant !== null
-                ? (float) $this->electricity_meter_fee_commercial_tenant
-                : null,
-            'electricity_meter_fee_housing_tenant' => $this->electricity_meter_fee_housing_tenant !== null
-                ? (float) $this->electricity_meter_fee_housing_tenant
-                : null,
-            'water_meter_fee_commercial_tenant' => $this->water_meter_fee_commercial_tenant !== null
-                ? (float) $this->water_meter_fee_commercial_tenant
-                : null,
-            'water_meter_fee_housing_tenant' => $this->water_meter_fee_housing_tenant !== null
-                ? (float) $this->water_meter_fee_housing_tenant
-                : null,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

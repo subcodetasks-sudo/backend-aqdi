@@ -64,6 +64,10 @@ class SettingController extends Controller
                 'sms_user' => ['nullable', 'string', 'max:5000'],
                 'sms_owner' => ['nullable', 'string', 'max:5000'],
                 'sms_employee' => ['nullable', 'string', 'max:5000'],
+                'electricity_meter_fee_commercial_tenant' => ['nullable', 'numeric', 'min:0'],
+                'electricity_meter_fee_housing_tenant' => ['nullable', 'numeric', 'min:0'],
+                'water_meter_fee_commercial_tenant' => ['nullable', 'numeric', 'min:0'],
+                'water_meter_fee_housing_tenant' => ['nullable', 'numeric', 'min:0'],
                 'is_open' => ['nullable', 'boolean'],
                 'working_hours' => ['nullable', 'string', 'max:500'],
                 'image_banner' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
@@ -206,6 +210,18 @@ class SettingController extends Controller
                 'sms_user' => $setting->sms_user,
                 'sms_owner' => $setting->sms_owner,
                 'sms_employee' => $setting->sms_employee,
+                'electricity_meter_fee_commercial_tenant' => $setting->electricity_meter_fee_commercial_tenant !== null
+                    ? (float) $setting->electricity_meter_fee_commercial_tenant
+                    : null,
+                'electricity_meter_fee_housing_tenant' => $setting->electricity_meter_fee_housing_tenant !== null
+                    ? (float) $setting->electricity_meter_fee_housing_tenant
+                    : null,
+                'water_meter_fee_commercial_tenant' => $setting->water_meter_fee_commercial_tenant !== null
+                    ? (float) $setting->water_meter_fee_commercial_tenant
+                    : null,
+                'water_meter_fee_housing_tenant' => $setting->water_meter_fee_housing_tenant !== null
+                    ? (float) $setting->water_meter_fee_housing_tenant
+                    : null,
                 'is_open' => isset($setting->is_open) ? (bool) $setting->is_open : null,
                 'working_hours' => $setting->working_hours,
             ],
