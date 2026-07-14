@@ -17,8 +17,7 @@ class ReceivedContractResource extends JsonResource
             ? $this->status
             : ReceivedContractStatus::tryFrom((string) $this->status) ?? ReceivedContractStatus::Pending;
 
-        $receiptComplete = $workflowStatus === ReceivedContractStatus::Finish;
-
+        // A row in received_contracts means the contract was received (do not map workflow pending → "لم يُستلم بعد").
         return [
             'id' => $this->id,
             'contract_id' => $this->contract_id,
@@ -32,8 +31,8 @@ class ReceivedContractResource extends JsonResource
             'employeePhone' => $this->employee?->phone,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
-            'receipt_status' => $receiptComplete ? 'received' : 'pending',
-            'receipt_status_label_ar' => $receiptComplete ? 'مستلم' : 'لم يُستلم بعد',
+            'receipt_status' => 'received',
+            'receipt_status_label_ar' => 'مستلم',
             'contract' => $this->whenLoaded('contract', fn () => [
                 'id' => $this->contract?->id,
                 'uuid' => $this->contract?->uuid,

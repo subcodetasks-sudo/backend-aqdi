@@ -198,8 +198,6 @@ class ContractController extends Controller
             'step' => Contract::shouldSkipInitialSteps($instrumentType) ? 3 : 1,
         ]);
 
-        $this->notifyEmployeesNewContract($contract);
-
         return $this->apiResponse(
             [
                 'contract_id' => $contract->id,
@@ -209,10 +207,10 @@ class ContractController extends Controller
         );
     }
 
-    private function notifyEmployeesNewContract(Contract $contract): void
+    private function notifyEmployeesNewContract(Contract $contract, ?float $paidAmount = null): void
     {
         try {
-            app(FirebaseNotificationService::class)->notifyEmployeesOfNewContract($contract);
+            app(FirebaseNotificationService::class)->notifyEmployeesOfNewContract($contract, $paidAmount);
         } catch (\Throwable $e) {
             Log::warning('Failed to notify employees of new contract', [
                 'contract_id' => $contract->id,
@@ -787,9 +785,17 @@ class ContractController extends Controller
             return $this->errorMessage(trans('api.completed_contract'));
         }
 
+        $wasDraft = (bool) $contract->is_draft;
+        $isDraft = $request->boolean('is_draft');
+
         $contract->update([
-            'is_draft' => $request->boolean('is_draft'),
+            'is_draft' => $isDraft,
         ]);
+
+        // Notify admins when the user submits a draft for the first time.
+        if ($isDraft && ! $wasDraft) {
+            $this->notifyEmployeesNewContract($contract->fresh(['user']));
+        }
 
         return response()->json([
             'message' => trans('api.success'),

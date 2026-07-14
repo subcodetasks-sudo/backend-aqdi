@@ -11,6 +11,7 @@ use App\Models\Payment;
 use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\FirebaseNotificationService;
 use App\Services\TwilioService;
 use App\Support\MeterFees;
 use Clickpaysa\Laravel_package\Facades\paypage;
@@ -109,6 +110,19 @@ public function updateCartByIPN(Request $requestData, $uuid)
         
         $contract->is_completed = true;
         $contract->save();
+
+        try {
+            $paidAmount = (float) ($data['cart_amount'] ?? 0);
+            app(FirebaseNotificationService::class)->notifyEmployeesOfNewContract(
+                $contract->fresh(['user']),
+                $paidAmount > 0 ? $paidAmount : null
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to notify employees of paid website contract', [
+                'contract_id' => $contract->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
    $formattedMobile = $this->formatPhoneNumber('597500013');
         $body = "قام مستخدم جديد بإنشاء عقد: {$contract->uuid}.";

@@ -76,7 +76,8 @@ class ReceivedContractController extends Controller
             }
 
             $validated = $request->validated();
-            $status = ReceivedContractStatus::Pending;
+            // Receiving the contract marks it as finish (مستلم), not pending.
+            $status = ReceivedContractStatus::Finish;
             if (array_key_exists('status', $validated) && $validated['status'] !== null) {
                 $status = $validated['status'] instanceof ReceivedContractStatus
                     ? $validated['status']
@@ -140,7 +141,7 @@ class ReceivedContractController extends Controller
 
             return $this->apiResponse(
                 new ReceivedContractResource($received),
-                trans('api.success')
+                trans('api.contract_received_successfully')
             );
         } catch (Throwable $throwable) {
             return $this->errorMessage(

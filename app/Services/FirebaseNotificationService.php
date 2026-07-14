@@ -80,18 +80,51 @@ class FirebaseNotificationService
     }
 
     /**
-     * Notify active employees about a newly created contract.
+     * Notify active employees about a draft or completed/paid contract.
      * Sends to topic `employees` + each employee FCM token when available.
+     *
+     * @param  float|null  $paidAmount  Paid amount in SAR when the contract was paid.
      */
-    public function notifyEmployeesOfNewContract(Contract $contract): void
+    public function notifyEmployeesOfNewContract(Contract $contract, ?float $paidAmount = null): void
     {
-        $title = 'عقد جديد';
-        $body = 'تم إنشاء عقد جديد رقم '.str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT);
+        $contract->loadMissing('user');
+
+        $contractNo = str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT);
+        $userName = trim((string) ($contract->user?->name ?? ''));
+        $userName = $userName !== '' ? $userName : 'مستخدم';
+
+        $isDraft = (bool) $contract->is_draft;
+        $hasPaidAmount = $paidAmount !== null && $paidAmount > 0;
+
+        if ($isDraft) {
+            $title = 'مسودة عقد جديدة';
+            $body = "عمل {$userName} عقد برقم {$contractNo} معاه مسودة";
+            $type = 'new_contract_draft';
+        } elseif ($hasPaidAmount || (bool) $contract->is_completed) {
+            $amountText = $hasPaidAmount
+                ? rtrim(rtrim(number_format($paidAmount, 2, '.', ''), '0'), '.')
+                : null;
+            $title = 'عقد جديد مدفوع';
+            $body = $amountText !== null
+                ? "عمل {$userName} عقد برقم {$contractNo} دفع قيمة {$amountText}"
+                : "عمل {$userName} عقد برقم {$contractNo} ودفع قيمته";
+            $type = 'new_contract_paid';
+        } else {
+            $title = 'عقد جديد';
+            $body = "عمل {$userName} عقد برقم {$contractNo}";
+            $type = 'new_contract';
+        }
+
         $data = [
-            'type' => 'new_contract',
+            'type' => $type,
             'contract_id' => (string) $contract->id,
             'contract_uuid' => (string) ($contract->uuid ?? ''),
             'contract_type' => (string) ($contract->contract_type ?? ''),
+            'is_draft' => $isDraft ? '1' : '0',
+            'is_paid' => ($hasPaidAmount || (bool) $contract->is_completed) ? '1' : '0',
+            'paid_amount' => $hasPaidAmount ? (string) $paidAmount : '',
+            'user_id' => (string) ($contract->user_id ?? ''),
+            'user_name' => $userName,
         ];
 
         $topic = (string) config('services.firebase.employees_topic', 'employees');

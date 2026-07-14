@@ -962,15 +962,34 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         }
 
         $contract = Contract::where('uuid', $uuid)->first();
+        $becameCompleted = false;
         if ($contract && ! $contract->is_completed) {
             $contract->is_completed = true;
             $contract->save();
+            $becameCompleted = true;
         }
 
         ContractPaidByEmployee::query()
             ->where('contract_uuid', $uuid)
             ->where('is_paid', false)
             ->update(['is_paid' => true]);
+
+        if ($becameCompleted && $contract) {
+            $paidAmount = (float) (Payment::query()
+                ->successfulMatchingContractUuid($uuid)
+                ->latest('id')
+                ->value('amount') ?? 0);
+
+            try {
+                app(FirebaseNotificationService::class)
+                    ->notifyEmployeesOfNewContract($contract->fresh(['user']), $paidAmount > 0 ? $paidAmount : null);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to notify employees of paid contract', [
+                    'contract_id' => $contract->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     /**

@@ -68,6 +68,7 @@ return [
     'contract_not_found' => 'Contract not found',
     'received_contract_not_found' => 'No received-contract record for this contract',
     'received_contract_update_requires_field' => 'Send at least one of: status, date_of_received, notes.',
+    'contract_received_successfully' => 'Contract received successfully',
     'contract_already_received' => 'The contract has already been received',
     'refund_request_created' => 'Refund request submitted successfully',
     'invalid_draft_contract_number' => 'Invalid draft contract number',
