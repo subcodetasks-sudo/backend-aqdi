@@ -158,12 +158,21 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                     return;
                 }
 
-                if ($verified !== null) {
-                    $this->persistPaymentFromGateway($verified, $uuid, 'success');
-                } else {
-                    $this->persistPayment($request, null, $uuid, 'success');
+                // Never mark paid from redirect query alone — gateway must confirm.
+                $gatewayPaid = is_array($verified)
+                    && strtolower((string) ($verified['status'] ?? '')) === 'paid';
+
+                if (! $gatewayPaid) {
+                    Log::warning('Moyasar paid signal ignored without gateway confirmation', [
+                        'contract_uuid' => $uuid,
+                        'payment_id' => $paymentId,
+                        'invoice_id' => $invoiceId,
+                    ]);
+
+                    return;
                 }
 
+                $this->persistPaymentFromGateway($verified, $uuid, 'success');
                 $this->markContractAsCompleted($uuid);
 
                 return;
@@ -182,6 +191,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 } else {
                     $this->persistPayment($request, null, $uuid, 'failed');
                 }
+
+                // Failed attempt must not leave the contract locked as completed.
+                $this->revertContractCompletionWithoutSuccessfulPayment($uuid);
             }
         } catch (\Throwable $e) {
             Log::error('Moyasar IPN processing failed', [
@@ -204,25 +216,34 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $uuid = $this->normalizeContractUuid($uuid);
         $sync = $this->syncGatewayPaymentStatus($uuid, $paymentId, $invoiceId);
 
-        $contract = Contract::where('uuid', $uuid)->first();
         $employeePaidRecord = ContractPaidByEmployee::query()
             ->where('contract_uuid', $uuid)
             ->first();
+        $contract = Contract::where('uuid', $uuid)->first();
 
         if (! $contract && ! $employeePaidRecord) {
             abort(404, trans('api.contract_not_found'));
         }
 
+        // After sync: confirm payment only from success rows / gateway / employee paid,
+        // never from is_completed alone (blocked retry after failed payment).
         $payment = Payment::query()
             ->matchingContractUuid($uuid)
             ->latest('id')
             ->first();
 
         $paymentStatus = (string) ($payment?->status ?? '');
-        $paymentConfirmed = $paymentStatus === 'success'
-            || ($contract ? (bool) $contract->is_completed : false)
+        $paymentConfirmed = $this->hasSuccessfulPayment($uuid)
             || ($employeePaidRecord ? (bool) $employeePaidRecord->is_paid : false)
             || (($sync['synced'] ?? false) && ($sync['status'] ?? null) === 'success');
+
+        if (! $paymentConfirmed) {
+            $this->revertContractCompletionWithoutSuccessfulPayment($uuid);
+            $contract = $contract?->fresh();
+        } else {
+            $contract = $contract?->fresh();
+        }
+
         $resolvedResult = $paymentConfirmed
             ? 'success'
             : ($paymentStatus === 'failed' ? 'error' : $result);
@@ -837,6 +858,11 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
     private function markContractAsCompleted(string $uuid): void
     {
+        // Only complete after a local successful payment row exists.
+        if (! $this->hasSuccessfulPayment($uuid)) {
+            return;
+        }
+
         $contract = Contract::where('uuid', $uuid)->first();
         if ($contract && ! $contract->is_completed) {
             $contract->is_completed = true;
@@ -847,6 +873,31 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ->where('contract_uuid', $uuid)
             ->where('is_paid', false)
             ->update(['is_paid' => true]);
+    }
+
+    /**
+     * Clear a stale is_completed flag when there is no successful payment.
+     * Prevents "العقد مكتمل، فشل التعديل" after a failed gateway attempt.
+     */
+    private function revertContractCompletionWithoutSuccessfulPayment(string $uuid): void
+    {
+        if ($this->hasSuccessfulPayment($uuid)) {
+            return;
+        }
+
+        if (ContractPaidByEmployee::query()
+            ->where('contract_uuid', $uuid)
+            ->where('is_paid', true)
+            ->exists()
+        ) {
+            return;
+        }
+
+        $contract = Contract::where('uuid', $uuid)->first();
+        if ($contract && $contract->is_completed) {
+            $contract->is_completed = false;
+            $contract->save();
+        }
     }
 
     private function resolveCouponDiscount(Contract $contract, float $totalContractPrice): float
@@ -868,7 +919,17 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
     private function contractCanBePaid(Contract $contract): bool
     {
-        return ! $contract->is_completed && ! $this->hasSuccessfulPayment((string) $contract->uuid);
+        $uuid = (string) $contract->uuid;
+
+        if ($this->hasSuccessfulPayment($uuid)) {
+            return false;
+        }
+
+        // Stale completion without a successful payment must not block retry.
+        $this->revertContractCompletionWithoutSuccessfulPayment($uuid);
+        $contract->refresh();
+
+        return ! $contract->is_completed;
     }
 
     private function hasSuccessfulPayment(string $contractUuid): bool

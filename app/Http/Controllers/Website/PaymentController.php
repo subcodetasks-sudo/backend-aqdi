@@ -183,18 +183,15 @@ public function rating($uuid, $user_id)
             'rating_note' => $request->rating_note,
         ];
 
-        $contract->update($data);
-        $contract->is_completed=true;
-          // Retrieve user
-        $user = User::find($contract->user_id);
-
         $payment = Payment::where('contract_uuid', $contract->uuid)->latest()->first();
 
-        // Check if payment is failed
-        if ($payment && $payment->status == 'failed') {
+        // Never mark completed when payment failed (or is missing).
+        if (! $payment || $payment->status == 'failed') {
             return redirect('/')->with('error', 'عذراً، تعذر إتمام عملية الدفع الخاصة بطلبكم. الرجاء المحاولة مرة أخرى أو التواصل معنا لمزيد من الدعم.');
         }
-    
+
+        $contract->update($data);
+
         return redirect('/')->with('success', 'طلبكم رقم ' . $contract->uuid . ' قيد التنفيذ وسيعمل فريقنا على إتمامه 
         وفي حال إتمام الطلب ستصلكم رسالة نصية فريق عقدي.');
 

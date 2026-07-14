@@ -188,10 +188,102 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
             'is_completed' => true,
         ]);
 
+        Payment::query()->create([
+            'amount' => 500,
+            'contract_uuid' => (string) $contract->uuid,
+            'tran_currency' => 'SAR',
+            'status' => 'success',
+            'payment_date' => now(),
+        ]);
+
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(trans('api.completed_contract'));
 
         app(MoyasarPaymentService::class)->requestPaymentRedirectUrl((string) $contract->uuid, 500);
+    }
+
+    public function test_stale_completed_flag_without_success_payment_allows_retry(): void
+    {
+        $contract = Contract::query()->create([
+            'is_completed' => true,
+        ]);
+
+        Payment::query()->create([
+            'amount' => 500,
+            'contract_uuid' => (string) $contract->uuid,
+            'tran_currency' => 'SAR',
+            'status' => 'failed',
+            'payment_date' => now(),
+        ]);
+
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/invoices' => Http::response([
+                'id' => 'inv_retry',
+                'url' => 'https://moyasar.test/pay/inv_retry',
+                'status' => 'initiated',
+            ], 201),
+        ]);
+
+        $result = app(MoyasarPaymentService::class)->requestPaymentRedirectUrl(
+            (string) $contract->uuid,
+            500
+        );
+
+        $this->assertArrayHasKey('payment_url', $result);
+        $this->assertFalse((bool) $contract->fresh()->is_completed);
+    }
+
+    public function test_failed_ipn_reverts_stale_completed_flag(): void
+    {
+        $contract = Contract::query()->create([
+            'is_completed' => true,
+        ]);
+
+        app(MoyasarPaymentService::class)->processIpn(new Request([
+            'id' => 'pay_failed_revert',
+            'status' => 'failed',
+            'amount' => 50000,
+            'currency' => 'SAR',
+            'metadata' => ['contract_uuid' => (string) $contract->uuid],
+        ]), (string) $contract->uuid);
+
+        $this->assertFalse((bool) $contract->fresh()->is_completed);
+        $this->assertDatabaseHas('payments', [
+            'contract_uuid' => (string) $contract->uuid,
+            'status' => 'failed',
+        ]);
+    }
+
+    public function test_untrusted_paid_status_without_gateway_does_not_complete_contract(): void
+    {
+        config([
+            'services.moyasar.secret_key' => 'test_secret',
+            'services.moyasar.base_url' => 'https://api.moyasar.com',
+        ]);
+
+        $contract = Contract::query()->create([
+            'is_completed' => false,
+        ]);
+
+        Http::fake([
+            'https://api.moyasar.com/v1/*' => Http::response([], 404),
+        ]);
+
+        app(MoyasarPaymentService::class)->processIpn(new Request([
+            'status' => 'paid',
+            'amount' => 50000,
+        ]), (string) $contract->uuid);
+
+        $this->assertFalse((bool) $contract->fresh()->is_completed);
+        $this->assertSame(
+            0,
+            Payment::query()->where('contract_uuid', (string) $contract->uuid)->where('status', 'success')->count()
+        );
     }
 
     public function test_contract_with_successful_payment_cannot_request_payment_again(): void

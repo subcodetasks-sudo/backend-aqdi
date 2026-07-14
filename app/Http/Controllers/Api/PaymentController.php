@@ -148,13 +148,10 @@ class PaymentController extends Controller
             // Best-effort; still resolve from local DB / gateway sync below.
         }
 
-        // Explicit force from frontend path/query after backend redirect.
-        $forcedSuccess = in_array(strtolower((string) $request->query('status', '')), ['success', 'paid'], true);
-
         try {
             $payload = $this->paymentService->paymentStatusPayload(
                 $uuid,
-                $forcedSuccess ? 'success' : 'return',
+                'return',
                 $request->query('id')
                     ?? $request->input('id')
                     ?? $request->input('payment_id'),
@@ -162,7 +159,7 @@ class PaymentController extends Controller
                     ?? $request->input('invoice_id')
             );
         } catch (\Throwable) {
-            $paid = $forcedSuccess || $this->paymentService->isPaymentConfirmed($uuid);
+            $paid = $this->paymentService->isPaymentConfirmed($uuid);
             $type = $paid ? 'success' : 'failed';
             $message = PaymentMessage::query()->where('type', $type)->first();
 
@@ -180,18 +177,8 @@ class PaymentController extends Controller
             ], trans('api.success'));
         }
 
-        $paid = (bool) ($payload['payment_confirmed'] ?? false) || $forcedSuccess;
-        if ($paid && ! (bool) ($payload['payment_confirmed'] ?? false)) {
-            // Ensure local state catches up when URL already says success.
-            try {
-                $this->paymentService->syncGatewayPaymentStatus(
-                    $uuid,
-                    $request->query('id') ?? $request->input('id'),
-                    $request->query('invoice_id') ?? $request->input('invoice_id')
-                );
-            } catch (\Throwable) {
-            }
-        }
+        // Trust gateway/local success only — never ?status=paid from the URL alone.
+        $paid = (bool) ($payload['payment_confirmed'] ?? false);
 
         $type = $paid ? 'success' : 'failed';
         $message = PaymentMessage::query()->where('type', $type)->first();
@@ -202,7 +189,7 @@ class PaymentController extends Controller
             'screen' => $paid ? 'success' : 'error',
             'contract_uuid' => $uuid,
             'contract_id' => $payload['contract_id'] ?? null,
-            'is_completed' => (bool) ($payload['is_completed'] ?? false) || $paid,
+            'is_completed' => (bool) ($payload['is_completed'] ?? false),
             'payment' => $payload['payment'] ?? null,
             'content' => $message ? (new PaymentMessageResource($message))->resolve() : null,
             'message_type' => $type,
@@ -283,8 +270,14 @@ class PaymentController extends Controller
 
     private function wantsJsonPaymentResponse(Request $request): bool
     {
-        // Only skip the frontend redirect when the client explicitly asks for JSON.
-        return $request->query('format') === 'json';
+        // Frontend fetch sends Accept: application/json; Moyasar browser visits do not.
+        if ($request->query('format') === 'json') {
+            return true;
+        }
+
+        $accept = strtolower((string) $request->header('Accept', ''));
+
+        return str_contains($accept, 'application/json');
     }
 
     public function syncFromGateway(Request $request, string $uuid)
