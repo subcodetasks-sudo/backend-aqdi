@@ -156,6 +156,10 @@ class SettingContractController extends Controller
             'sms_user' => 'nullable|string|max:5000',
             'sms_owner' => 'nullable|string|max:5000',
             'sms_employee' => 'nullable|string|max:5000',
+            'electricity_meter_fee_commercial_tenant' => 'nullable|numeric|min:0',
+            'electricity_meter_fee_housing_tenant' => 'nullable|numeric|min:0',
+            'water_meter_fee_commercial_tenant' => 'nullable|numeric|min:0',
+            'water_meter_fee_housing_tenant' => 'nullable|numeric|min:0',
         ];
     }
 }

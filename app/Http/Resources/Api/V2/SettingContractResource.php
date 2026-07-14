@@ -25,6 +25,18 @@ class SettingContractResource extends JsonResource
             'sms_user' => $this->sms_user,
             'sms_owner' => $this->sms_owner,
             'sms_employee' => $this->sms_employee,
+            'electricity_meter_fee_commercial_tenant' => $this->electricity_meter_fee_commercial_tenant !== null
+                ? (float) $this->electricity_meter_fee_commercial_tenant
+                : null,
+            'electricity_meter_fee_housing_tenant' => $this->electricity_meter_fee_housing_tenant !== null
+                ? (float) $this->electricity_meter_fee_housing_tenant
+                : null,
+            'water_meter_fee_commercial_tenant' => $this->water_meter_fee_commercial_tenant !== null
+                ? (float) $this->water_meter_fee_commercial_tenant
+                : null,
+            'water_meter_fee_housing_tenant' => $this->water_meter_fee_housing_tenant !== null
+                ? (float) $this->water_meter_fee_housing_tenant
+                : null,
         ];
     }
 }
