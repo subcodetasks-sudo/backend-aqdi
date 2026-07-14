@@ -746,23 +746,35 @@ class ContractController extends Controller
     }
 
     /**
-     * معاينة رسوم التوثيق حسب المدة (بدون حفظ).
+     * معاينة نص رسوم التوثيق + المبلغ حسب سنة/شهر (مدة أخرى) — بدون حفظ.
      * POST /api/v2/contract/doc-fee
+     *
+     * Body: duration_years, duration_months + (contract_type أو id)
      */
     public function docFeePreview(DocFeePreviewRequest $request)
     {
         $summary = DocFee::summarize(
             (string) $request->input('contract_type'),
-            (string) $request->input('duration_preset'),
-            (int) $request->input('duration_years', 0),
-            (int) $request->input('duration_months', 0),
+            'other',
+            (int) $request->input('duration_years'),
+            (int) $request->input('duration_months'),
         );
 
         return response()->json([
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => $summary,
+            'data' => [
+                'duration_years' => $summary['duration_years'],
+                'duration_months' => $summary['duration_months'],
+                'total_months' => $summary['total_months'],
+                'billable_years' => $summary['billable_years'],
+                'has_extra_months' => $summary['has_extra_months'],
+                'amount' => $summary['doc_fee'],
+                'doc_fee' => $summary['doc_fee'],
+                'doc_fee_lines' => $summary['doc_fee_lines'],
+                'text' => implode("\n", $summary['doc_fee_lines']),
+            ],
         ]);
     }
 
