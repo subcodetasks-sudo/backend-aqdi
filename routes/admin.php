@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\PaperworkController;
 use App\Http\Controllers\Admin\PopupContractController;
 use App\Http\Controllers\Admin\PaymentMessageController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\SettingContractController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -420,6 +421,14 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
         Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Contract settings per instrument type (SMS + buttons)
+    Route::prefix('setting-contracts')->name('setting-contracts.')->controller(SettingContractController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
     });
 
     // FAQ Management

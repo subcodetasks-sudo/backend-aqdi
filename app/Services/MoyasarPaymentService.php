@@ -123,53 +123,50 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     public function processIpn(Request $request, string $uuid): void
     {
         try {
+            $uuid = $this->normalizeContractUuid($uuid);
             $paymentId = $this->resolvePaymentId($request);
             $invoiceId = $this->resolveInvoiceId($request);
             $status = $this->resolveStatus($request);
 
-            // When a payment id is available, trust Moyasar's verified status over the request body.
-            $verified = $paymentId ? $this->fetchPayment($paymentId) : null;
-            if ($verified === null && $invoiceId) {
-                $verified = $this->extractPaidPaymentFromInvoice($this->fetchInvoice($invoiceId), $uuid);
-            }
+            $verified = $this->resolveVerifiedGatewayPayment($uuid, $paymentId, $invoiceId);
+
             if ($verified !== null && ! empty($verified['status'])) {
                 $status = (string) $verified['status'];
             }
 
+            // Invoice callback/webhook body may nest status under the invoice object.
+            if ($status === null || $status === '') {
+                $status = $this->resolveStatusFromPayload($request);
+            }
+
             if ($status === 'paid') {
-                $contract = Contract::where('uuid', $uuid)->first();
+                if ($verified === null) {
+                    $verified = $this->resolveGatewayPaymentForSync($uuid, $paymentId, $invoiceId);
+                }
 
                 if ($this->hasSuccessfulPayment($uuid)) {
-                    ContractPaidByEmployee::query()
-                        ->where('contract_uuid', $uuid)
-                        ->where('is_paid', false)
-                        ->update(['is_paid' => true]);
-
-                    if ($contract && ! $contract->is_completed) {
-                        $contract->is_completed = true;
-                        $contract->save();
-                    }
+                    $this->markContractAsCompleted($uuid);
 
                     return;
                 }
 
-                $this->persistPayment($request, $verified, $uuid, 'success');
-
-                ContractPaidByEmployee::query()
-                    ->where('contract_uuid', $uuid)
-                    ->where('is_paid', false)
-                    ->update(['is_paid' => true]);
-
-                if ($contract) {
-                    $contract->is_completed = true;
-                    $contract->save();
+                if ($verified !== null) {
+                    $this->persistPaymentFromGateway($verified, $uuid, 'success');
+                } else {
+                    $this->persistPayment($request, null, $uuid, 'success');
                 }
+
+                $this->markContractAsCompleted($uuid);
 
                 return;
             }
 
             if (in_array($status, ['failed', 'voided', 'refunded'], true)) {
-                $this->persistPayment($request, $verified, $uuid, 'failed');
+                if ($verified !== null) {
+                    $this->persistPaymentFromGateway($verified, $uuid, 'failed');
+                } else {
+                    $this->persistPayment($request, null, $uuid, 'failed');
+                }
             }
         } catch (\Throwable $e) {
             Log::error('Moyasar IPN processing failed', [
@@ -189,6 +186,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         ?string $invoiceId = null
     ): array
     {
+        $uuid = $this->normalizeContractUuid($uuid);
         $sync = $this->syncGatewayPaymentStatus($uuid, $paymentId, $invoiceId);
 
         $contract = Contract::where('uuid', $uuid)->first();
@@ -208,7 +206,8 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $paymentStatus = (string) ($payment?->status ?? '');
         $paymentConfirmed = $paymentStatus === 'success'
             || ($contract ? (bool) $contract->is_completed : false)
-            || ($employeePaidRecord ? (bool) $employeePaidRecord->is_paid : false);
+            || ($employeePaidRecord ? (bool) $employeePaidRecord->is_paid : false)
+            || (($sync['synced'] ?? false) && ($sync['status'] ?? null) === 'success');
         $resolvedResult = $paymentConfirmed
             ? 'success'
             : ($paymentStatus === 'failed' ? 'error' : $result);
@@ -258,6 +257,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     public function syncGatewayPaymentStatus(string $uuid, ?string $paymentId = null, ?string $invoiceId = null): array
     {
+        $uuid = $this->normalizeContractUuid($uuid);
         $gatewayPayment = $this->resolveGatewayPaymentForSync($uuid, $paymentId, $invoiceId);
 
         if ($gatewayPayment === null) {
@@ -466,18 +466,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     private function resolveGatewayPaymentForSync(string $contractUuid, ?string $paymentId, ?string $invoiceId): ?array
     {
-        if ($paymentId) {
-            $payment = $this->fetchPayment($paymentId);
-            if ($payment !== null) {
-                return $payment;
-            }
-        }
-
-        if ($invoiceId) {
-            $payment = $this->extractPaidPaymentFromInvoice($this->fetchInvoice($invoiceId), $contractUuid);
-            if ($payment !== null) {
-                return $payment;
-            }
+        $verified = $this->resolveVerifiedGatewayPayment($contractUuid, $paymentId, $invoiceId);
+        if ($verified !== null) {
+            return $verified;
         }
 
         $invoicePayment = $this->extractPaidPaymentFromInvoice(
@@ -489,6 +480,39 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         }
 
         return $this->fetchLatestPaymentByContractUuid($contractUuid);
+    }
+
+    /**
+     * Moyasar may send `id` as either a payment id or an invoice id.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function resolveVerifiedGatewayPayment(
+        string $contractUuid,
+        ?string $paymentId,
+        ?string $invoiceId
+    ): ?array {
+        $candidates = array_values(array_unique(array_filter([
+            $paymentId,
+            $invoiceId,
+        ], static fn ($value) => is_string($value) && $value !== '')));
+
+        foreach ($candidates as $candidateId) {
+            $payment = $this->fetchPayment($candidateId);
+            if ($payment !== null) {
+                return $payment;
+            }
+
+            $fromInvoice = $this->extractPaidPaymentFromInvoice(
+                $this->fetchInvoice($candidateId),
+                $contractUuid
+            );
+            if ($fromInvoice !== null) {
+                return $fromInvoice;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -542,7 +566,77 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
      */
     private function fetchLatestInvoiceByContractUuid(string $contractUuid): ?array
     {
-        return $this->fetchLatestGatewayResourceByMetadata('/v1/invoices', 'invoices', $contractUuid);
+        $byMetadata = $this->fetchLatestGatewayResourceByMetadata('/v1/invoices', 'invoices', $contractUuid);
+        if ($byMetadata !== null) {
+            // Prefer a paid invoice when metadata search returns multiple shapes.
+            if (($byMetadata['status'] ?? null) === 'paid') {
+                return $byMetadata;
+            }
+        }
+
+        $byDescription = $this->fetchLatestInvoiceByDescription($contractUuid);
+        if ($byDescription !== null) {
+            return $byDescription;
+        }
+
+        return $byMetadata;
+    }
+
+    /**
+     * Fallback when Moyasar metadata filter is unavailable: match description "Contract {uuid}".
+     *
+     * @return array<string, mixed>|null
+     */
+    private function fetchLatestInvoiceByDescription(string $contractUuid): ?array
+    {
+        $response = $this->buildRequest('GET', '/v1/invoices', [
+            'limit' => 50,
+        ], 'query');
+
+        if (! $response['success'] || ! isset($response['data']) || ! is_array($response['data'])) {
+            return null;
+        }
+
+        $rows = array_is_list($response['data'])
+            ? $response['data']
+            : ($response['data']['invoices'] ?? $response['data']['data'] ?? []);
+
+        if (! is_array($rows) || $rows === []) {
+            return null;
+        }
+
+        $needle = 'Contract '.$contractUuid;
+        $matches = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $metadata = is_array($row['metadata'] ?? null) ? $row['metadata'] : [];
+            $description = (string) ($row['description'] ?? '');
+            $metaUuid = (string) ($metadata['contract_uuid'] ?? '');
+
+            if ($metaUuid === $contractUuid || $description === $needle || str_contains($description, $contractUuid)) {
+                $matches[] = $row;
+            }
+        }
+
+        if ($matches === []) {
+            return null;
+        }
+
+        usort($matches, static function (array $a, array $b): int {
+            $rank = static fn (array $row): int => ($row['status'] ?? null) === 'paid' ? 2 : 1;
+            $byStatus = $rank($b) <=> $rank($a);
+            if ($byStatus !== 0) {
+                return $byStatus;
+            }
+
+            return strtotime((string) ($b['created_at'] ?? '')) <=> strtotime((string) ($a['created_at'] ?? ''));
+        });
+
+        return $matches[0];
     }
 
     /**
@@ -586,23 +680,72 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
     private function resolvePaymentId(Request $request): ?string
     {
-        $id = $request->input('data.id') ?? $request->input('id');
+        $id = $request->query('id')
+            ?? $request->input('data.id')
+            ?? $request->input('id')
+            ?? $request->input('payment_id');
 
-        return $id !== null ? (string) $id : null;
+        return $id !== null && $id !== '' ? (string) $id : null;
     }
 
     private function resolveStatus(Request $request): ?string
     {
-        $status = $request->input('data.status') ?? $request->input('status');
+        $status = $request->query('status')
+            ?? $request->input('data.status')
+            ?? $request->input('status');
 
-        return $status !== null ? (string) $status : null;
+        return $status !== null && $status !== '' ? strtolower((string) $status) : null;
     }
 
     private function resolveInvoiceId(Request $request): ?string
     {
-        $id = $request->input('data.invoice_id') ?? $request->input('invoice_id');
+        $id = $request->query('invoice_id')
+            ?? $request->input('data.invoice_id')
+            ?? $request->input('invoice_id')
+            ?? $request->input('invoice.id');
 
-        return $id !== null ? (string) $id : null;
+        return $id !== null && $id !== '' ? (string) $id : null;
+    }
+
+    private function resolveStatusFromPayload(Request $request): ?string
+    {
+        $candidates = [
+            $request->input('status'),
+            $request->input('data.status'),
+            $request->input('invoice.status'),
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (is_string($candidate) && $candidate !== '') {
+                return strtolower($candidate);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Accept contract uuid or numeric contract id in callback URLs.
+     */
+    private function normalizeContractUuid(string $key): string
+    {
+        $key = trim($key);
+        if ($key === '') {
+            return $key;
+        }
+
+        if (Contract::query()->where('uuid', $key)->exists()) {
+            return $key;
+        }
+
+        if (ctype_digit($key)) {
+            $uuid = Contract::query()->whereKey((int) $key)->value('uuid');
+            if (is_string($uuid) && $uuid !== '') {
+                return $uuid;
+            }
+        }
+
+        return $key;
     }
 
     /**
@@ -616,6 +759,10 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $amount = $this->normalizeGatewayAmount(
             $verified['amount'] ?? $request->input('amount', 0)
         );
+
+        if (Payment::query()->matchingContractUuid($contractUuid)->where('status', $status)->exists()) {
+            return;
+        }
 
         Payment::create([
             'name' => $this->resolvePaymentName(
