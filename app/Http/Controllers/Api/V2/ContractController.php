@@ -774,10 +774,14 @@ class ContractController extends Controller
             ? ($contract->contract_type === 'housing' ? (int) $setting->housing_tax : (int) $setting->commercial_tax)
             : 0;
 
+        $meterFees = \App\Support\MeterFees::forContract($contract, $setting);
+
         $priceDetails = [
             'contract_period_price' => $contractPeriodPrice,
             'application_fees' => $appFees,
             'tax' => $tax,
+            'electricity_meter_fee' => $meterFees['electricity_meter_fee'],
+            'water_meter_fee' => $meterFees['water_meter_fee'],
         ];
 
         $services = $pricing->map(function ($service) {
@@ -787,7 +791,7 @@ class ContractController extends Controller
             ];
         })->toArray();
 
-        $finalContractPrice = $totalContractPrice + $contractPeriodPrice;
+        $finalContractPrice = $totalContractPrice + $contractPeriodPrice + $meterFees['meter_fees_total'];
 
         $couponAmount = 0;
         if ($contractCoupon) {
@@ -802,6 +806,7 @@ class ContractController extends Controller
         $responseData = [
             'price_details' => $priceDetails,
             'services' => $services,
+            'meter_fees_total' => $meterFees['meter_fees_total'],
             'total_price' => $finalContractPrice + $couponAmount,
         ];
 

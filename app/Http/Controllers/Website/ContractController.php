@@ -19,6 +19,7 @@ use App\Models\Setting;
 use App\Models\UnitType;
 use App\Models\UsageUnit;
 use App\Support\ContractStartingDateInput;
+use App\Support\MeterFees;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
@@ -688,9 +689,10 @@ public function submitStep3(Request $request, $uuid)
             $Pricing = ServicesPricing::where('contract_type', $contract_type)->get();
             $totalPricing = $Pricing->sum('price');
             $app_price = ($settings->housing_tax ?? 0) + ($settings->commercial_tax ?? 0) + ($settings->application_fees ?? 0)  ;
+            $meterFees = MeterFees::forContract($contract, $settings);
 
             $totalPriceDetails = $contract->getTotalPriceAttribute();
-            $totalPriceDetails['total_price'] = $totalContractPrice + ($contractPeriod->price)+$totalPricing + $app_price ;  
+            $totalPriceDetails['total_price'] = $totalContractPrice + ($contractPeriod->price)+$totalPricing + $app_price + $meterFees['meter_fees_total'];  
             $discountedPrice = $discountedPrice ?? 0;
             $totalPrice = (isset($totalPriceDetails['total_price']) ? (float)$totalPriceDetails['total_price'] : 0) ;
             $discountedPrice = $discountedPrice ?? 0;
@@ -707,7 +709,8 @@ public function submitStep3(Request $request, $uuid)
                 'contractPeriod',
                 'totalPriceDetails',
                 'priceAfterCoupon',
-                'discountedPrice'
+                'discountedPrice',
+                'meterFees'
             ));
         // } catch (\Exception $e) {
 

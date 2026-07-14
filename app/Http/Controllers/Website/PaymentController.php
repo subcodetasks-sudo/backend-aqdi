@@ -12,6 +12,7 @@ use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\TwilioService;
+use App\Support\MeterFees;
 use Clickpaysa\Laravel_package\Facades\paypage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,7 @@ class PaymentController extends Controller
     $settings = Setting::first();
     $app_price = ($settings->housing_tax ?? 0) + ($settings->commercial_tax ?? 0) + ($settings->application_fees ?? 0)  ;
     $totalPricing = $Pricing->sum('price')+$app_price; 
+    $meterFeesTotal = MeterFees::totalForContract($contract, $settings);
 
   
     $contract_coupon = CouponUsage::where('contract_uuid', $contract->uuid)->first();
@@ -53,7 +55,7 @@ class PaymentController extends Controller
         "cart_id" => $contract->uuid, 
         "cart_description" => "Contract " . $contract->uuid,  
         "cart_currency" => "SAR",
-        "cart_amount" => $totalContractPrice+$contractPeriodsPrice,
+        "cart_amount" => $totalContractPrice+$contractPeriodsPrice+$meterFeesTotal,
         "return" => route('rating', ['uuid' => $contract->uuid, 'user_id' => $user_id]),
         "callback" => route('updateCartByIPN', ['uuid' => $contract->uuid]),
     ];

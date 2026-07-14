@@ -10,6 +10,7 @@ use App\Models\Coupon;
 use App\Models\CouponUsage;
 use App\Models\Payment;
 use App\Models\ServicesPricing;
+use App\Support\MeterFees;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -52,6 +53,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             ], 422);
         }
 
+        $meterFees = MeterFees::forContract($contract);
         $cartAmount = $this->calculateCartAmount($contract);
 
         if ($cartAmount <= 0) {
@@ -59,6 +61,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 'message' => trans('api.contract_payment_amount_invalid'),
                 'success' => false,
                 'cart_amount' => $cartAmount,
+                'meter_fees_total' => $meterFees['meter_fees_total'],
             ], 422);
         }
 
@@ -91,6 +94,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             'invoice_id' => $invoice['id'],
             'contract_uuid' => (string) $contract->uuid,
             'cart_amount' => $cartAmount,
+            'meter_fees_total' => $meterFees['meter_fees_total'],
+            'electricity_meter_fee' => $meterFees['electricity_meter_fee'],
+            'water_meter_fee' => $meterFees['water_meter_fee'],
             'payment_success_url' => $redirectUrls['success'],
             'payment_error_url' => $redirectUrls['error'],
         ]);
@@ -359,7 +365,9 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 ->value('price') ?? 0);
         }
 
-        return (float) max(0, $netContractTotal + max(0, $contractPeriodPrice));
+        $meterFeesTotal = MeterFees::totalForContract($contract);
+
+        return (float) max(0, $netContractTotal + max(0, $contractPeriodPrice) + $meterFeesTotal);
     }
 
     /*

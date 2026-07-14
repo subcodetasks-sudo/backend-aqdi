@@ -26,6 +26,7 @@ use App\Models\UnitsReal;
 use App\Models\UnitType;
 use App\Models\UsageUnit;
 use App\Support\ContractStartingDateInput;
+use App\Support\MeterFees;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -730,14 +731,15 @@ class ContractRealEstate extends Controller
                 $totalPriceDetails = $contract->getTotalPriceAttribute();
                 $Pricing = ServicesPricing::where('contract_type', $contract_type)->get();
                 $totalPricing = $Pricing->sum('price');
-                $totalPriceDetails['total_price'] = $totalContractPrice + $contractPeriods->price + $totalPricing;
+                $meterFees = MeterFees::forContract($contract);
+                $totalPriceDetails['total_price'] = $totalContractPrice + $contractPeriods->price + $totalPricing + $meterFees['meter_fees_total'];
 
                 $discountedPrice = $discountedPrice ?? 0;
                 $totalPrice = isset($totalPriceDetails['total_price']) ? (float)$totalPriceDetails['total_price'] : 0;
                 $discountedPrice = $discountedPrice ?? 0;
                 $priceAfterCoupon = max(0, $totalPrice - $discountedPrice);
         
-            return view('website.Contract.financial_statements', compact('contract','contract_coupon','couponUsage', 'couponActive', 'accountsHandwrite', 'unit', 'real', 'BankAccount', 'Pricing', 'contractPeriods', 'totalContractPrice'));
+            return view('website.Contract.financial_statements', compact('contract','contract_coupon','couponUsage', 'couponActive', 'accountsHandwrite', 'unit', 'real', 'BankAccount', 'Pricing', 'contractPeriods', 'totalContractPrice', 'meterFees', 'totalPriceDetails', 'priceAfterCoupon', 'discountedPrice'));
     
             }catch (\Exception $e){
                  return redirect()->back();

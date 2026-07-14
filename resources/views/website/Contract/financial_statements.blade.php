@@ -67,6 +67,33 @@
             @endif
         </div>
 
+        @if(!empty($meterFees) && ($meterFees['electricity_meter_fee'] ?? 0) > 0)
+        <div class="price-line">
+            <p class="label">رسوم عداد الكهرباء</p>
+            <p>
+                <span class="price-line-number">{{ $meterFees['electricity_meter_fee'] }}</span> ريال سعودي
+            </p>
+        </div>
+        @endif
+
+        @if(!empty($meterFees) && ($meterFees['water_meter_fee'] ?? 0) > 0)
+        <div class="price-line">
+            <p class="label">رسوم عداد المياه</p>
+            <p>
+                <span class="price-line-number">{{ $meterFees['water_meter_fee'] }}</span> ريال سعودي
+            </p>
+        </div>
+        @endif
+
+        @if(!empty($meterFees) && ($meterFees['meter_fees_total'] ?? 0) > 0)
+        <div class="price-line">
+            <p class="label">إجمالي رسوم العداد</p>
+            <p>
+                <span class="price-line-number">{{ $meterFees['meter_fees_total'] }}</span> ريال سعودي
+            </p>
+        </div>
+        @endif
+
     
         <!-- Pricing with or without coupon -->
         @if (!$contractCouponUsage)

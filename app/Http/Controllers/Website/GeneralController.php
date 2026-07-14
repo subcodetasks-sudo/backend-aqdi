@@ -16,6 +16,7 @@ use App\Models\BankAccount;
 use App\Models\ServicesPricing;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Support\MeterFees;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response; 
 use App\Models\Page;
@@ -315,8 +316,9 @@ class GeneralController extends Controller
              $settings = Setting::first();
             $discountedPrice = $discountedPrice ?? 0;
             $app_price = ($settings->housing_tax ?? 0) + ($settings->commercial_tax ?? 0) + ($settings->application_fees ?? 0);
+            $meterFees = MeterFees::forContract($contract, $settings);
             
-            $totalPriceDetails['total_price'] = $totalContractPrice + $contractPeriod->price + $totalPricing + $app_price;
+            $totalPriceDetails['total_price'] = $totalContractPrice + $contractPeriod->price + $totalPricing + $app_price + $meterFees['meter_fees_total'];
                    
        
             $totalPrice = (isset($totalPriceDetails['total_price']) ? (float)$totalPriceDetails['total_price'] : 0) ;
@@ -334,7 +336,8 @@ class GeneralController extends Controller
                 'contractPeriod',
                 'totalPriceDetails',
                 'priceAfterCoupon',
-                'discountedPrice'
+                'discountedPrice',
+                'meterFees'
             ));
         } catch (\Exception $e) {
 
