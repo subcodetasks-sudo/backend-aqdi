@@ -47,6 +47,39 @@ class FirebaseNotificationService
     }
 
     /**
+     * Notify employees that a contract was received by a specific employee.
+     */
+    public function notifyContractReceivedByEmployee(Contract $contract, Employee $employee): void
+    {
+        $contractNo = str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT);
+        $employeeName = (string) ($employee->name ?? 'موظف');
+        $title = 'تم استلام عقد';
+        $body = "تم استلام العقد رقم {$contractNo} من الموظف {$employeeName}";
+        $data = [
+            'type' => 'contract_received',
+            'contract_id' => (string) $contract->id,
+            'contract_uuid' => (string) ($contract->uuid ?? ''),
+            'employee_id' => (string) $employee->id,
+            'employee_name' => $employeeName,
+            'contract_status_id' => (string) ($contract->contract_status_id ?? ''),
+        ];
+
+        $this->sendToAllEmployees($title, $body, $data);
+
+        if ((int) $contract->user_id > 0) {
+            try {
+                $this->sendToUser((int) $contract->user_id, $title, $body, $data);
+            } catch (\Throwable $e) {
+                Log::warning('Firebase notify contract owner on receive failed', [
+                    'contract_id' => $contract->id,
+                    'user_id' => $contract->user_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
      * Notify active employees about a newly created contract.
      * Sends to topic `employees` + each employee FCM token when available.
      */

@@ -29,11 +29,11 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
+            ->whereHas('receivedContract')
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
             )
-            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with($this->orderListRelations())
             ->latest()
             ->paginate($this->perPageFromRequest($request, 120, 200));
@@ -295,6 +295,7 @@ class OrderController extends Controller
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->where('contract_status_id', RefundableContractService::RETURN_CONTRACT_STATUS_ID)
+            ->whereHas('receivedContract')
             ->tap(fn ($q) => $this->applyReturnAcceptanceFilterToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)

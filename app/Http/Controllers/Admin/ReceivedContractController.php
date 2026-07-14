@@ -11,6 +11,8 @@ use App\Enums\ReceivedContractStatus;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\ReceivedContract;
+use App\Services\Admin\RefundableContractService;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Database\QueryException;
 use Throwable;
 
@@ -117,6 +119,21 @@ class ReceivedContractController extends Controller
                 }
 
                 throw $queryException;
+            }
+
+            $contractModel = Contract::query()->whereKey($contractId)->first();
+            if ($contractModel) {
+                $contractModel->update([
+                    'contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID,
+                ]);
+                $contractModel->refresh();
+
+                try {
+                    app(FirebaseNotificationService::class)
+                        ->notifyContractReceivedByEmployee($contractModel, $employee);
+                } catch (Throwable $notifyError) {
+                    report($notifyError);
+                }
             }
 
             $received->load('employee');
