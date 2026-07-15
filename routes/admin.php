@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\PopupContractController;
 use App\Http\Controllers\Admin\PaymentMessageController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\SettingContractController;
+use App\Http\Controllers\Admin\SmsController;
 use App\Http\Controllers\Admin\SmsSettingController;
 use App\Http\Controllers\Admin\MeterFeeSettingController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
@@ -525,6 +526,11 @@ use Illuminate\Support\Facades\Route;
         Route::delete('/{id}', 'destroy')->name('destroy');
         Route::post('/{id}/toggle-active', 'toggleActive')->name('toggle-active');
         Route::get('/statistics', 'statistics')->name('statistics');
+    });
+
+    // Manual SMS send (Taqnyat) — employee token
+    Route::prefix('sms')->name('sms.')->controller(SmsController::class)->middleware('auth:sanctum')->group(function () {
+        Route::post('/send', 'send')->name('send');
     });
 
     // Project-wide SMS message templates (single settings row)
