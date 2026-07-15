@@ -9,10 +9,10 @@ use App\Http\Resources\Admin\V2\Api\AdminContractDetailResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
+use App\Models\ContractStatus;
 use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\TenantRole;
-use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
@@ -46,7 +46,7 @@ class OrderController extends Controller
     }
 
     /**
-     * Returned contracts (contract_status_id = 2).
+     * Returned contracts list — received contracts only (contract_status_id = 6 مستلم).
      * GET /api/admin/orders/return
      *
      * Filter: return_status=pending|accept|reject
@@ -66,7 +66,7 @@ class OrderController extends Controller
                 OrderResource::collection($contracts),
                 trans('api.success'),
                 [
-                    'contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID,
+                    'contract_status_id' => ContractStatus::RECEIVED_ID,
                     'return_status' => $returnStatus,
                     'return_status_filters' => ['pending', 'accept', 'reject'],
                 ]
@@ -295,7 +295,7 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
-            ->where('contract_status_id', RefundableContractService::RETURN_CONTRACT_STATUS_ID)
+            ->where('contract_status_id', ContractStatus::RECEIVED_ID)
             ->whereHas('receivedContract')
             ->tap(fn ($q) => $this->applyReturnAcceptanceFilterToQuery($q, $request))
             ->when($request->filled('contract_type'), fn ($q) =>
@@ -1028,7 +1028,9 @@ class OrderController extends Controller
 
             $contract = $this->findAdminContract($id);
 
-            if ((int) $contract->contract_status_id !== RefundableContractService::RETURN_CONTRACT_STATUS_ID) {
+            // مسموح من قائمة المسترجع (مستلم = 6) أو بعد تحويل الحالة لمسترجع (2).
+            $allowedStatuses = [ContractStatus::RECEIVED_ID, ContractStatus::RETURN_ID];
+            if (! in_array((int) $contract->contract_status_id, $allowedStatuses, true)) {
                 return $this->errorMessage(trans('api.refund_contract_must_be_return_status'), 422);
             }
 
