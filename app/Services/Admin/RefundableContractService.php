@@ -82,21 +82,47 @@ class RefundableContractService
     }
 
     /**
-     * Return-order contract from orders list (contract_status_id = 2).
+     * Return-order contract from orders list (contract_status_id = RETURN_CONTRACT_STATUS_ID).
+     * Distinguishes "not found" from "wrong status" for clearer 422 messages.
      */
-    public function resolveReturnContract(int $contractId): Contract
+    public function resolveReturnContract(string|int $key): Contract
     {
-        $contract = Contract::query()
-            ->whereKey($contractId)
-            ->where('is_delete', 0)
-            ->where('contract_status_id', self::RETURN_CONTRACT_STATUS_ID)
-            ->first();
+        $contract = $this->findContractByUuidOrId((string) $key);
 
         if (! $contract) {
+            throw new InvalidArgumentException(trans('api.contract_not_found'));
+        }
+
+        if ((int) $contract->contract_status_id !== self::RETURN_CONTRACT_STATUS_ID) {
             throw new InvalidArgumentException(trans('api.refund_contract_must_be_return_status'));
         }
 
         return $contract;
+    }
+
+    /**
+     * Admin frontend sends the displayed order number (contracts.uuid, 6 digits),
+     * so uuid wins first, then primary key — same convention as findForAdmin().
+     */
+    private function findContractByUuidOrId(string $key): ?Contract
+    {
+        $key = trim($key);
+        if ($key === '') {
+            return null;
+        }
+
+        $base = Contract::query()->where('is_delete', 0);
+
+        $byUuid = (clone $base)->where('uuid', $key)->first();
+        if ($byUuid) {
+            return $byUuid;
+        }
+
+        if (! ctype_digit($key)) {
+            return null;
+        }
+
+        return (clone $base)->whereKey((int) $key)->first();
     }
 
     public function applyPeriod(Builder $query, string $period): Builder
@@ -256,13 +282,57 @@ class RefundableContractService
     }
 
     /**
+     * Resolve the return-order contract from the store payload:
+     * contract_id first (uuid then primary key), then draft_contract_number.
+     */
+    public function resolveReturnContractFromPayload(array $data): Contract
+    {
+        $candidates = [];
+
+        if (! empty($data['contract_id'])) {
+            $candidates[] = trim((string) $data['contract_id']);
+        }
+
+        $fromDraft = $this->resolveContractIdFromDraftNumber((string) ($data['draft_contract_number'] ?? ''));
+        if ($fromDraft !== null) {
+            $candidates[] = (string) $fromDraft;
+        }
+
+        if ($candidates === []) {
+            throw new InvalidArgumentException(trans('api.invalid_draft_contract_number'));
+        }
+
+        $wrongStatus = null;
+
+        foreach ($candidates as $candidate) {
+            $contract = $this->findContractByUuidOrId($candidate);
+
+            if (! $contract) {
+                continue;
+            }
+
+            if ((int) $contract->contract_status_id === self::RETURN_CONTRACT_STATUS_ID) {
+                return $contract;
+            }
+
+            $wrongStatus ??= $contract;
+        }
+
+        if ($wrongStatus !== null) {
+            throw new InvalidArgumentException(trans('api.refund_contract_must_be_return_status'));
+        }
+
+        throw new InvalidArgumentException(trans('api.contract_not_found'));
+    }
+
+    /**
      * Employee refund request (طلب إسترجاع) for a return order (status = 2).
      *
      * @param  array{contract_id?: int, draft_contract_number?: string, refund_amount: float|int|string, notes?: string|null}  $data
      */
     public function createRefundRequest(Employee $employee, array $data): RefundableContract
     {
-        $contract = $this->resolveReturnContract($this->resolveContractIdFromPayload($data));
+        $contract = $this->resolveReturnContractFromPayload($data);
 
         $pendingExists = RefundableContract::query()
             ->where('contract_id', $contract->id)
