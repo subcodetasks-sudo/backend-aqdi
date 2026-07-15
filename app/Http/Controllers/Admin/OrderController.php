@@ -23,25 +23,42 @@ class OrderController extends Controller
 {
     use Responser;
 
+    /**
+     * Main orders list — new arrivals only (contract_status_id = 1 جديد) by default.
+     * Explicit status filters (status / contract_status_id / status_name) override the default.
+     * GET /api/admin/orders
+     */
     public function orders(Request $request)
     {
+        $hasExplicitStatusFilter = $request->filled('status')
+            || $request->filled('contract_status_id')
+            || $request->filled('status_name');
+
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
+            // Default: الحالة "جديد" فقط (لم يُستلم بعد)
+            ->when(! $hasExplicitStatusFilter, fn ($q) =>
+                $q->where('contract_status_id', ContractStatus::NEW_ID)
+            )
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
             )
-            // Default: received only. Notifications keep ?is_received=false unchanged.
-            ->tap(fn ($q) => $this->applyOrdersReceivedFilter($q, $request))
+            // is_received / received_contract تُطبَّق فقط عند إرسالها صراحة
+            ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with($this->orderListRelations())
             ->latest()
             ->paginate($this->perPageFromRequest($request, 120, 200));
 
         return $this->paginatedApiResponse(
             $orders,
-            OrderResource::collection($orders)
+            OrderResource::collection($orders),
+            trans('api.success'),
+            [
+                'contract_status_id' => $hasExplicitStatusFilter ? null : ContractStatus::NEW_ID,
+            ]
         );
     }
 
@@ -1082,24 +1099,6 @@ class OrderController extends Controller
         } else {
             $query->whereDoesntHave('receivedContract');
         }
-    }
-
-    /**
-     * Main orders list: default = received only.
-     * ?is_received=false keeps the notifications inbox (unreceived) unchanged.
-     */
-    private function applyOrdersReceivedFilter($query, Request $request): void
-    {
-        $wantReceived = $this->parseReceivedContractQueryFilter($request);
-
-        if ($wantReceived === false) {
-            $query->whereDoesntHave('receivedContract');
-
-            return;
-        }
-
-        // Default and is_received=true → received only
-        $query->whereHas('receivedContract');
     }
 
     /**
