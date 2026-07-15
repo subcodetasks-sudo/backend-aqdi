@@ -62,10 +62,65 @@ class AdminContractDetailResource extends JsonResource
 
         $enriched = $this->enrichedRelations($c);
 
-        return array_merge($full, $enriched, $this->step4TenantFields($c), $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
+        return array_merge($full, $enriched, $this->step4TenantFields($c), $this->ownerAndDateSplitFields($c, $full), $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
             'relation_labels' => $this->relationLabels($c),
             'documentation_deadline_at' => $c->documentationDeadlineAt()?->format('Y-m-d H:i:s'),
         ]);
+    }
+
+    /**
+     * Day/month/year splits for owner, owner agent and contract start date
+     * (mirrors the parts the frontend sends in steps 3 and 6), plus aliases
+     * for legacy/alternate column names used by the create-contract steps.
+     *
+     * @param  array<string, mixed>  $full
+     * @return array<string, mixed>
+     */
+    private function ownerAndDateSplitFields($c, array $full): array
+    {
+        $ownerDob = $this->splitDateParts($c->property_owner_dob);
+        $ownerAgentDob = $this->splitDateParts($c->dob_of_property_owner_agent);
+        $startDate = $this->splitDateParts($c->contract_starting_date);
+
+        return [
+            'property_owner_dob_day' => $ownerDob['day'],
+            'property_owner_dob_month' => $ownerDob['month'],
+            'property_owner_dob_year' => $ownerDob['year'],
+            'dob_of_property_owner_agent_day' => $ownerAgentDob['day'],
+            'dob_of_property_owner_agent_month' => $ownerAgentDob['month'],
+            'dob_of_property_owner_agent_year' => $ownerAgentDob['year'],
+            'contract_starting_date_day' => $startDate['day'],
+            'contract_starting_date_month' => $startDate['month'],
+            'contract_starting_date_year' => $startDate['year'],
+            // Frontend step-5 aliases (canonical columns: tootal_rooms / The_number_of_the_toilet).
+            'number_of_rooms' => $full['number_of_rooms'] ?? $c->tootal_rooms,
+            'The_number_of_toilets' => $full['The_number_of_toilets'] ?? $c->The_number_of_the_toilet,
+            // Step-6 sends `conditions`; only other_conditions text is persisted.
+            'conditions' => $full['conditions']
+                ?? ($c->other_conditions !== null && trim((string) $c->other_conditions) !== ''),
+        ];
+    }
+
+    /**
+     * Split DD-MM-YYYY (hijri parts) or YYYY-MM-DD (gregorian) into day/month/year.
+     *
+     * @return array{day: ?string, month: ?string, year: ?string}
+     */
+    private function splitDateParts(?string $value): array
+    {
+        if ($value === null || trim($value) === '') {
+            return ['day' => null, 'month' => null, 'year' => null];
+        }
+
+        if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', trim($value), $m)) {
+            return [
+                'day' => str_pad($m[3], 2, '0', STR_PAD_LEFT),
+                'month' => str_pad($m[2], 2, '0', STR_PAD_LEFT),
+                'year' => $m[1],
+            ];
+        }
+
+        return HijriDobParts::split($value);
     }
 
     /**
@@ -101,6 +156,10 @@ class AdminContractDetailResource extends JsonResource
             'dob_of_property_tenant_agent_day' => $tenantAgentDob['day'],
             'dob_of_property_tenant_agent_month' => $tenantAgentDob['month'],
             'dob_of_property_tenant_agent_year' => $tenantAgentDob['year'],
+            // Aliases matching the exact keys the frontend sends in step 4.
+            'dobof_property_tenant_agent_day' => $tenantAgentDob['day'],
+            'dobof_property_tenant_agent_month' => $tenantAgentDob['month'],
+            'dobof_property_tenant_agent_year' => $tenantAgentDob['year'],
         ];
     }
 
@@ -128,6 +187,7 @@ class AdminContractDetailResource extends JsonResource
             'Image_from_the_agency',
             'copy_power_of_attorney_from_heirs_to_agent',
             'Image_inheritance_certificate',
+            'copy_of_guardians_power_of_attorney_for_agent',
         ];
     }
 
@@ -416,7 +476,12 @@ class AdminContractDetailResource extends JsonResource
                 'address_url',
                 'electricity_meter_ownership',
                 'water_meter_ownership',
-            ])
+            ]),
+            [
+                'copy_of_guardians_power_of_attorney_for_agent' => $this->publicStorageUrl(
+                    $m->getAttributes()['copy_of_guardians_power_of_attorney_for_agent'] ?? null
+                ),
+            ]
         );
     }
 

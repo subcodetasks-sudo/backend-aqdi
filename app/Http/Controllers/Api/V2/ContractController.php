@@ -314,6 +314,18 @@ class ContractController extends Controller
             ]);
         }
 
+        foreach ([
+            'Image_inheritance_certificate' => 'contracts/inheritance-certificates',
+            'copy_power_of_attorney_from_heirs_to_agent' => 'contracts/heirs-powers-of-attorney',
+            'copy_of_guardians_power_of_attorney_for_agent' => 'contracts/guardians-powers-of-attorney',
+        ] as $instrumentFileField => $storageDir) {
+            if ($request->hasFile($instrumentFileField)) {
+                $contract->update([
+                    $instrumentFileField => $request->file($instrumentFileField)->store($storageDir, 'public'),
+                ]);
+            }
+        }
+
         if ($request->hasFile('image_address')) {
             $contract->update([
                 'image_address' => $request->file('image_address')->store('images/contracts', 'public'),
