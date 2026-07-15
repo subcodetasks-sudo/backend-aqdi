@@ -144,6 +144,12 @@ class Contract extends Model
             if ($model->app_or_web === null || $model->app_or_web === '') {
                 $model->app_or_web = 'app';
             }
+
+            // أي عقد جديد (بما فيها تجديد الإيجار) يبدأ بحالة "جديد" حتى يتم استلامه.
+            if (empty($model->contract_status_id)
+                && ContractStatus::query()->whereKey(ContractStatus::NEW_ID)->exists()) {
+                $model->contract_status_id = ContractStatus::NEW_ID;
+            }
         });
 
         self::saving(function (Contract $model): void {

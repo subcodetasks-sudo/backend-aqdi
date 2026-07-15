@@ -9,6 +9,9 @@ class ContractStatus extends Model
 {
     use HasFactory;
 
+    /** جديد — default status for contracts arriving from the app/website (not received yet). */
+    public const NEW_ID = 1;
+
     /** مسترجع — return orders list / refund flow. */
     public const RETURN_ID = 2;
 
