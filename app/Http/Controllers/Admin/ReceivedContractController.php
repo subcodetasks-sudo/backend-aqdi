@@ -9,9 +9,9 @@ use App\Http\Resources\Admin\V2\Api\ReceivedContractResource;
 use App\Http\Traits\Responser;
 use App\Enums\ReceivedContractStatus;
 use App\Models\Contract;
+use App\Models\ContractStatus;
 use App\Models\Employee;
 use App\Models\ReceivedContract;
-use App\Services\Admin\RefundableContractService;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Database\QueryException;
 use Throwable;
@@ -124,8 +124,9 @@ class ReceivedContractController extends Controller
 
             $contractModel = Contract::query()->whereKey($contractId)->first();
             if ($contractModel) {
+                // الاستلام بيحوّل العقد لحالة "مستلم" (6) — "مسترجع" (2) بيغيّرها الموظف يدوياً بعدين.
                 $contractModel->update([
-                    'contract_status_id' => RefundableContractService::RETURN_CONTRACT_STATUS_ID,
+                    'contract_status_id' => ContractStatus::RECEIVED_ID,
                 ]);
                 $contractModel->refresh();
 

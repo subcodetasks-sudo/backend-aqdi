@@ -9,6 +9,12 @@ class ContractStatus extends Model
 {
     use HasFactory;
 
+    /** مسترجع — return orders list / refund flow. */
+    public const RETURN_ID = 2;
+
+    /** مستلم — set automatically when an employee receives the contract. */
+    public const RECEIVED_ID = 6;
+
     protected $fillable = [
         'name',
         'color',

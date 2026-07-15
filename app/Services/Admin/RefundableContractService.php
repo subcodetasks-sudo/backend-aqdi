@@ -16,7 +16,7 @@ class RefundableContractService
     public const PERIODS = ['today', 'week', 'month', 'year', 'total'];
 
     /** Returned orders (مسترجع): GET /api/admin/orders/return */
-    public const RETURN_CONTRACT_STATUS_ID = 2;
+    public const RETURN_CONTRACT_STATUS_ID = ContractStatus::RETURN_ID;
 
     public function baseQuery(): Builder
     {
