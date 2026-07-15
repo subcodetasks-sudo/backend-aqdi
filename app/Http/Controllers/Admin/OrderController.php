@@ -24,7 +24,7 @@ class OrderController extends Controller
     use Responser;
 
     /**
-     * Main orders list — new arrivals only (contract_status_id = 1 جديد) by default.
+     * Main orders list — received contracts only (contract_status_id = 6 مستلم) by default.
      * Explicit status filters (status / contract_status_id / status_name) override the default.
      * GET /api/admin/orders
      */
@@ -39,9 +39,9 @@ class OrderController extends Controller
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
-            // Default: الحالة "جديد" فقط (لم يُستلم بعد)
+            // Default: الحالة "مستلم" فقط
             ->when(! $hasExplicitStatusFilter, fn ($q) =>
-                $q->where('contract_status_id', ContractStatus::NEW_ID)
+                $q->where('contract_status_id', ContractStatus::RECEIVED_ID)
             )
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
@@ -57,7 +57,7 @@ class OrderController extends Controller
             OrderResource::collection($orders),
             trans('api.success'),
             [
-                'contract_status_id' => $hasExplicitStatusFilter ? null : ContractStatus::NEW_ID,
+                'contract_status_id' => $hasExplicitStatusFilter ? null : ContractStatus::RECEIVED_ID,
             ]
         );
     }

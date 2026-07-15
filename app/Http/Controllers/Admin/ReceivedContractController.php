@@ -60,10 +60,18 @@ class ReceivedContractController extends Controller
             $contract = Contract::query()
                 ->whereKey($contractId)
                 ->where('is_delete', false)
-                ->exists();
+                ->first(['id', 'contract_status_id']);
 
             if (! $contract) {
                 return $this->errorMessage(trans('api.contract_not_found'), 404);
+            }
+
+            // الاستلام مسموح فقط للعقود بحالة "جديد" (1)
+            if ((int) $contract->contract_status_id !== ContractStatus::NEW_ID) {
+                return $this->errorMessage(
+                    'لا يمكن استلام العقد — الاستلام متاح فقط للعقود بحالة "جديد".',
+                    422
+                );
             }
 
             $existingReceived = ReceivedContract::query()
