@@ -74,7 +74,7 @@ class RefundableContractController extends Controller
      * Submit refund request (طلب إسترجاع) — employee token.
      *
      * POST /api/admin/refundable-contracts
-     * Contract from GET /api/admin/orders/return (مستلم). Blocked only if already returned (status = 2).
+     * Also sets contract_status_id to مسترجع (2).
      * Body: { "contract_id": 42, "refund_amount": 500, "notes": null }
      * Or:   { "draft_contract_number": "000042", "refund_amount": 500 }
      */

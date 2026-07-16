@@ -319,7 +319,8 @@ class RefundableContractService
     }
 
     /**
-     * Employee refund request (طلب إسترجاع) — blocked only when contract is already returned (status = 2).
+     * Employee refund request (طلب إسترجاع).
+     * Creates the refundable row and sets contract status to مسترجع (2).
      *
      * @param  array{contract_id?: int, draft_contract_number?: string, refund_amount: float|int|string, notes?: string|null}  $data
      */
@@ -349,7 +350,11 @@ class RefundableContractService
             'is_refunded' => false,
         ]);
 
-        // Contract is still "received" until admin approves — baseQuery() requires return status (2).
+        $contract->update([
+            'contract_status_id' => self::RETURN_CONTRACT_STATUS_ID,
+            'updated_at' => now(),
+        ]);
+
         return $this->adminLookupQuery()->findOrFail($record->id);
     }
 
