@@ -24,39 +24,47 @@ class OrderController extends Controller
     use Responser;
 
     /**
-     * Main orders list — received contracts only (contract_status_id = 6 مستلم) by default.
-     * Explicit status filters (status / contract_status_id / status_name) override the default.
+     * Main orders list.
+     * Default: received contracts (contract_status_id = 6 مستلم).
+     * `is_received=false` → new contracts (1) not yet in `received_contracts`.
      * GET /api/admin/orders
      */
     public function orders(Request $request)
     {
+        $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
+
+        if ($receivedPresenceFilter === false) {
+            $orders = $this->awaitingReceiptOrdersQuery($request)
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $orders,
+                OrderResource::collection($orders),
+                trans('api.success'),
+                [
+                    'contract_status_id' => ContractStatus::NEW_ID,
+                    'is_received' => false,
+                ]
+            );
+        }
+
         $hasExplicitStatusFilter = $request->filled('status')
             || $request->filled('contract_status_id')
             || $request->filled('status_name');
 
-        // If caller explicitly filters received-contract presence, align the default status with it.
-        // - is_received=true  => default to RECEIVED (6)
-        // - is_received=false => default to NEW (1)
-        // - not provided      => keep historical default (RECEIVED) unless status filter is explicit
-        $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
         $defaultStatusId = ContractStatus::RECEIVED_ID;
-        if ($receivedPresenceFilter === false) {
-            $defaultStatusId = ContractStatus::NEW_ID;
-        }
 
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
-           
             ->when(! $hasExplicitStatusFilter, fn ($q) =>
                 $q->where('contract_status_id', $defaultStatusId)
             )
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
             )
-            // is_received / received_contract تُطبَّق فقط عند إرسالها صراحة
             ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
             ->with($this->orderListRelations())
             ->latest()
@@ -68,8 +76,42 @@ class OrderController extends Controller
             trans('api.success'),
             [
                 'contract_status_id' => $hasExplicitStatusFilter ? null : $defaultStatusId,
+                'is_received' => $receivedPresenceFilter,
             ]
         );
+    }
+
+    /**
+     * New contracts waiting for employee receipt (جديد + لا يوجد سطر في received_contracts).
+     */
+    private function awaitingReceiptOrdersQuery(Request $request)
+    {
+        return Contract::query()
+            ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+            ->notDeleted()
+            ->where(function ($query) {
+                $query->reachedAdminOrderStep()
+                    ->orWhere('is_completed', 1);
+            })
+            ->where(function ($query) {
+                $query->where('contract_status_id', ContractStatus::NEW_ID)
+                    ->orWhereNull('contract_status_id');
+            })
+            ->whereDoesntHave('receivedContract')
+            ->when($request->has('is_completed'), fn ($q) =>
+                $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
+            )
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->with($this->orderListRelations())
+            ->latest();
     }
 
     /**
@@ -1127,9 +1169,11 @@ class OrderController extends Controller
     {
         if ($request->has('is_received')) {
             $raw = $request->query('is_received');
-            if ($raw !== null && $raw !== '') {
-                return $request->boolean('is_received');
+            if ($raw === null || $raw === '') {
+                return false;
             }
+
+            return $request->boolean('is_received');
         }
 
         if (! $request->has('received_contract')) {
@@ -1138,7 +1182,7 @@ class OrderController extends Controller
 
         $raw = $request->query('received_contract');
         if ($raw === null || $raw === '') {
-            return null;
+            return false;
         }
 
         return $request->boolean('received_contract');
