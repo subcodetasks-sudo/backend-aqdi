@@ -101,6 +101,7 @@ return [
     'invalid_draft_contract_number' => 'Invalid draft contract number',
     'refund_contract_id_required' => 'contract_id or draft_contract_number is required',
     'refund_contract_must_be_return_status' => 'Contract must be in the returned orders list — receive the contract first',
+    'refund_contract_already_returned' => 'Contract is already returned',
     'return_contract_accepted_successfully' => 'Return contract accepted successfully',
     'return_contract_rejected_successfully' => 'Return contract acceptance rejected successfully',
     'return_contract_status_requires_field' => 'accept_retrun_contract is required (true or false)',

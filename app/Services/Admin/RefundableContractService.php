@@ -82,8 +82,7 @@ class RefundableContractService
     }
 
     /**
-     * Return-order contract from orders list (contract_status_id = RETURN_CONTRACT_STATUS_ID).
-     * Distinguishes "not found" from "wrong status" for clearer 422 messages.
+     * Contract eligible for a refund request (not already returned).
      */
     public function resolveReturnContract(string|int $key): Contract
     {
@@ -93,8 +92,8 @@ class RefundableContractService
             throw new InvalidArgumentException(trans('api.contract_not_found'));
         }
 
-        if ((int) $contract->contract_status_id !== self::RETURN_CONTRACT_STATUS_ID) {
-            throw new InvalidArgumentException(trans('api.refund_contract_must_be_return_status'));
+        if ((int) $contract->contract_status_id === self::RETURN_CONTRACT_STATUS_ID) {
+            throw new InvalidArgumentException(trans('api.refund_contract_already_returned'));
         }
 
         return $contract;
@@ -302,8 +301,6 @@ class RefundableContractService
             throw new InvalidArgumentException(trans('api.invalid_draft_contract_number'));
         }
 
-        $wrongStatus = null;
-
         foreach ($candidates as $candidate) {
             $contract = $this->findContractByUuidOrId($candidate);
 
@@ -312,21 +309,17 @@ class RefundableContractService
             }
 
             if ((int) $contract->contract_status_id === self::RETURN_CONTRACT_STATUS_ID) {
-                return $contract;
+                throw new InvalidArgumentException(trans('api.refund_contract_already_returned'));
             }
 
-            $wrongStatus ??= $contract;
-        }
-
-        if ($wrongStatus !== null) {
-            throw new InvalidArgumentException(trans('api.refund_contract_must_be_return_status'));
+            return $contract;
         }
 
         throw new InvalidArgumentException(trans('api.contract_not_found'));
     }
 
     /**
-     * Employee refund request (طلب إسترجاع) for a return order (status = 2).
+     * Employee refund request (طلب إسترجاع) — blocked only when contract is already returned (status = 2).
      *
      * @param  array{contract_id?: int, draft_contract_number?: string, refund_amount: float|int|string, notes?: string|null}  $data
      */

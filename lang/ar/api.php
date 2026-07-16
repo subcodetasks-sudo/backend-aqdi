@@ -104,6 +104,7 @@ return [
     'invalid_draft_contract_number' => 'رقم مسودة العقد غير صالح',
     'refund_contract_id_required' => 'رقم العقد أو رقم المسودة مطلوب',
     'refund_contract_must_be_return_status' => 'العقد يجب أن يكون من قائمة المسترجع — قم باستلام العقد أولاً',
+    'refund_contract_already_returned' => 'العقد مسترجع بالفعل',
     'return_contract_accepted_successfully' => 'تم قبول عقد الاسترجاع بنجاح',
     'return_contract_rejected_successfully' => 'تم رفض قبول عقد الاسترجاع بنجاح',
     'return_contract_status_requires_field' => 'حقل accept_retrun_contract مطلوب (true أو false)',

@@ -39,7 +39,7 @@ class OrderController extends Controller
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
-            // Default: الحالة "مستلم" فقط
+           
             ->when(! $hasExplicitStatusFilter, fn ($q) =>
                 $q->where('contract_status_id', ContractStatus::RECEIVED_ID)
             )
@@ -1045,10 +1045,8 @@ class OrderController extends Controller
 
             $contract = $this->findAdminContract($id);
 
-            // مسموح من قائمة المسترجع (مستلم = 6) أو بعد تحويل الحالة لمسترجع (2).
-            $allowedStatuses = [ContractStatus::RECEIVED_ID, ContractStatus::RETURN_ID];
-            if (! in_array((int) $contract->contract_status_id, $allowedStatuses, true)) {
-                return $this->errorMessage(trans('api.refund_contract_must_be_return_status'), 422);
+            if ((int) $contract->contract_status_id === ContractStatus::RETURN_ID) {
+                return $this->errorMessage(trans('api.refund_contract_already_returned'), 422);
             }
 
             $contract->update([
