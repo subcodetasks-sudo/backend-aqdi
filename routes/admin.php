@@ -40,6 +40,7 @@ use App\Http\Controllers\Admin\ReaEstatUsageController;
 use App\Http\Controllers\Admin\RegionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\TenantRoleController;
 use App\Http\Controllers\Admin\TypeRealController;
 use App\Http\Controllers\Admin\UnitRealController;
 use App\Http\Controllers\Admin\UnitTypeController;
@@ -327,6 +328,24 @@ use Illuminate\Support\Facades\Route;
         Route::get('/{id}', 'show')->name('show');
         Route::post('/{id}', 'update')->name('update');
         Route::post('/{id}/delete', 'destroy')->name('destroy');
+    });
+
+    // Tenant roles (صفات المستأجر)
+    Route::prefix('tenant-roles')->name('tenant-roles.')->controller(TenantRoleController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
+    });
+
+    // Tenant roles (صفات المستأجر)
+    Route::prefix('tenant-roles')->name('tenant-roles.')->controller(TenantRoleController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
     });
 
     // Roles Management

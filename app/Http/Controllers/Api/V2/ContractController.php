@@ -881,10 +881,18 @@ class ContractController extends Controller
 
         $services = $pricing->map(function ($service) {
             return [
+                'id' => $service->id,
+                'name_ar' => $service->name_ar,
+                'name_en' => $service->name_en,
+                'name' => $service->name_trans ?? $service->name_ar,
                 'service_name' => $service->name_ar,
-                'service_price' => $service->price,
+                'price' => (float) $service->price,
+                'service_price' => (float) $service->price,
+                'contract_type' => $service->contract_type,
             ];
-        })->toArray();
+        })->values()->all();
+
+        $servicesTotal = (float) $pricing->sum(fn ($service) => (float) $service->price);
 
         $finalContractPrice = $totalContractPrice + $contractPeriodPrice + $meterFees['meter_fees_total'];
 
@@ -901,6 +909,8 @@ class ContractController extends Controller
         $responseData = [
             'price_details' => $priceDetails,
             'services' => $services,
+            'additional_services' => $services,
+            'services_total' => $servicesTotal,
             'meter_fees_total' => $meterFees['meter_fees_total'],
             'total_price' => $finalContractPrice + $couponAmount,
         ];

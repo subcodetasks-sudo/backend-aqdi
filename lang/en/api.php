@@ -112,6 +112,8 @@ return [
     'contract_payment_amount_invalid' => 'Invalid payment amount — complete contract details and contract period first',
     'contract_already_paid' => 'This contract has already been paid',
     'payment_link_unavailable' => 'Payment link is not available for this record',
+    'tenant_role_not_found' => 'Tenant role not found',
+    'tenant_role_in_use' => 'Cannot delete tenant role because it is linked to contracts',
 
     'user_blocked_successfull' => 'User blocked successfully',
     'user_unblocked_successfull' => 'User unblocked successfully',

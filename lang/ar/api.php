@@ -115,4 +115,6 @@ return [
     'contract_payment_amount_invalid' => 'مبلغ الدفع غير صالح — تأكد من إكمال بيانات العقد ومدة العقد',
     'contract_already_paid' => 'تم دفع هذا العقد بالفعل',
     'payment_link_unavailable' => 'رابط الدفع غير متوفر لهذا السجل',
+    'tenant_role_not_found' => 'صفة المستأجر غير موجودة',
+    'tenant_role_in_use' => 'لا يمكن حذف صفة المستأجر لأنها مرتبطة بعقود',
 ];
