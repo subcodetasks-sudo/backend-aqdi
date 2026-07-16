@@ -193,6 +193,7 @@ use Illuminate\Support\Facades\Route;
         ->group(function () {
             Route::get('/', 'index')->name('index');
             Route::post('/', 'store')->name('store');
+            Route::get('/{id}/payment-link', 'paymentLink')->whereNumber('id')->name('payment-link');
             Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         });
 
@@ -530,6 +531,7 @@ use Illuminate\Support\Facades\Route;
 
     // Manual SMS send (Taqnyat) — employee token
     Route::prefix('sms')->name('sms.')->controller(SmsController::class)->middleware('auth:sanctum')->group(function () {
+        Route::post('/message', 'sendMessage')->name('message');
         Route::post('/send', 'send')->name('send');
     });
 

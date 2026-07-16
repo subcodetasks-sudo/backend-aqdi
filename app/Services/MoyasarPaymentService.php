@@ -38,7 +38,44 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
     public function createPaymentUrlResponse(string $uuid, string $client = 'web'): JsonResponse
     {
         $client = $this->normalizePaymentClient($client);
-        $contract = Contract::where('uuid', $uuid)->firstOrFail();
+        $uuid = $this->normalizeContractUuid($uuid);
+
+        $contract = Contract::where('uuid', $uuid)->first();
+        $employeePaid = ContractPaidByEmployee::query()
+            ->where('contract_uuid', $uuid)
+            ->first();
+
+        if (! $contract && ! $employeePaid) {
+            return response()->json([
+                'message' => trans('api.contract_not_found'),
+                'success' => false,
+            ], 404);
+        }
+
+        if ($this->isUuidPaymentSettled($uuid, $employeePaid)) {
+            return $this->buildAlreadyPaidPaymentUrlResponse($uuid, $contract, $employeePaid);
+        }
+
+        if ($employeePaid && ! $contract) {
+            $amount = (float) $employeePaid->amount;
+
+            try {
+                $payment = $this->createInvoiceOrFail(
+                    $amount,
+                    'Employee payment ' . $uuid,
+                    $uuid,
+                    $client
+                );
+            } catch (\RuntimeException $e) {
+                return response()->json([
+                    'message' => trans('api.not_accept'),
+                    'gateway_error' => $e->getMessage(),
+                    'success' => false,
+                ], 400);
+            }
+
+            return $this->jsonPaymentRedirectResponse($payment, $amount, $client);
+        }
 
         if (! $this->contractCanBePaid($contract)) {
             return response()->json([
@@ -92,6 +129,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $redirectUrls = $this->paymentFrontendRedirectUrls((string) $contract->uuid, $client);
 
         return response()->json([
+            'already_paid' => false,
             'Payment_url' => $invoice['url'],
             'payment_url' => $invoice['url'],
             'invoice_id' => $invoice['id'],
@@ -124,6 +162,12 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
 
     public function requestPaymentRedirectUrlWithoutContract(string $contractUuid, float $amount): array
     {
+        $contractUuid = $this->normalizeContractUuid($contractUuid);
+
+        if ($this->isUuidPaymentSettled($contractUuid)) {
+            throw new \InvalidArgumentException(trans('api.contract_already_paid'));
+        }
+
         if ($amount <= 0) {
             throw new \InvalidArgumentException(trans('api.contract_payment_amount_invalid'));
         }
@@ -1047,6 +1091,67 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
         $contract->refresh();
 
         return ! $contract->is_completed;
+    }
+
+    private function isUuidPaymentSettled(string $uuid, ?ContractPaidByEmployee $employeePaid = null): bool
+    {
+        if ($this->hasSuccessfulPayment($uuid)) {
+            return true;
+        }
+
+        $employeePaid ??= ContractPaidByEmployee::query()
+            ->where('contract_uuid', $uuid)
+            ->first();
+
+        return $employeePaid !== null && (bool) $employeePaid->is_paid;
+    }
+
+    private function buildAlreadyPaidPaymentUrlResponse(
+        string $uuid,
+        ?Contract $contract,
+        ?ContractPaidByEmployee $employeePaid
+    ): JsonResponse {
+        $payment = Payment::query()
+            ->successfulMatchingContractUuid($uuid)
+            ->latest('id')
+            ->first();
+
+        $amount = $payment?->amount ?? ($employeePaid ? (float) $employeePaid->amount : null);
+
+        return response()->json([
+            'success' => true,
+            'already_paid' => true,
+            'message' => trans('api.contract_already_paid'),
+            'payment_url' => null,
+            'Payment_url' => null,
+            'contract_uuid' => $uuid,
+            'contract_id' => $contract?->id,
+            'cart_amount' => $amount,
+            'is_paid' => true,
+            'payment' => $payment ? [
+                'id' => $payment->id,
+                'amount' => (float) $payment->amount,
+                'status' => $payment->status,
+                'payment_method' => $payment->payment_method,
+                'payment_date' => $payment->payment_date,
+            ] : null,
+        ]);
+    }
+
+    /**
+     * @param  array{payment_url: string, cart_amount: float, contract_uuid: string, payment_success_url: ?string, payment_error_url: ?string}  $payment
+     */
+    private function jsonPaymentRedirectResponse(array $payment, float $cartAmount, string $client = 'web'): JsonResponse
+    {
+        return response()->json([
+            'already_paid' => false,
+            'Payment_url' => $payment['payment_url'],
+            'payment_url' => $payment['payment_url'],
+            'contract_uuid' => $payment['contract_uuid'],
+            'cart_amount' => $cartAmount,
+            'payment_success_url' => $payment['payment_success_url'] ?? null,
+            'payment_error_url' => $payment['payment_error_url'] ?? null,
+        ]);
     }
 
     private function hasSuccessfulPayment(string $contractUuid): bool

@@ -110,6 +110,8 @@ return [
     'payment_type_in_use' => 'Cannot delete this payment method because it is linked to contracts',
     'contract_period_not_set_for_payment' => 'Payment is not available until contract period (step 6) is completed',
     'contract_payment_amount_invalid' => 'Invalid payment amount — complete contract details and contract period first',
+    'contract_already_paid' => 'This contract has already been paid',
+    'payment_link_unavailable' => 'Payment link is not available for this record',
 
     'user_blocked_successfull' => 'User blocked successfully',
     'user_unblocked_successfull' => 'User unblocked successfully',

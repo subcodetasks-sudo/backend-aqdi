@@ -113,6 +113,6 @@ return [
     'payment_type_in_use' => 'لا يمكن حذف طريقة الدفع لأنها مرتبطة بعقود',
     'contract_period_not_set_for_payment' => 'لا يمكن الدفع قبل إكمال مدة العقد (الخطوة 6)',
     'contract_payment_amount_invalid' => 'مبلغ الدفع غير صالح — تأكد من إكمال بيانات العقد ومدة العقد',
-    'contract_period_not_set_for_payment' => 'لا يمكن الدفع قبل إكمال مدة العقد (الخطوة 6)',
-    'contract_payment_amount_invalid' => 'مبلغ الدفع غير صالح — تأكد من إكمال بيانات العقد ومدة العقد',
+    'contract_already_paid' => 'تم دفع هذا العقد بالفعل',
+    'payment_link_unavailable' => 'رابط الدفع غير متوفر لهذا السجل',
 ];

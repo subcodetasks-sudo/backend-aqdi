@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\SendAdminSmsRequest;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
 use App\Models\SmsLog;
@@ -19,6 +20,31 @@ class SmsController extends Controller
     private const SMS_BEARER = '5ed5a6f23fb215fa7c1a38ec12f58491';
     private const SMS_SENDER = 'AqdiCo';
     private const SMS_ID = '25489';
+
+    /**
+     * Simple SMS API — accepts mobile + message only (sending not wired yet).
+     *
+     * POST /api/admin/sms/message
+     * Body: { "mobile": "0512345678", "message": "..." }
+     */
+    public function sendMessage(SendAdminSmsRequest $request)
+    {
+        try {
+            if (! $request->user() instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            $validated = $request->validated();
+
+            return $this->apiResponse([
+                'mobile' => $validated['mobile'],
+                'message' => $validated['message'],
+                'sent' => false,
+            ], trans('api.success'));
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
 
     /**
      * Send a free-text SMS from the admin panel (Taqnyat) — employee Bearer required.

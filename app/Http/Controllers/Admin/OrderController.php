@@ -82,21 +82,14 @@ class OrderController extends Controller
     }
 
     /**
-     * New contracts waiting for employee receipt (جديد + لا يوجد سطر في received_contracts).
+     * New contracts (status = 1) not yet recorded in `received_contracts`.
      */
     private function awaitingReceiptOrdersQuery(Request $request)
     {
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
-            ->where(function ($query) {
-                $query->reachedAdminOrderStep()
-                    ->orWhere('is_completed', 1);
-            })
-            ->where(function ($query) {
-                $query->where('contract_status_id', ContractStatus::NEW_ID)
-                    ->orWhereNull('contract_status_id');
-            })
+            ->where('contract_status_id', ContractStatus::NEW_ID)
             ->whereDoesntHave('receivedContract')
             ->when($request->has('is_completed'), fn ($q) =>
                 $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)

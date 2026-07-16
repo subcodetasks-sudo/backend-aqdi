@@ -139,6 +139,30 @@ class ContractPaidByEmployeeController extends Controller
     }
 
     /**
+     * GET /api/admin/contract-paid-by-employees/{id}/payment-link
+     */
+    public function paymentLink(Request $request, int $id)
+    {
+        if (! $request->user() instanceof Employee) {
+            return $this->errorMessage(trans('api.unauthorized'), 403);
+        }
+
+        try {
+            $record = ContractPaidByEmployee::query()->findOrFail($id);
+
+            if ($record->contract_uuid === null || $record->contract_uuid === '') {
+                return $this->errorMessage(trans('api.payment_link_unavailable'), 422);
+            }
+
+            return $this->paymentService->createPaymentUrlResponse((string) $record->contract_uuid);
+        } catch (ModelNotFoundException) {
+            return $this->errorMessage(trans('api.not_found'), 404);
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    /**
      * GET /api/admin/contract-paid-by-employees/{id}
      */
     public function show(Request $request, int $id)
