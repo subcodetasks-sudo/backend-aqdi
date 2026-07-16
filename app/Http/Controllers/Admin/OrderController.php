@@ -34,6 +34,16 @@ class OrderController extends Controller
             || $request->filled('contract_status_id')
             || $request->filled('status_name');
 
+        // If caller explicitly filters received-contract presence, align the default status with it.
+        // - is_received=true  => default to RECEIVED (6)
+        // - is_received=false => default to NEW (1)
+        // - not provided      => keep historical default (RECEIVED) unless status filter is explicit
+        $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
+        $defaultStatusId = ContractStatus::RECEIVED_ID;
+        if ($receivedPresenceFilter === false) {
+            $defaultStatusId = ContractStatus::NEW_ID;
+        }
+
         $orders = Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
@@ -41,7 +51,7 @@ class OrderController extends Controller
             ->tap(fn ($q) => $this->applyContractStatusFiltersToQuery($q, $request))
            
             ->when(! $hasExplicitStatusFilter, fn ($q) =>
-                $q->where('contract_status_id', ContractStatus::RECEIVED_ID)
+                $q->where('contract_status_id', $defaultStatusId)
             )
             ->when($request->filled('search'), fn ($q) =>
                 $q->adminSearch($request->string('search')->toString())
@@ -57,7 +67,7 @@ class OrderController extends Controller
             OrderResource::collection($orders),
             trans('api.success'),
             [
-                'contract_status_id' => $hasExplicitStatusFilter ? null : ContractStatus::RECEIVED_ID,
+                'contract_status_id' => $hasExplicitStatusFilter ? null : $defaultStatusId,
             ]
         );
     }
@@ -600,11 +610,11 @@ class OrderController extends Controller
             );
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $contract = $this->findAdminContract((int) $id);
         $contract->load($this->contractDetailRelations());
-        $detail = (new AdminContractDetailResource($contract))->toArray(request());
+        $detail = (new AdminContractDetailResource($contract))->toArray($request);
 
         return $this->apiResponse(
             array_merge(
