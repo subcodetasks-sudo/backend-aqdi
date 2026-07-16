@@ -349,7 +349,8 @@ class RefundableContractService
             'is_refunded' => false,
         ]);
 
-        return $this->baseQuery()->findOrFail($record->id);
+        // Contract is still "received" until admin approves — baseQuery() requires return status (2).
+        return $this->adminLookupQuery()->findOrFail($record->id);
     }
 
     /**
