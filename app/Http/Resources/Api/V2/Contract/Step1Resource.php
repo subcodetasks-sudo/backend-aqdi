@@ -6,6 +6,7 @@ use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractAddressFields;
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use App\Models\Contract;
+use App\Support\DateInputNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,8 +31,24 @@ class Step1Resource extends JsonResource
         return getFilePath($normalized);
     }
 
+    /**
+     * @return array{day: ?string, month: ?string, year: ?string}
+     */
+    private function instrumentHistoryParts(): array
+    {
+        $value = $this->instrument_history;
+        if ($value instanceof \DateTimeInterface) {
+            $value = $value->format('Y-m-d');
+        }
+        $value = $value !== null ? (string) $value : null;
+
+        return DateInputNormalizer::splitMysqlDate($value);
+    }
+
     public function toArray(Request $request): array
     {
+        $historyParts = $this->instrumentHistoryParts();
+
         return [
             'id' => $this->id,
             'contract_id' => $this->id,
@@ -53,7 +70,12 @@ class Step1Resource extends JsonResource
             'age_of_the_property' => $this->age_of_the_property,
             'number_of_units_per_floor' => $this->number_of_units_per_floor,
             'instrument_number' => $this->instrument_number,
-            'instrument_history' => $this->instrument_history,
+            'instrument_history' => $this->instrument_history instanceof \DateTimeInterface
+                ? $this->instrument_history->format('Y-m-d')
+                : $this->instrument_history,
+            'instrument_history_day' => $historyParts['day'],
+            'instrument_history_month' => $historyParts['month'],
+            'instrument_history_year' => $historyParts['year'],
             'type_instrument_history' => $this->type_instrument_history ?? 'hijri',
             'real_estate_registry_number' => $this->real_estate_registry_number,
             'date_first_registration' => $this->date_first_registration,
@@ -71,4 +93,3 @@ class Step1Resource extends JsonResource
         ];
     }
 }
-

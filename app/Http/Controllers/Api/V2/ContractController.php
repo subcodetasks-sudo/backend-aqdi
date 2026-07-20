@@ -249,7 +249,6 @@ class ContractController extends Controller
 
         $step1Data = [
             'app_or_web' => 'app',
-            'instrument_number' => null,
             'is_multiple_trusteeship_deed_copy' => array_key_exists('is_multiple_trusteeship_deed_copy', $validated)
                 ? (bool) $validated['is_multiple_trusteeship_deed_copy']
                 : (bool) $contract->is_multiple_trusteeship_deed_copy,
@@ -262,9 +261,20 @@ class ContractController extends Controller
             'number_of_floors',
             'number_of_units_per_floor',
             'number_of_units_in_realestate',
+            'instrument_number',
+            'type_instrument_history',
+            'type_date_first_registration',
         ] as $optionalField) {
             if (array_key_exists($optionalField, $validated)) {
                 $step1Data[$optionalField] = $validated[$optionalField];
+            }
+        }
+
+        $instrumentHistory = $request->resolvedInstrumentHistory();
+        if ($instrumentHistory !== null) {
+            $step1Data['instrument_history'] = $instrumentHistory;
+            if (! array_key_exists('type_instrument_history', $step1Data)) {
+                $step1Data['type_instrument_history'] = $request->input('type_instrument_history', 'hijri');
             }
         }
 
