@@ -117,4 +117,5 @@ return [
     'payment_link_unavailable' => 'رابط الدفع غير متوفر لهذا السجل',
     'tenant_role_not_found' => 'صفة المستأجر غير موجودة',
     'tenant_role_in_use' => 'لا يمكن حذف صفة المستأجر لأنها مرتبطة بعقود',
+    'real_estate_required_for_units' => 'يجب ربط العقد بعقار قبل إضافة الوحدات',
 ];

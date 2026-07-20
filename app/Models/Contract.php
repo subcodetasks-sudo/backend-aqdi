@@ -362,6 +362,24 @@ class Contract extends Model
         return $this->belongsTo(UnitsReal::class, 'real_units_id');
     }
 
+    /**
+     * Units linked to this contract via contract_units (one or more).
+     */
+    public function units()
+    {
+        return $this->belongsToMany(
+            UnitsReal::class,
+            'contract_units',
+            'contract_id',
+            'real_unit_id'
+        )->withPivot(['real_estate_id'])->withTimestamps();
+    }
+
+    public function contractUnits()
+    {
+        return $this->hasMany(ContractUnit::class, 'contract_id');
+    }
+
     public function tenantEntityLegalCity()
     {
         return $this->belongsTo(City::class, 'city_of_the_tenant_legal_agent');

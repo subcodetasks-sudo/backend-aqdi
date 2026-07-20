@@ -106,6 +106,24 @@ class UnitsReal extends Model
     {
         return $this->hasMany(Contract::class, 'real_units_id');
     }
+
+    /**
+     * Contracts linked via contract_units pivot (multi-unit contracts).
+     */
+    public function linkedContracts()
+    {
+        return $this->belongsToMany(
+            Contract::class,
+            'contract_units',
+            'real_unit_id',
+            'contract_id'
+        )->withPivot(['real_estate_id'])->withTimestamps();
+    }
+
+    public function contractUnits()
+    {
+        return $this->hasMany(ContractUnit::class, 'real_unit_id');
+    }
     
     
     public function unitUsage()

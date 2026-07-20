@@ -542,6 +542,8 @@ class OrderController extends Controller
             'user',
             'realEstate',
             'unit',
+            'units.unitType',
+            'units.unitUsage',
             'propertyType',
             'propertyUsages',
             'propertyRegion',

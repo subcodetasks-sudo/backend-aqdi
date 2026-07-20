@@ -114,6 +114,7 @@ return [
     'payment_link_unavailable' => 'Payment link is not available for this record',
     'tenant_role_not_found' => 'Tenant role not found',
     'tenant_role_in_use' => 'Cannot delete tenant role because it is linked to contracts',
+    'real_estate_required_for_units' => 'Contract must be linked to a real estate before adding units',
 
     'user_blocked_successfull' => 'User blocked successfully',
     'user_unblocked_successfull' => 'User unblocked successfully',

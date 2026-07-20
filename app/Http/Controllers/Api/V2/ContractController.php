@@ -33,9 +33,11 @@ use App\Support\DateInputNormalizer;
 use App\Support\DocFee;
 use App\Support\HijriDobParts;
 use App\Support\MeterFees;
+use App\Services\ContractUnitsService;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class ContractController extends Controller
 {
@@ -137,7 +139,14 @@ class ContractController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $contract = Contract::with(['realEstate', 'contractStatus', 'draftContractStatus'])
+        $contract = Contract::with([
+                'realEstate',
+                'contractStatus',
+                'draftContractStatus',
+                'units.unitType',
+                'units.unitUsage',
+                'units.realEstate',
+            ])
             ->where('user_id', $user->id)
             ->reachedAdminOrderStep()
             ->findOrFail($id);
@@ -197,6 +206,18 @@ class ContractController extends Controller
             'user_id' => $user->id,
             'step' => Contract::shouldSkipInitialSteps($instrumentType) ? 3 : 1,
         ]);
+
+        if (! empty($validated['real_units_id'])) {
+            try {
+                app(ContractUnitsService::class)->syncForContract(
+                    $contract,
+                    [['unit_id' => (int) $validated['real_units_id']]],
+                    (int) $user->id
+                );
+            } catch (InvalidArgumentException) {
+                // Keep start() non-blocking if unit attach fails validation edge-case.
+            }
+        }
 
         return $this->apiResponse(
             [
@@ -645,43 +666,37 @@ class ContractController extends Controller
 
         public function step5(Step5Request $request)
     {
-        $contract = Contract::findOrFail($request->id);
+        $user = auth()->user();
+        $contract = Contract::query()
+            ->where('user_id', $user->id)
+            ->findOrFail($request->integer('id'));
 
-        $data = [
-            'step' => 6,
-            'unit_type_id' => $request->unit_type_id,
-            'unit_number' => $request->unit_number,
-            'floor_number' => $request->floor_number,
-            'unit_area' => $request->unit_area,
-            'tootal_rooms' => $request->tootal_rooms,
-            'The_number_of_halls' => $request->The_number_of_halls,
-            'number_of_councils' => $request->number_of_councils,
-            'The_number_of_kitchens' => $request->The_number_of_kitchens,
-            'The_number_of_toilets' => $request->The_number_of_toilets,
-            'window_ac' => $request->window_ac,
-            'split_ac' => $request->split_ac,
-            'electricity_meter_number' => $request->electricity_meter_number,
-            'water_meter_number' => $request->water_meter_number,
-            'kitchen_tank' => (int) $request->boolean('kitchen_tank'),
-            'furnished' => (int) $request->boolean('furnished'),
-            'type_furnished' => \App\Support\TypeFurnished::normalize($request->type_furnished),
-            'electricity_meter' => (int) $request->boolean('electricity_meter'),
-            'water_meter' => (int) $request->boolean('water_meter'),
-            'electricity_meter_ownership' => $request->input('electricity_meter_ownership'),
-            'water_meter_ownership' => $request->input('water_meter_ownership'),
-        ];
-
-        if ($request->exists('unit_usage_id')) {
-            $data['unit_usage_id'] = $request->input('unit_usage_id');
+        $unitsPayload = $request->input('units', []);
+        if (! is_array($unitsPayload) || $unitsPayload === []) {
+            return $this->errorMessage('يجب إرسال وحدة واحدة على الأقل.', 422);
         }
 
-        $contract->update($data);
+        try {
+            $units = app(ContractUnitsService::class)->syncForContract(
+                $contract,
+                $unitsPayload,
+                (int) $user->id
+            );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
+        }
+
+        // Advance step only — unit details live on real_units + contract_units.
+        $contract->update(['step' => 6]);
+
+        $contract = $contract->fresh(['contractStatus', 'units.unitType', 'units.unitUsage', 'units.realEstate']);
 
         return response()->json([
             'message' => trans('api.success'),
             'code' => 200,
             'success' => true,
-            'data' => new Step5Resource($contract->fresh(['contractStatus'])),
+            'data' => new Step5Resource($contract),
+            'units_count' => count($units),
         ]);
     }
 

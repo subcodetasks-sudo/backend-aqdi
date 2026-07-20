@@ -27,15 +27,39 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
 
         try {
             $real = RealEstate::create($this->realEstatePayloadFromContract($contract, $userId, $validated['name_real_estate']));
-            $unit = UnitsReal::create(UnitsReal::attributesForApi(
-                $this->unitPayloadFromContract($contract, $real->id, $userId)
-            ));
+
+            $linkedUnits = $contract->units()->get();
+            $primaryUnit = null;
+
+            if ($linkedUnits->isNotEmpty()) {
+                foreach ($linkedUnits as $linkedUnit) {
+                    $linkedUnit->update([
+                        'real_estates_units_id' => $real->id,
+                    ]);
+                }
+                $primaryUnit = $linkedUnits->first();
+            } else {
+                $primaryUnit = UnitsReal::create(UnitsReal::attributesForApi(
+                    $this->unitPayloadFromContract($contract, $real->id, $userId)
+                ));
+
+                \App\Models\ContractUnit::query()->create([
+                    'contract_id' => $contract->id,
+                    'real_unit_id' => $primaryUnit->id,
+                    'real_estate_id' => $real->id,
+                ]);
+            }
 
             $contract->update([
                 'real_id' => $real->id,
-                'real_units_id' => $unit->id,
+                'real_units_id' => $primaryUnit?->id,
                 'is_real' => true,
             ]);
+
+            // Refresh pivot real_estate_id
+            \App\Models\ContractUnit::query()
+                ->where('contract_id', $contract->id)
+                ->update(['real_estate_id' => $real->id]);
 
             DB::commit();
 
@@ -45,7 +69,8 @@ class SavedRealEstateController extends \App\Http\Controllers\Api\SavedRealEstat
                 'success' => true,
                 'data' => [
                     'real_estate' => $real->fresh(),
-                    'units_real' => $unit->fresh(),
+                    'units_real' => $primaryUnit?->fresh(),
+                    'units' => $contract->units()->with(['unitType', 'unitUsage'])->get(),
                     'contract_v2_fields' => [
                         'image_instrument_from_the_front' => $contract->image_instrument_from_the_front,
                         'image_instrument_from_the_back' => $contract->image_instrument_from_the_back,

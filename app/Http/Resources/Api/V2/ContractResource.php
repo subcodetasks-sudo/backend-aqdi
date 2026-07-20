@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Api\V2;
 
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
+use App\Http\Resources\Api\V2\UnitResource;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use App\Models\Contract;
 use Illuminate\Http\Request;
@@ -60,6 +61,14 @@ class ContractResource extends JsonResource
             'draft_contract_status_name' => optional($this->draftContractStatus)->name,
             'draft_contract_status_color' => optional($this->draftContractStatus)->color,
             'number_of_units_in_realestate' => $this->numberOfUnitsInRealestate(),
+            'units' => $this->when(
+                $this->relationLoaded('units'),
+                fn () => UnitResource::collection($this->units)
+            ),
+            'units_count' => $this->when(
+                $this->relationLoaded('units'),
+                fn () => $this->units->count()
+            ),
             'created_at' => optional($this->created_at)->format('Y-m-d'),
         ]);
     }

@@ -237,6 +237,10 @@ class AdminContractDetailResource extends JsonResource
             'user' => $this->userSummary($c->user),
             'real_estate' => $this->realEstateSummary($c->realEstate),
             'unit' => $this->unitSummary($c->unit),
+            'units' => $c->relationLoaded('units')
+                ? $c->units->map(fn ($u) => $this->unitSummary($u))->values()->all()
+                : [],
+            'units_count' => $c->relationLoaded('units') ? $c->units->count() : 0,
             'property_type' => $this->reaEstatTypeSummary($c->propertyType),
             'property_usages' => $this->reaEstatUsageSummary($c->propertyUsages),
             'property_region' => $this->regionSummary($c->propertyRegion),
