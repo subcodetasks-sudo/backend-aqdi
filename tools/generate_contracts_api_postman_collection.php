@@ -164,18 +164,46 @@ $folders = [
                 'tenant_mobile' => '0598765432',
             ],
         ]),
-        req('Step 5 — unit details', 'POST', '/contract/step5', [
+        req('Step 5 — unit details (legacy flat)', 'POST', '/contract/step5', [
             'body' => [
                 'id' => '{{contract_id}}',
                 'unit_type_id' => 1,
                 'unit_usage_id' => 1,
                 'unit_number' => '101',
+                'floor_number' => 1,
                 'unit_area' => '120',
                 'kitchen_tank' => 0,
                 'furnished' => 0,
                 'electricity_meter' => 1,
                 'water_meter' => 1,
             ],
+            'description' => 'Legacy flat payload (still supported). Prefer units[] — see collection AQDI-Contract-Units-Multi-Unit-API.',
+        ]),
+        req('Step 5 — multiple units (NEW)', 'POST', '/contract/step5', [
+            'body' => [
+                'id' => '{{contract_id}}',
+                'units' => [
+                    [
+                        'unit_type_id' => 1,
+                        'unit_usage_id' => 1,
+                        'unit_number' => '101',
+                        'floor_number' => 1,
+                        'unit_area' => 120,
+                        'split_ac' => 2,
+                        'furnished' => true,
+                        'electricity_meter' => true,
+                        'water_meter' => true,
+                    ],
+                    [
+                        'unit_type_id' => 1,
+                        'unit_number' => '102',
+                        'floor_number' => 1,
+                        'unit_area' => 90,
+                        'split_ac' => 1,
+                    ],
+                ],
+            ],
+            'description' => 'Creates/links multiple units via contract_units. Response includes units[] + units_count.',
         ]),
         req('Step 6 — terms & payment (tenant_role_ids)', 'POST', '/contract/step6', [
             'body' => [

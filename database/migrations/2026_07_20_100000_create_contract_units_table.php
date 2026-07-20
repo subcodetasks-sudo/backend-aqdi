@@ -22,33 +22,50 @@ return new class extends Migration
             });
         }
 
-        // Backfill from legacy contracts.real_units_id
-        if (Schema::hasTable('contracts')
-            && Schema::hasColumn('contracts', 'real_units_id')
-            && Schema::hasTable('contract_units')) {
-            $rows = DB::table('contracts')
-                ->whereNotNull('real_units_id')
-                ->select(['id', 'real_units_id', 'real_id'])
-                ->get();
+        // Backfill from legacy contracts.real_units_id (skip orphan FKs)
+        if (! Schema::hasTable('contracts')
+            || ! Schema::hasColumn('contracts', 'real_units_id')
+            || ! Schema::hasTable('contract_units')
+            || ! Schema::hasTable('real_units')) {
+            return;
+        }
 
-            foreach ($rows as $row) {
-                $exists = DB::table('contract_units')
-                    ->where('contract_id', $row->id)
-                    ->where('real_unit_id', $row->real_units_id)
-                    ->exists();
+        $hasRealEstates = Schema::hasTable('real_estates');
 
-                if ($exists) {
-                    continue;
-                }
+        $rows = DB::table('contracts')
+            ->whereNotNull('real_units_id')
+            ->select(['id', 'real_units_id', 'real_id'])
+            ->get();
 
-                DB::table('contract_units')->insert([
-                    'contract_id' => $row->id,
-                    'real_unit_id' => $row->real_units_id,
-                    'real_estate_id' => $row->real_id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        foreach ($rows as $row) {
+            $unitExists = DB::table('real_units')->where('id', $row->real_units_id)->exists();
+            if (! $unitExists) {
+                continue;
             }
+
+            $alreadyLinked = DB::table('contract_units')
+                ->where('contract_id', $row->id)
+                ->where('real_unit_id', $row->real_units_id)
+                ->exists();
+
+            if ($alreadyLinked) {
+                continue;
+            }
+
+            $realEstateId = null;
+            if ($hasRealEstates && $row->real_id) {
+                $realEstateId = DB::table('real_estates')->where('id', $row->real_id)->exists()
+                    ? $row->real_id
+                    : null;
+            }
+
+            DB::table('contract_units')->insert([
+                'contract_id' => $row->id,
+                'real_unit_id' => $row->real_units_id,
+                'real_estate_id' => $realEstateId,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 

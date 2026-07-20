@@ -1,0 +1,654 @@
+{
+    "info": {
+        "_postman_id": "63425ab3-975b-4527-979c-47e04731c5c5",
+        "name": "AQDI — Contract Multi Units (step5 + changes)",
+        "description": "# Multi-unit contracts\n\n## What changed\n- New table: `contract_units` (`contract_id`, `real_unit_id`, `real_estate_id`)\n- `POST /api/v2/contract/step5` accepts one or more units\n- Unit details are stored in `real_units`, NOT copied into `contracts` columns\n- Contract show / admin detail return `units[]`\n\n## Auth\nSet collection variables:\n- `baseUrl` e.g. `https://your-domain.com`\n- `token` user Bearer token (Sanctum)\n- `contract_id`, `contract_uuid`, `real_estate_id`, `unit_id`\n\n## Step5 body shapes\n1. `units: [ {...}, {...} ]` create multiple\n2. `unit_ids: [10,11]` attach existing\n3. mix `units: [{unit_id:10}, {...new}]`\n4. legacy flat single-unit fields (still supported)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost"
+        },
+        {
+            "key": "token",
+            "value": ""
+        },
+        {
+            "key": "contract_id",
+            "value": "1"
+        },
+        {
+            "key": "contract_uuid",
+            "value": ""
+        },
+        {
+            "key": "real_estate_id",
+            "value": "1"
+        },
+        {
+            "key": "unit_id",
+            "value": "1"
+        }
+    ],
+    "item": [
+        {
+            "name": "1) Contract start",
+            "item": [
+                {
+                    "name": "Start contract (optional real + unit)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/start",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "start"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"instrument_type\": \"old_handwritten\",\n    \"is_real\": true,\n    \"real_id\": \"{{real_estate_id}}\",\n    \"real_units_id\": \"{{unit_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Creates contract.\nIf real_units_id is sent, it is also attached in contract_units.\nResponse: contract_id + uuid."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Start contract (no unit yet)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/start",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "start"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"instrument_type\": \"old_handwritten\",\n    \"is_real\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2) Step 5 — multi units (NEW)",
+            "item": [
+                {
+                    "name": "Step 5 — create multiple NEW units",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/step5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "step5"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"units\": [\n        {\n            \"unit_type_id\": 1,\n            \"unit_usage_id\": 1,\n            \"unit_number\": \"101\",\n            \"floor_number\": 1,\n            \"unit_area\": 120,\n            \"tootal_rooms\": 3,\n            \"The_number_of_halls\": 1,\n            \"The_number_of_kitchens\": 1,\n            \"The_number_of_toilets\": 2,\n            \"window_ac\": 0,\n            \"split_ac\": 2,\n            \"electricity_meter_number\": \"E-1001\",\n            \"water_meter_number\": \"W-1001\",\n            \"kitchen_tank\": false,\n            \"furnished\": true,\n            \"type_furnished\": \"partial\",\n            \"electricity_meter\": true,\n            \"water_meter\": true,\n            \"electricity_meter_ownership\": \"owner\",\n            \"water_meter_ownership\": \"tenant\"\n        },\n        {\n            \"unit_type_id\": 1,\n            \"unit_usage_id\": 1,\n            \"unit_number\": \"102\",\n            \"floor_number\": 1,\n            \"unit_area\": 90,\n            \"tootal_rooms\": 2,\n            \"split_ac\": 1,\n            \"kitchen_tank\": false,\n            \"furnished\": false,\n            \"electricity_meter\": true,\n            \"water_meter\": false\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Creates 1+ units in `real_units` and links them via `contract_units`.\n\nDoes NOT write unit details into `contracts` columns anymore.\nOnly advances `step` to 6 and sets legacy `real_units_id` = first unit.\n\nResponse includes:\n- data.units[]\n- data.units_count\n- units_count"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 5 — attach existing unit_ids",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/step5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "step5"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"unit_ids\": [\n        10,\n        11\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Attach existing real_units owned by the authenticated user."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 5 — mix existing + new units",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/step5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "step5"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"units\": [\n        {\n            \"unit_id\": \"{{unit_id}}\"\n        },\n        {\n            \"unit_type_id\": 1,\n            \"unit_usage_id\": 1,\n            \"unit_number\": \"102\",\n            \"floor_number\": 1,\n            \"unit_area\": 90,\n            \"tootal_rooms\": 2,\n            \"split_ac\": 1,\n            \"kitchen_tank\": false,\n            \"furnished\": false,\n            \"electricity_meter\": true,\n            \"water_meter\": false\n        }\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "units[].unit_id (or id / real_unit_id) attaches existing unit; other objects create new units."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 5 — legacy flat single unit (compat)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contract/step5",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "step5"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"unit_type_id\": 1,\n    \"unit_usage_id\": 1,\n    \"unit_number\": \"101\",\n    \"floor_number\": 1,\n    \"unit_area\": 120,\n    \"tootal_rooms\": 3,\n    \"The_number_of_halls\": 1,\n    \"The_number_of_kitchens\": 1,\n    \"The_number_of_toilets\": 2,\n    \"window_ac\": 0,\n    \"split_ac\": 2,\n    \"electricity_meter_number\": \"E-1001\",\n    \"water_meter_number\": \"W-1001\",\n    \"kitchen_tank\": false,\n    \"furnished\": true,\n    \"type_furnished\": \"partial\",\n    \"electricity_meter\": true,\n    \"water_meter\": true,\n    \"electricity_meter_ownership\": \"owner\",\n    \"water_meter_ownership\": \"tenant\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Old flat payload still works. Backend converts it internally to units[0]."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3) Contract read (units in response)",
+            "item": [
+                {
+                    "name": "Show contract (includes units)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contracts/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contracts",
+                                "{{contract_id}}"
+                            ]
+                        },
+                        "description": "Response now includes units[] and units_count when loaded."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List my contracts",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/contracts",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contracts"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Finance summary",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/finance-summary/{{contract_uuid}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "finance-summary",
+                                "{{contract_uuid}}"
+                            ]
+                        },
+                        "description": "Unchanged financially; listed for full contract flow after step5/6."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Financial alias",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/financial/{{contract_uuid}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "financial",
+                                "{{contract_uuid}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4) Units CRUD (related)",
+            "item": [
+                {
+                    "name": "List units of real estate",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/unit/index/{{real_estate_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "unit",
+                                "index",
+                                "{{real_estate_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create standalone unit",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/unit/create",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "unit",
+                                "create"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"real_estates_units_id\": \"{{real_estate_id}}\",\n    \"unit_type_id\": 1,\n    \"unit_usage_id\": 1,\n    \"unit_number\": \"101\",\n    \"floor_number\": 1,\n    \"unit_area\": 120,\n    \"tootal_rooms\": 3,\n    \"The_number_of_halls\": 1,\n    \"The_number_of_kitchens\": 1,\n    \"The_number_of_toilets\": 2,\n    \"window_ac\": 0,\n    \"split_ac\": 2,\n    \"electricity_meter_number\": \"E-1001\",\n    \"water_meter_number\": \"W-1001\",\n    \"kitchen_tank\": false,\n    \"furnished\": true,\n    \"type_furnished\": \"partial\",\n    \"electricity_meter\": true,\n    \"water_meter\": true,\n    \"electricity_meter_ownership\": \"owner\",\n    \"water_meter_ownership\": \"tenant\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Create unit on property first, then attach with step5 unit_ids / units[].unit_id."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show unit",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/unit/show/{{unit_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "unit",
+                                "show",
+                                "{{unit_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "5) Save property (changed)",
+            "item": [
+                {
+                    "name": "Save property from contract",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v2/save/property",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "save",
+                                "property"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_id\": \"{{contract_id}}\",\n    \"name_real_estate\": \"عقار تجريبي\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "If contract already has units in contract_units:\n- those units get real_estates_units_id updated\n- no duplicate unit is created from contracts.* fields\n\nResponse data includes:\n- real_estate\n- units_real (primary)\n- units (all linked units)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "6) Admin — contract detail units",
+            "item": [
+                {
+                    "name": "Admin order show (units[])",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{contract_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{contract_id}}"
+                            ]
+                        },
+                        "description": "Admin detail now returns units[] + units_count in addition to legacy unit."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}
