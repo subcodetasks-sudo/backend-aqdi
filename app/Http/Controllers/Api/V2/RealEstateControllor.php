@@ -6,16 +6,20 @@ use App\Http\Controllers\Api\RealEstateControllor as ApiRealEstateControllor;
 use App\Http\Requests\Api\V2\RealEstate\Step1RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\UpdateStep1RealEstateRequest;
 use App\Http\Requests\Api\V2\RealEstate\Step2RealEstateRequest;
+use App\Http\Requests\Api\V2\RealEstate\Step3RealEstateRequest;
 use App\Http\Resources\Api\V2\RealEstate\RealEstateResource;
 use App\Http\Resources\Api\V2\RealEstate\Step1RealEstateResource;
 use App\Http\Resources\Api\V2\RealEstate\Step2RealEstateResource;
+use App\Http\Resources\Api\V2\RealEstate\Step3RealEstateResource;
 use App\Models\RealEstate;
+use App\Services\RealEstateUnitsService;
 use App\Support\DateInputNormalizer;
 use App\Support\HijriDobParts;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
 
 class RealEstateControllor extends ApiRealEstateControllor
 {
@@ -29,6 +33,8 @@ class RealEstateControllor extends ApiRealEstateControllor
             'propertyUsages',
             'tenantEntityCity',
             'tenantEntityRegion',
+            'units.unitType',
+            'units.unitUsage',
         ];
     }
 
@@ -46,6 +52,16 @@ class RealEstateControllor extends ApiRealEstateControllor
         $form = Step2RealEstateRequest::createFrom($request);
         $form->setContainer(app())->setRedirector(app(Redirector::class));
         $form->validateResolved();
+
+        return $form;
+    }
+
+    protected function toStep3RealEstateRequest(Request $request): Step3RealEstateRequest
+    {
+        $form = Step3RealEstateRequest::createFrom($request);
+        $form->setContainer(app())->setRedirector(app(Redirector::class));
+        $form->validateResolved();
+
         return $form;
     }
 
@@ -101,10 +117,45 @@ class RealEstateControllor extends ApiRealEstateControllor
         return $this->saveOwnerStep($request, false);
     }
 
-    /** @deprecated Alias of step2 — location is now part of step1. */
+    /** Step 3: one or more units (same shape as contract step5). */
     public function step3(Request $request)
     {
-        return $this->step2($request);
+        return $this->saveUnitsStep($request, false);
+    }
+
+    /** @return \Illuminate\Http\JsonResponse */
+    protected function saveUnitsStep(Request $request, bool $isUpdate)
+    {
+        $form = $this->toStep3RealEstateRequest($request);
+        $user = Auth::user();
+
+        $realEstate = RealEstate::query()
+            ->where('user_id', $user->id)
+            ->findOrFail($form->integer('id'));
+
+        try {
+            $units = app(RealEstateUnitsService::class)->syncForRealEstate(
+                $realEstate,
+                $form->input('units', []),
+                (int) $user->id
+            );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
+        }
+
+        $realEstate->update(['step' => 3]);
+
+        $realEstate = $realEstate->fresh([
+            ...$this->realEstateEagerLoads(),
+        ]);
+
+        return response()->json([
+            'message' => $isUpdate ? trans('api.updated_success') : trans('api.success'),
+            'code' => 200,
+            'success' => true,
+            'data' => new Step3RealEstateResource($realEstate),
+            'units_count' => count($units),
+        ]);
     }
 
     /**
@@ -208,10 +259,9 @@ class RealEstateControllor extends ApiRealEstateControllor
         return $this->saveOwnerStep($request, true);
     }
 
-    /** @deprecated Alias of updateStep2 — location is now part of updateStep1. */
     public function updateStep3(Request $request)
     {
-        return $this->updateStep2($request);
+        return $this->saveUnitsStep($request, true);
     }
 
     public function delete($id)

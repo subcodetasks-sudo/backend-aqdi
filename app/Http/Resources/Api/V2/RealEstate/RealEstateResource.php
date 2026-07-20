@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V2\RealEstate;
 
+use App\Http\Resources\Api\V2\UnitResource;
 use Illuminate\Http\Request;
 
 class RealEstateResource extends Step2RealEstateResource
@@ -26,6 +27,12 @@ class RealEstateResource extends Step2RealEstateResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+
+        if ($this->relationLoaded('units')) {
+            $extras['units'] = UnitResource::collection($this->units);
+            $extras['units_count'] = $this->units->count();
+            $extras['Number_of_units_already_existence'] = (string) $this->units->count();
+        }
 
         foreach (['uuid', 'dob_hijri', 'national_num', 'DOB', 'mobile', 'iban_bank'] as $column) {
             if (array_key_exists($column, $attributes)) {
