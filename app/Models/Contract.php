@@ -720,8 +720,9 @@ class Contract extends Model
             
          $servicesTotalPrice = array_sum(array_column($services, 'service_price'));
       
-         $totalContractPrice =$contractPeriodPrice + $servicesTotalPrice + $appFees + $tax;
+         $totalContractPrice = $contractPeriodPrice + $servicesTotalPrice + $appFees + $tax;
 
+         return $totalContractPrice;
      }
     
     
