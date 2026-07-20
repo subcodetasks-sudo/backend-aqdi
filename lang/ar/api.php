@@ -118,4 +118,9 @@ return [
     'tenant_role_not_found' => 'صفة المستأجر غير موجودة',
     'tenant_role_in_use' => 'لا يمكن حذف صفة المستأجر لأنها مرتبطة بعقود',
     'real_estate_required_for_units' => 'يجب ربط العقد بعقار قبل إضافة الوحدات',
+    'contract_unit_not_found' => 'الوحدة غير مرتبطة بهذا العقد',
+    'contract_units_synced_successfully' => 'تم تحديث وحدات العقد بنجاح',
+    'contract_unit_added_successfully' => 'تمت إضافة الوحدة للعقد بنجاح',
+    'contract_unit_updated_successfully' => 'تم تحديث وحدة العقد بنجاح',
+    'contract_unit_removed_successfully' => 'تم إزالة الوحدة من العقد بنجاح',
 ];

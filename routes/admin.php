@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\ContractPeriodController;
 use App\Http\Controllers\Admin\ContractCommentController;
+use App\Http\Controllers\Admin\ContractUnitController;
 use App\Http\Controllers\Admin\ContractStatusController;
 use App\Http\Controllers\Admin\DraftContractStatusController;
 use App\Http\Controllers\Admin\ContractWhatsAppController;
@@ -243,6 +244,20 @@ use Illuminate\Support\Facades\Route;
             Route::post('/', 'store')->whereNumber('contractId')->name('store');
             Route::post('/{commentId}', 'update')->whereNumber('contractId')->whereNumber('commentId')->name('update');
             Route::post('/{commentId}/delete', 'destroy')->whereNumber('contractId')->whereNumber('commentId')->name('destroy');
+        });
+
+    // Contract units (multi-unit via contract_units)
+    Route::prefix('orders/{contractId}/units')
+        ->name('orders.units.')
+        ->controller(ContractUnitController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::get('/', 'index')->whereNumber('contractId')->name('index');
+            Route::post('/', 'store')->whereNumber('contractId')->name('store');
+            Route::post('/sync', 'sync')->whereNumber('contractId')->name('sync');
+            Route::get('/{unitId}', 'show')->whereNumber('contractId')->whereNumber('unitId')->name('show');
+            Route::post('/{unitId}', 'update')->whereNumber('contractId')->whereNumber('unitId')->name('update');
+            Route::post('/{unitId}/delete', 'destroy')->whereNumber('contractId')->whereNumber('unitId')->name('destroy');
         });
 
     // Orders Filtering

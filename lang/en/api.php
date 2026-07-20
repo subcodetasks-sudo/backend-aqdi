@@ -115,6 +115,11 @@ return [
     'tenant_role_not_found' => 'Tenant role not found',
     'tenant_role_in_use' => 'Cannot delete tenant role because it is linked to contracts',
     'real_estate_required_for_units' => 'Contract must be linked to a real estate before adding units',
+    'contract_unit_not_found' => 'Unit not linked to this contract',
+    'contract_units_synced_successfully' => 'Contract units updated successfully',
+    'contract_unit_added_successfully' => 'Unit added to contract successfully',
+    'contract_unit_updated_successfully' => 'Contract unit updated successfully',
+    'contract_unit_removed_successfully' => 'Unit removed from contract successfully',
 
     'user_blocked_successfull' => 'User blocked successfully',
     'user_unblocked_successfull' => 'User unblocked successfully',

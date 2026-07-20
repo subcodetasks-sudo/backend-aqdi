@@ -50,22 +50,32 @@ class ContractUnitsService
      * @param  list<array<string, mixed>>  $unitPayloads
      * @return list<UnitsReal>
      */
-    public function syncForContract(Contract $contract, array $unitPayloads, int $userId): array
-    {
+    public function syncForContract(
+        Contract $contract,
+        array $unitPayloads,
+        int $userId,
+        bool $allowAnyExistingUnit = false
+    ): array {
         if ($unitPayloads === []) {
             throw new InvalidArgumentException('At least one unit is required.');
         }
 
         $realEstateId = $contract->real_id ? (int) $contract->real_id : null;
 
-        return DB::transaction(function () use ($contract, $unitPayloads, $userId, $realEstateId) {
+        return DB::transaction(function () use ($contract, $unitPayloads, $userId, $realEstateId, $allowAnyExistingUnit) {
             ContractUnit::query()->where('contract_id', $contract->id)->delete();
 
             $units = [];
             $firstUnitId = null;
 
             foreach ($unitPayloads as $payload) {
-                $unit = $this->resolveOrCreateUnit($payload, $userId, $realEstateId, $contract);
+                $unit = $this->resolveOrCreateUnit(
+                    $payload,
+                    $userId,
+                    $realEstateId,
+                    $contract,
+                    $allowAnyExistingUnit
+                );
 
                 ContractUnit::query()->create([
                     'contract_id' => $contract->id,
@@ -87,17 +97,119 @@ class ContractUnitsService
     }
 
     /**
+     * Attach one unit to a contract without removing existing links.
+     *
      * @param  array<string, mixed>  $payload
      */
-    private function resolveOrCreateUnit(array $payload, int $userId, ?int $realEstateId, Contract $contract): UnitsReal
+    public function attachToContract(
+        Contract $contract,
+        array $payload,
+        int $userId,
+        bool $allowAnyExistingUnit = false
+    ): UnitsReal {
+        $realEstateId = $contract->real_id ? (int) $contract->real_id : null;
+
+        return DB::transaction(function () use ($contract, $payload, $userId, $realEstateId, $allowAnyExistingUnit) {
+            $unit = $this->resolveOrCreateUnit(
+                $payload,
+                $userId,
+                $realEstateId,
+                $contract,
+                $allowAnyExistingUnit
+            );
+
+            $alreadyLinked = ContractUnit::query()
+                ->where('contract_id', $contract->id)
+                ->where('real_unit_id', $unit->id)
+                ->exists();
+
+            if (! $alreadyLinked) {
+                ContractUnit::query()->create([
+                    'contract_id' => $contract->id,
+                    'real_unit_id' => $unit->id,
+                    'real_estate_id' => $realEstateId ?? $unit->real_estates_units_id,
+                ]);
+            }
+
+            if (! $contract->real_units_id) {
+                $contract->forceFill(['real_units_id' => $unit->id])->saveQuietly();
+            }
+
+            return $unit->load(['unitType', 'unitUsage', 'realEstate']);
+        });
+    }
+
+    /**
+     * Update a unit that is linked to the contract.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function updateLinkedUnit(Contract $contract, int $unitId, array $payload): UnitsReal
     {
+        $linked = ContractUnit::query()
+            ->where('contract_id', $contract->id)
+            ->where('real_unit_id', $unitId)
+            ->first();
+
+        if (! $linked) {
+            throw new InvalidArgumentException(trans('api.contract_unit_not_found') ?: 'Unit not linked to this contract.');
+        }
+
+        $unit = UnitsReal::query()->findOrFail($unitId);
+        $userId = (int) ($unit->user_id ?: $contract->user_id);
+        $realEstateId = $contract->real_id ? (int) $contract->real_id : ($unit->real_estates_units_id ? (int) $unit->real_estates_units_id : null);
+
+        $data = $this->normalizeUnitPayload($payload, $userId, $realEstateId, $contract);
+        unset($data['user_id'], $data['real_estates_units_id']);
+
+        $unit->fill(UnitsReal::attributesForApi($data))->save();
+
+        return $unit->fresh(['unitType', 'unitUsage', 'realEstate']);
+    }
+
+    /**
+     * Detach a unit from the contract (does not delete the real_units row).
+     */
+    public function detachFromContract(Contract $contract, int $unitId): void
+    {
+        $deleted = ContractUnit::query()
+            ->where('contract_id', $contract->id)
+            ->where('real_unit_id', $unitId)
+            ->delete();
+
+        if (! $deleted) {
+            throw new InvalidArgumentException(trans('api.contract_unit_not_found') ?: 'Unit not linked to this contract.');
+        }
+
+        if ((int) $contract->real_units_id === $unitId) {
+            $nextId = ContractUnit::query()
+                ->where('contract_id', $contract->id)
+                ->value('real_unit_id');
+
+            $contract->forceFill(['real_units_id' => $nextId])->saveQuietly();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolveOrCreateUnit(
+        array $payload,
+        int $userId,
+        ?int $realEstateId,
+        Contract $contract,
+        bool $allowAnyExistingUnit = false
+    ): UnitsReal {
         $existingId = $payload['unit_id'] ?? $payload['id'] ?? $payload['real_unit_id'] ?? null;
 
         if ($existingId) {
-            $unit = UnitsReal::query()
-                ->whereKey((int) $existingId)
-                ->where('user_id', $userId)
-                ->first();
+            $query = UnitsReal::query()->whereKey((int) $existingId);
+
+            if (! $allowAnyExistingUnit) {
+                $query->where('user_id', $userId);
+            }
+
+            $unit = $query->first();
 
             if (! $unit) {
                 throw new InvalidArgumentException(trans('api.not_have_unit') ?: 'Unit not found.');
