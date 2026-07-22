@@ -6,6 +6,7 @@ use App\Enums\ReceivedContractStatus;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnOrderFields;
+use App\Http\Resources\Api\V2\UnitResource;
 use App\Models\Account;
 use App\Models\City;
 use App\Models\ContractPeriod;
@@ -238,7 +239,7 @@ class AdminContractDetailResource extends JsonResource
             'real_estate' => $this->realEstateSummary($c->realEstate),
             'unit' => $this->unitSummary($c->unit),
             'units' => $c->relationLoaded('units')
-                ? $c->units->map(fn ($u) => $this->unitSummary($u))->values()->all()
+                ? $c->units->map(fn ($u) => $this->unitSummary($u))->filter()->values()->all()
                 : [],
             'units_count' => $c->relationLoaded('units') ? $c->units->count() : 0,
             'property_type' => $this->reaEstatTypeSummary($c->propertyType),
@@ -489,24 +490,22 @@ class AdminContractDetailResource extends JsonResource
         );
     }
 
+    /**
+     * Full unit payload for admin (same fields as API V2 UnitResource).
+     *
+     * @return array<string, mixed>|null
+     */
     private function unitSummary(?UnitsReal $m): ?array
     {
         if ($m === null) {
             return null;
         }
 
-        return [
-            'id' => $m->id,
-            'real_estates_units_id' => $m->real_estates_units_id ?? null,
-            'unit_number' => $m->unit_number ?? null,
-            'unit_area' => $m->unit_area ?? null,
-            'floor_number' => $m->floor_number ?? null,
-            'unit_type_id' => $m->unit_type_id ?? null,
-            'electricity_meter_number' => $m->electricity_meter_number ?? null,
-            'water_meter_number' => $m->water_meter_number ?? null,
-            'electricity_meter_ownership' => $m->electricity_meter_ownership ?? null,
-            'water_meter_ownership' => $m->water_meter_ownership ?? null,
-        ];
+        if (! $m->relationLoaded('unitType')) {
+            $m->loadMissing(['unitType', 'unitUsage', 'realEstate']);
+        }
+
+        return (new UnitResource($m))->resolve();
     }
 
     private function accountSummary(?Account $m): ?array
