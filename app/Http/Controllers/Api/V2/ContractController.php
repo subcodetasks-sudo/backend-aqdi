@@ -190,11 +190,14 @@ class ContractController extends Controller
                 ->value('instrument_type');
         }
 
+        $unitPayloads = $request->unitPayloadsForSync();
+        $primaryUnitId = $unitPayloads[0]['unit_id'] ?? (
+            ! empty($validated['real_units_id']) ? (int) $validated['real_units_id'] : null
+        );
+
         if (! empty($validated['real_id'])) {
             $realEstate = RealEstate::query()->find($validated['real_id']);
-            $realEstate?->syncNumberOfUnitsInRealestate(
-                ! empty($validated['real_units_id']) ? (int) $validated['real_units_id'] : null
-            );
+            $realEstate?->syncNumberOfUnitsInRealestate($primaryUnitId);
         }
 
         $contract = Contract::create([
@@ -202,27 +205,33 @@ class ContractController extends Controller
             'instrument_type' => $instrumentType,
             'is_real' => (bool) ($validated['is_real'] ?? false),
             'real_id' => $validated['real_id'] ?? null,
-            'real_units_id' => $validated['real_units_id'] ?? null,
+            'real_units_id' => $primaryUnitId,
             'user_id' => $user->id,
             'step' => Contract::shouldSkipInitialSteps($instrumentType) ? 3 : 1,
         ]);
 
-        if (! empty($validated['real_units_id'])) {
+        if ($unitPayloads !== []) {
             try {
                 app(ContractUnitsService::class)->syncForContract(
                     $contract,
-                    [['unit_id' => (int) $validated['real_units_id']]],
+                    $unitPayloads,
                     (int) $user->id
                 );
-            } catch (InvalidArgumentException) {
-                // Keep start() non-blocking if unit attach fails validation edge-case.
+            } catch (InvalidArgumentException $e) {
+                return $this->errorMessage($e->getMessage(), 422);
             }
         }
+
+        $contract->load(['units.unitType', 'units.unitUsage']);
 
         return $this->apiResponse(
             [
                 'contract_id' => $contract->id,
                 'uuid' => (string) $contract->uuid,
+                'real_id' => $contract->real_id,
+                'real_units_id' => $contract->real_units_id,
+                'units_count' => $contract->units->count(),
+                'unit_ids' => $contract->units->pluck('id')->values()->all(),
             ],
             trans('api.success')
         );

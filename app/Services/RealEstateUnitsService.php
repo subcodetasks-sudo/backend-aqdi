@@ -63,6 +63,48 @@ class RealEstateUnitsService
     }
 
     /**
+     * Append one or more units to a property (does not remove existing units).
+     *
+     * @param  list<array<string, mixed>>  $unitPayloads
+     * @return list<UnitsReal>
+     */
+    public function attachToRealEstate(RealEstate $realEstate, array $unitPayloads, int $userId): array
+    {
+        if ($unitPayloads === []) {
+            throw new InvalidArgumentException('At least one unit is required.');
+        }
+
+        $realEstateId = (int) $realEstate->id;
+
+        return DB::transaction(function () use ($realEstate, $unitPayloads, $userId, $realEstateId) {
+            $units = [];
+
+            foreach ($unitPayloads as $payload) {
+                $unit = $this->resolveOrCreateUnit($payload, $userId, $realEstateId, $realEstate);
+
+                if ((int) $unit->real_estates_units_id !== $realEstateId) {
+                    $unit->forceFill(['real_estates_units_id' => $realEstateId])->save();
+                }
+
+                $units[] = $unit->load(['unitType', 'unitUsage', 'realEstate']);
+            }
+
+            $totalCount = UnitsReal::query()
+                ->where('real_estates_units_id', $realEstateId)
+                ->where('user_id', $userId)
+                ->count();
+
+            $realEstate->syncNumberOfUnitsInRealestate($units[0]->id ?? null);
+            $fresh = $realEstate->fresh();
+            if ($fresh->number_of_units_in_realestate === null || $fresh->number_of_units_in_realestate === '') {
+                $fresh->update(['number_of_units_in_realestate' => (string) $totalCount]);
+            }
+
+            return $units;
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     private function resolveOrCreateUnit(array $payload, int $userId, int $realEstateId, RealEstate $realEstate): UnitsReal
