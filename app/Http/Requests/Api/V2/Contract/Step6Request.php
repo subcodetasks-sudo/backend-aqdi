@@ -48,6 +48,42 @@ class Step6Request extends BaseApiV2Request
                 'duration_months' => (int) $this->input('duration_months', 0),
             ]);
         }
+
+        $this->normalizeOtherConditionsInput();
+    }
+
+    /**
+     * Accept:
+     * - other_conditions_list: string[]
+     * - other_conditions: string (legacy) → list of one
+     */
+    private function normalizeOtherConditionsInput(): void
+    {
+        $list = [];
+
+        if ($this->filled('other_conditions_list') && is_array($this->input('other_conditions_list'))) {
+            foreach ($this->input('other_conditions_list') as $item) {
+                if (! is_scalar($item)) {
+                    continue;
+                }
+                $text = trim((string) $item);
+                if ($text !== '') {
+                    $list[] = $text;
+                }
+            }
+        } elseif ($this->filled('other_conditions') && is_string($this->input('other_conditions'))) {
+            $text = trim((string) $this->input('other_conditions'));
+            if ($text !== '') {
+                $list[] = $text;
+            }
+        }
+
+        if ($list !== []) {
+            $this->merge([
+                'other_conditions_list' => array_values(array_unique($list)),
+                'other_conditions' => $list[0],
+            ]);
+        }
     }
 
     public function authorize(): bool
@@ -78,7 +114,16 @@ class Step6Request extends BaseApiV2Request
             'annual_rent_amount_for_the_unit' => 'nullable|numeric',
             'payment_type_id' => 'required|exists:payment_types,id',
             'conditions' => 'required|boolean',
-            'other_conditions' => 'required_if:conditions,1|string|max:255',
+            // Legacy single text (still accepted; converted to list in prepareForValidation).
+            'other_conditions' => 'nullable|string|max:1000',
+            'other_conditions_list' => [
+                Rule::requiredIf(fn () => (bool) $this->input('conditions')),
+                'nullable',
+                'array',
+                'min:1',
+                'max:50',
+            ],
+            'other_conditions_list.*' => 'required|string|max:1000',
             'additional_terms' => 'nullable|boolean',
             'tenant_roles' => 'boolean',
             'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
@@ -106,6 +151,13 @@ class Step6Request extends BaseApiV2Request
 
             if (! $isOther && ! $this->filled('contract_term_in_years')) {
                 $v->errors()->add('contract_term_in_years', 'مدة العقد مطلوبة.');
+            }
+
+            if ((bool) $this->input('conditions')) {
+                $list = $this->input('other_conditions_list', []);
+                if (! is_array($list) || $list === []) {
+                    $v->errors()->add('other_conditions_list', 'أضف شرطاً واحداً على الأقل في الشروط الأخرى.');
+                }
             }
 
             $this->validateTenantRoleValues($v);
@@ -167,6 +219,7 @@ class Step6Request extends BaseApiV2Request
             'payment_type_id',
             'conditions',
             'other_conditions',
+            'other_conditions_list',
             'additional_terms',
             'tenant_roles',
             'tenant_role_id',
@@ -176,8 +229,33 @@ class Step6Request extends BaseApiV2Request
             'duration_preset.in' => 'قيمة مدة أخرى غير صالحة.',
             'duration_years.required_if' => 'عدد السنوات مطلوب عند اختيار مدة أخرى.',
             'duration_months.required_if' => 'عدد الأشهر مطلوب عند اختيار مدة أخرى.',
+            'other_conditions_list.required' => 'أضف شرطاً واحداً على الأقل في الشروط الأخرى.',
+            'other_conditions_list.min' => 'أضف شرطاً واحداً على الأقل في الشروط الأخرى.',
+            'other_conditions_list.*.required' => 'نص الشرط مطلوب.',
             'tenant_role_ids.*.exists' => 'إحدى صفات المستأجر المحددة غير موجودة.',
             'tenant_role_ids.*.integer' => 'صفة المستأجر يجب أن تكون رقماً صحيحاً.',
         ]);
+    }
+
+    /**
+     * Normalized list for persistence (empty when conditions off).
+     *
+     * @return list<string>
+     */
+    public function resolvedOtherConditionsList(): array
+    {
+        if (! (bool) $this->input('conditions')) {
+            return [];
+        }
+
+        $list = $this->input('other_conditions_list', []);
+        if (! is_array($list)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            static fn ($v) => is_scalar($v) ? trim((string) $v) : '',
+            $list
+        )));
     }
 }

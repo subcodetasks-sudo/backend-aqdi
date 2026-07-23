@@ -809,8 +809,13 @@ class ContractController extends Controller
         $data['tenant_role_id'] = $firstTenantRoleId;
         $data['tenant_role_values'] = $this->normalizeTenantRoleValuesFromStep6Request($request, $tenantRoleIds);
 
-        if ($request->filled('other_conditions')) {
-            $data['other_conditions'] = $request->other_conditions;
+        $otherConditionsList = $request->resolvedOtherConditionsList();
+        if ((bool) $request->input('conditions') && $otherConditionsList !== []) {
+            $data['other_conditions_list'] = $otherConditionsList;
+            $data['other_conditions'] = $otherConditionsList[0];
+        } else {
+            $data['other_conditions_list'] = null;
+            $data['other_conditions'] = null;
         }
 
         if ($request->filled('daily_fine')) {

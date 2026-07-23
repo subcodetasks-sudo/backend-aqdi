@@ -96,10 +96,35 @@ class AdminContractDetailResource extends JsonResource
             // Frontend step-5 aliases (canonical columns: tootal_rooms / The_number_of_the_toilet).
             'number_of_rooms' => $full['number_of_rooms'] ?? $c->tootal_rooms,
             'The_number_of_toilets' => $full['The_number_of_toilets'] ?? $c->The_number_of_the_toilet,
-            // Step-6 sends `conditions`; only other_conditions text is persisted.
+            // Step-6 sends `conditions`; other_conditions_list is canonical (multi).
             'conditions' => $full['conditions']
-                ?? ($c->other_conditions !== null && trim((string) $c->other_conditions) !== ''),
+                ?? (
+                    (is_array($c->other_conditions_list) && $c->other_conditions_list !== [])
+                    || ($c->other_conditions !== null && trim((string) $c->other_conditions) !== '')
+                ),
+            'other_conditions_list' => $this->resolvedOtherConditionsList($c),
+            'other_conditions_count' => count($this->resolvedOtherConditionsList($c)),
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolvedOtherConditionsList($c): array
+    {
+        $list = $c->other_conditions_list;
+        if (is_array($list) && $list !== []) {
+            return array_values(array_filter(array_map(
+                static fn ($v) => is_scalar($v) ? trim((string) $v) : '',
+                $list
+            )));
+        }
+
+        if ($c->other_conditions !== null && trim((string) $c->other_conditions) !== '') {
+            return [trim((string) $c->other_conditions)];
+        }
+
+        return [];
     }
 
     /**

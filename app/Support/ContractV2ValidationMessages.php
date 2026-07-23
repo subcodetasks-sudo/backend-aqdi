@@ -79,6 +79,8 @@ final class ContractV2ValidationMessages
         'duration_years' => 'عدد سنوات العقد',
         'duration_months' => 'أشهر مدة العقد الإضافية',
         'conditions' => 'الشروط الإضافية',
+        'other_conditions' => 'الشروط الأخرى',
+        'other_conditions_list' => 'قائمة الشروط الأخرى',
         'tenant_role_ids.*' => 'صفة المستأجر',
     ];
 
@@ -126,6 +128,8 @@ final class ContractV2ValidationMessages
         'tenant_entity.in' => 'كيان المستأجر يجب أن يكون شخصاً أو مؤسسة.',
         'tenant_roles.boolean' => 'صلاحيات المستخدم يجب أن تكون true أو false أو 1 أو 0.',
         'other_conditions.required_if' => 'حقل الشروط الأخرى مطلوب عند تفعيل الشروط الإضافية.',
+        'other_conditions_list.required' => 'أضف شرطاً واحداً على الأقل في الشروط الأخرى.',
+        'other_conditions_list.min' => 'أضف شرطاً واحداً على الأقل في الشروط الأخرى.',
         'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg أو jpeg أو png أو pdf.',
         'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك الولاية يجب أن تكون بصيغة jpg أو jpeg أو png أو pdf.',
         'copy_of_the_owner_record.mimes' => 'نسخة السجل يجب أن تكون بصيغة jpg أو jpeg أو png أو pdf.',

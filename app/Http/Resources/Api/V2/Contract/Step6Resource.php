@@ -42,8 +42,13 @@ class Step6Resource extends JsonResource
 
             'payment_type_id' => $this->payment_type_id,
             'annual_rent_amount_for_the_unit' => $this->annual_rent_amount_for_the_unit,
-            'conditions' => (bool) ($this->other_conditions !== null && $this->other_conditions !== ''),
+            'conditions' => (bool) (
+                (is_array($this->other_conditions_list) && $this->other_conditions_list !== [])
+                || ($this->other_conditions !== null && $this->other_conditions !== '')
+            ),
             'other_conditions' => $this->other_conditions,
+            'other_conditions_list' => $this->resolvedOtherConditionsList(),
+            'other_conditions_count' => count($this->resolvedOtherConditionsList()),
             'additional_terms' => (bool) $this->additional_terms,
             'text_additional_terms' => $this->text_additional_terms,
             'daily_fine' => $this->daily_fine,
@@ -90,5 +95,25 @@ class Step6Resource extends JsonResource
                 'value' => $values[$key] ?? $values[$role->id] ?? null,
             ];
         })->values()->all();
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolvedOtherConditionsList(): array
+    {
+        $list = $this->other_conditions_list;
+        if (is_array($list) && $list !== []) {
+            return array_values(array_filter(array_map(
+                static fn ($v) => is_scalar($v) ? trim((string) $v) : '',
+                $list
+            )));
+        }
+
+        if ($this->other_conditions !== null && trim((string) $this->other_conditions) !== '') {
+            return [trim((string) $this->other_conditions)];
+        }
+
+        return [];
     }
 }

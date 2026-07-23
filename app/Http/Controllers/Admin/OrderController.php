@@ -861,6 +861,8 @@ class OrderController extends Controller
                 'tenant_role_values',
                 'conditions',
                 'other_conditions',
+                'other_conditions_list',
+                'other_conditions_count',
                 'daily_fine',
                 'payment_type',
             ]), [
