@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Contract;
 use App\Models\Employee;
+use App\Support\ContractFrontendStatus;
 use Exception;
 use Google_Client as GoogleClient;
 use GuzzleHttp\Client as GuzzleClient;
@@ -51,18 +52,19 @@ class FirebaseNotificationService
      */
     public function notifyContractReceivedByEmployee(Contract $contract, Employee $employee): void
     {
+        $contract->loadMissing(['contractStatus', 'draftContractStatus', 'receivedContract']);
+
         $contractNo = str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT);
         $employeeName = (string) ($employee->name ?? 'موظف');
         $title = 'تم استلام عقد';
         $body = "تم استلام العقد رقم {$contractNo} من الموظف {$employeeName}";
-        $data = [
+        $statusPayload = ContractFrontendStatus::firebaseData($contract);
+        $data = array_merge($statusPayload, [
             'type' => 'contract_received',
-            'contract_id' => (string) $contract->id,
-            'contract_uuid' => (string) ($contract->uuid ?? ''),
             'employee_id' => (string) $employee->id,
             'employee_name' => $employeeName,
             'contract_status_id' => (string) ($contract->contract_status_id ?? ''),
-        ];
+        ]);
 
         $this->sendToAllEmployees($title, $body, $data);
 
@@ -76,6 +78,34 @@ class FirebaseNotificationService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * Push contract/draft status change to the contract owner (matches API v2 status fields).
+     */
+    public function notifyContractStatusChanged(Contract $contract): void
+    {
+        $contract->loadMissing(['contractStatus', 'draftContractStatus', 'receivedContract', 'user']);
+
+        if ((int) $contract->user_id <= 0) {
+            return;
+        }
+
+        $payload = ContractFrontendStatus::firebaseData($contract);
+        $label = $payload['status_label'] !== '' ? $payload['status_label'] : 'تم تحديث حالة طلبك';
+        $contractNo = str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT);
+        $title = 'تحديث حالة طلبك';
+        $body = "طلبك رقم {$contractNo}: {$label}";
+
+        try {
+            $this->sendToUser((int) $contract->user_id, $title, $body, $payload);
+        } catch (\Throwable $e) {
+            Log::warning('Firebase notify contract status change failed', [
+                'contract_id' => $contract->id,
+                'user_id' => $contract->user_id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 

@@ -16,6 +16,9 @@ class ContractStatusSeeder extends Seeder
             ['name' => 'ملغى', 'color' => '#EF4444', 'color_text' => '#FFFFFF', 'description' => 'تم إلغاء العقد', 'order' => 4],
             ['name' => 'معلق', 'color' => '#6B7280', 'color_text' => '#FFFFFF', 'description' => 'العقد معلق حتى استكمال المستندات', 'order' => 5],
             ['name' => 'مستلم', 'color' => '#8B5CF6', 'color_text' => '#FFFFFF', 'description' => 'تم استلام العقد من الموظف', 'order' => 6],
+            ['name' => 'مستلم من الموظف', 'color' => '#F97316', 'color_text' => '#FFFFFF', 'description' => 'الحالة الآن - يراجع فريقنا بيانات طلبك', 'order' => 7],
+            ['name' => 'إرسال مسودة العقد لكم عبر واتساب', 'color' => '#22C55E', 'color_text' => '#FFFFFF', 'description' => 'تصلك المسودة للاطلاع والمراجعة قبل التوثيق', 'order' => 8],
+            ['name' => 'توثيق العقد في إيجار', 'color' => '#0EA5E9', 'color_text' => '#FFFFFF', 'description' => 'يُوثّق العقد ويصبح جاهزاً للتحميل', 'order' => 9],
         ];
 
         foreach ($statuses as $status) {

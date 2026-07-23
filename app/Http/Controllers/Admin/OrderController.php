@@ -13,6 +13,7 @@ use App\Models\ContractStatus;
 use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\TenantRole;
+use App\Services\FirebaseNotificationService;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
@@ -948,6 +949,12 @@ class OrderController extends Controller
             ]);
             $contract->load($this->contractDetailRelations());
 
+            try {
+                app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
+            } catch (\Throwable $notifyError) {
+                report($notifyError);
+            }
+
             return $this->apiResponse(
                 new AdminContractDetailResource($contract),
                 trans('api.updated_successfully')
@@ -995,6 +1002,12 @@ class OrderController extends Controller
             ]);
             $contract->load($this->contractDetailRelations());
 
+            try {
+                app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
+            } catch (\Throwable $notifyError) {
+                report($notifyError);
+            }
+
             return $this->apiResponse(
                 new AdminContractDetailResource($contract),
                 trans('api.updated_successfully')
@@ -1027,10 +1040,29 @@ class OrderController extends Controller
 
             $payload = $request->updatePayload();
 
+            $statusFields = ['contract_status_id', 'draft_contract_status_id', 'draft_before_paid', 'draft_after_paid'];
+            $statusChanged = false;
+            foreach ($statusFields as $field) {
+                if (array_key_exists($field, $payload)
+                    && (string) ($contract->{$field} ?? '') !== (string) ($payload[$field] ?? '')
+                ) {
+                    $statusChanged = true;
+                    break;
+                }
+            }
+
             $contract->fill($payload);
             $contract->save();
             $contract->refresh();
             $contract->load($this->contractDetailRelations());
+
+            if ($statusChanged) {
+                try {
+                    app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
+                } catch (\Throwable $notifyError) {
+                    report($notifyError);
+                }
+            }
 
             $detail = (new AdminContractDetailResource($contract))->toArray($request);
 

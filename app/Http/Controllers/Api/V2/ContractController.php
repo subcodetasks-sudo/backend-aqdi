@@ -47,7 +47,7 @@ class ContractController extends Controller
     {
         $user = auth()->user();
         $contracts = Contract::where('user_id', $user->id)
-            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus', 'receivedContract'])
             ->orderBy('updated_at', 'desc')
             ->where('is_delete', 0)
             ->reachedAdminOrderStep()
@@ -76,7 +76,7 @@ class ContractController extends Controller
             ->where('contract_status_id', (int) $statusId)
             ->where('is_delete', 0)
             ->reachedAdminOrderStep()
-            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus', 'receivedContract'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
 
@@ -97,7 +97,7 @@ class ContractController extends Controller
             ->where('is_delete', 0)
             ->reachedAdminOrderStep()
             ->draft()
-            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus', 'receivedContract'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
 
@@ -124,7 +124,7 @@ class ContractController extends Controller
             ->reachedAdminOrderStep()
             ->draft()
             ->where('draft_contract_status_id', (int) $statusId)
-            ->with(['realEstate', 'contractStatus', 'draftContractStatus'])
+            ->with(['realEstate', 'contractStatus', 'draftContractStatus', 'receivedContract'])
             ->orderBy('updated_at', 'desc')
             ->paginate(10);
 
@@ -144,6 +144,7 @@ class ContractController extends Controller
                 'realEstate',
                 'contractStatus',
                 'draftContractStatus',
+                'receivedContract',
                 'units.unitType',
                 'units.unitUsage',
                 'units.realEstate',

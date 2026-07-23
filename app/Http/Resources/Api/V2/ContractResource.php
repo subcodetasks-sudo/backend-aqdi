@@ -6,6 +6,7 @@ use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Api\V2\UnitResource;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
 use App\Models\Contract;
+use App\Support\ContractFrontendStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -52,15 +53,15 @@ class ContractResource extends JsonResource
             'is_completed' => (bool) $this->is_completed,
             'is_draft' => (bool) $this->is_draft,
             'step' => $this->step,
-            'contract_status_id' => $this->contract_status_id,
-            'contract_status_name' => optional($this->contractStatus)->name
-                ? trans(optional($this->contractStatus)->name)
-                : 'قيد المراجعة',
+            ...$this->contractStatusFields('قيد المراجعة'),
             'contract_status_color' => optional($this->contractStatus)->color ?? '#000000',
             'contract_status_icon' => optional($this->contractStatus)->icon ?? '<i class="fa fa-check"></i>',
             'draft_contract_status_id' => $this->draft_contract_status_id,
             'draft_contract_status_name' => optional($this->draftContractStatus)->name,
             'draft_contract_status_color' => optional($this->draftContractStatus)->color,
+            'journey' => ContractFrontendStatus::journey($this->resource),
+            'journey_status' => ContractFrontendStatus::journeyStatus($this->resource),
+            'journey_status_label' => ContractFrontendStatus::journeyStatusLabel($this->resource),
             'number_of_units_in_realestate' => $this->numberOfUnitsInRealestate(),
             'units' => $this->when(
                 $this->relationLoaded('units'),
