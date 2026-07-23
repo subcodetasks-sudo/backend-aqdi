@@ -769,6 +769,11 @@ class Contract extends Model
         return $this->hasOne(RefundableContract::class, 'contract_id')->latestOfMany();
     }
 
+    public function invoices()
+    {
+        return $this->hasMany(Invoice::class, 'contract_id');
+    }
+
     public function contractPaidByEmployees()
     {
         return $this->hasMany(ContractPaidByEmployee::class, 'contract_uuid', 'uuid');

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V2\SmsSettingController as V2SmsSettingController;
 use App\Http\Controllers\Api\V2\MeterFeeSettingController as V2MeterFeeSettingController;
 use App\Http\Controllers\Api\V2\UncompeleteContractController as V2UncompeleteContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
+use App\Http\Controllers\Api\V2\InvoiceController as V2InvoiceController;
 use App\Http\Controllers\Api\V2\RealEstateControllor as V2RealEstateControllor;
 use App\Http\Controllers\Api\V2\SavedRealEstateController as V2SavedRealEstateController;
 use App\Http\Controllers\Api\V2\UnitEstateController as V2UnitEstateController;
@@ -131,6 +132,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/financial/{uuid}', 'financial');
         Route::get('/finance-summary/{uuid}', 'financial');
     });
+
+    Route::prefix('invoices')->controller(V2InvoiceController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/number/{invoiceNumber}', 'showByNumber')->where('invoiceNumber', 'INV-[A-Za-z0-9\-]+');
+        Route::get('/{contractId}', 'show')->whereNumber('contractId');
+    });
+
+    Route::get('/contracts/{contractId}/invoice', [V2InvoiceController::class, 'show'])
+        ->whereNumber('contractId');
 
     foreach (['realstate', 'realState'] as $realEstatePrefix) {
         Route::prefix($realEstatePrefix)->controller(V2RealEstateControllor::class)->group(function () {
