@@ -110,6 +110,7 @@ class Contract extends Model
 
     protected $casts = [
         'tenant_role_ids' => 'array',
+        'tenant_role_values' => 'array',
         'kitchen_tank' => 'boolean',
         'furnished' => 'boolean',
         'accept_retrun_contract' => 'boolean',

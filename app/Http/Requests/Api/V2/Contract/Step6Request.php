@@ -84,6 +84,8 @@ class Step6Request extends BaseApiV2Request
             'tenant_role_id' => 'nullable|integer|exists:tenant_roles,id',
             'tenant_role_ids' => 'nullable|array',
             'tenant_role_ids.*' => 'integer|exists:tenant_roles,id',
+            'tenant_role_values' => 'nullable|array',
+            'tenant_role_values.*' => 'nullable',
         ];
     }
 
@@ -105,7 +107,47 @@ class Step6Request extends BaseApiV2Request
             if (! $isOther && ! $this->filled('contract_term_in_years')) {
                 $v->errors()->add('contract_term_in_years', 'مدة العقد مطلوبة.');
             }
+
+            $this->validateTenantRoleValues($v);
         });
+    }
+
+    private function validateTenantRoleValues(Validator $v): void
+    {
+        $roleIds = $this->input('tenant_role_ids', []);
+        if (! is_array($roleIds) || $roleIds === []) {
+            return;
+        }
+
+        $roleIds = array_values(array_unique(array_map('intval', $roleIds)));
+        $roles = \App\Models\TenantRole::query()->whereIn('id', $roleIds)->get()->keyBy('id');
+        $values = $this->input('tenant_role_values', []);
+        if (! is_array($values)) {
+            $values = [];
+        }
+
+        foreach ($roleIds as $roleId) {
+            $role = $roles->get($roleId);
+            if (! $role || ! $role->requiresUserInput()) {
+                continue;
+            }
+
+            $raw = $values[(string) $roleId] ?? $values[$roleId] ?? null;
+            if ($raw === null || $raw === '') {
+                $v->errors()->add(
+                    "tenant_role_values.{$roleId}",
+                    ($role->input_field_label ?: 'قيمة الصلاحية').' مطلوب.'
+                );
+                continue;
+            }
+
+            if ($role->input_field_type === \App\Models\TenantRole::INPUT_TYPE_NUMBER && ! is_numeric($raw)) {
+                $v->errors()->add(
+                    "tenant_role_values.{$roleId}",
+                    ($role->input_field_label ?: 'قيمة الصلاحية').' يجب أن يكون رقماً.'
+                );
+            }
+        }
     }
 
     public function messages(): array

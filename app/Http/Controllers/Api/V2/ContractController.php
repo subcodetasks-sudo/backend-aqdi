@@ -28,6 +28,7 @@ use App\Models\CouponUsage;
 use App\Models\RealEstate;
 use App\Models\ServicesPricing;
 use App\Models\Setting;
+use App\Models\TenantRole;
 use App\Support\ContractStartingDateInput;
 use App\Support\DateInputNormalizer;
 use App\Support\DocFee;
@@ -534,6 +535,43 @@ class ContractController extends Controller
         return [$ids, $first];
     }
 
+    /**
+     * Keep only values for selected roles that require user input.
+     *
+     * @param  list<int>  $roleIds
+     * @return array<string, string>|null
+     */
+    private function normalizeTenantRoleValuesFromStep6Request(Step6Request $request, array $roleIds): ?array
+    {
+        if ($roleIds === []) {
+            return null;
+        }
+
+        $raw = $request->input('tenant_role_values', []);
+        if (! is_array($raw)) {
+            $raw = [];
+        }
+
+        $roles = TenantRole::query()->whereIn('id', $roleIds)->get()->keyBy('id');
+        $normalized = [];
+
+        foreach ($roleIds as $roleId) {
+            $role = $roles->get($roleId);
+            if (! $role || ! $role->requiresUserInput()) {
+                continue;
+            }
+
+            $value = $raw[(string) $roleId] ?? $raw[$roleId] ?? null;
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $normalized[(string) $roleId] = is_scalar($value) ? (string) $value : '';
+        }
+
+        return $normalized !== [] ? $normalized : null;
+    }
+
     private function hasOwnerAgent(Step3Request $request): bool
     {
         $add = $request->add_legal_agent_of_owner;
@@ -769,6 +807,7 @@ class ContractController extends Controller
         [$tenantRoleIds, $firstTenantRoleId] = $this->normalizeTenantRoleIdsFromStep6Request($request);
         $data['tenant_role_ids'] = $tenantRoleIds !== [] ? $tenantRoleIds : null;
         $data['tenant_role_id'] = $firstTenantRoleId;
+        $data['tenant_role_values'] = $this->normalizeTenantRoleValuesFromStep6Request($request, $tenantRoleIds);
 
         if ($request->filled('other_conditions')) {
             $data['other_conditions'] = $request->other_conditions;

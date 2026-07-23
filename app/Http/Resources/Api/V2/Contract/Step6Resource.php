@@ -4,6 +4,7 @@ namespace App\Http\Resources\Api\V2\Contract;
 
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Http\Resources\Concerns\WithContractDocumentationDeadline;
+use App\Models\TenantRole;
 use App\Support\DocFee;
 use App\Support\HijriDobParts;
 use Illuminate\Http\Request;
@@ -30,12 +31,10 @@ class Step6Resource extends JsonResource
             'contract_starting_date_year' => $startingDate['year'] ?? null,
             'type_contract_starting_date' => $this->type_contract_starting_date ?? 'hijri',
 
-            // مدة جاهزة (contract_periods)
             'contract_term_in_years' => $this->contract_term_in_years,
             'price_contract_term' => $docFee['doc_fee']
                 ?? optional($this->contractTermInYears)->price,
 
-            // مدة أخرى — ضمن بيانات الخطوة السادسة
             'duration_preset' => $this->duration_preset,
             'duration_years' => $this->duration_years,
             'duration_months' => $this->duration_months,
@@ -51,6 +50,8 @@ class Step6Resource extends JsonResource
             'tenant_roles' => (bool) $this->tenant_roles,
             'tenant_role_id' => $this->tenant_role_id,
             'tenant_role_ids' => $this->tenant_role_ids ?? [],
+            'tenant_role_values' => $this->tenant_role_values ?? [],
+            'tenant_roles_details' => $this->tenantRolesDetails(),
 
             'doc_fee' => $docFee['doc_fee'] ?? null,
             'doc_fee_lines' => $docFee['doc_fee_lines'] ?? [],
@@ -60,5 +61,34 @@ class Step6Resource extends JsonResource
             ...$this->contractStatusFields(),
             'step' => $this->step,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function tenantRolesDetails(): array
+    {
+        $ids = $this->tenant_role_ids ?? [];
+        if (! is_array($ids) || $ids === []) {
+            return [];
+        }
+
+        $values = is_array($this->tenant_role_values) ? $this->tenant_role_values : [];
+        $roles = TenantRole::query()->whereIn('id', $ids)->orderBy('id')->get();
+
+        return $roles->map(function (TenantRole $role) use ($values) {
+            $key = (string) $role->id;
+
+            return [
+                'id' => $role->id,
+                'text_of_reason' => $role->text_of_reason,
+                'name' => $role->text_of_reason,
+                'service_definition' => $role->service_definition,
+                'input_field_label' => $role->input_field_label,
+                'input_field_type' => $role->input_field_type,
+                'has_user_input' => $role->requiresUserInput(),
+                'value' => $values[$key] ?? $values[$role->id] ?? null,
+            ];
+        })->values()->all();
     }
 }

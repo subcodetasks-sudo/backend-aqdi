@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\V2\Api\TenantRoleResource;
 use App\Http\Traits\Responser;
 use App\Models\TenantRole;
 
@@ -12,8 +13,11 @@ class TenantRoleController extends Controller
 
     public function index()
     {
-        $roles = TenantRole::query()->get();
+        $roles = TenantRole::query()->orderBy('id')->get();
 
-        return $this->apiResponse($roles, trans('api.roles'));
+        return $this->apiResponse(
+            TenantRoleResource::collection($roles),
+            trans('api.roles')
+        );
     }
 }

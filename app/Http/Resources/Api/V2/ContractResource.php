@@ -45,6 +45,7 @@ class ContractResource extends JsonResource
             'tenant_roles' => (bool) $this->tenant_roles,
             'tenant_role_ids' => $this->tenant_role_ids ?? [],
             'tenant_role_id' => $this->tenant_role_id,
+            'tenant_role_values' => $this->tenant_role_values ?? [],
             'additional_terms' => (bool) $this->additional_terms,
             'text_additional_terms' => $this->text_additional_terms,
             'notes_edits' => $this->notes_edits,

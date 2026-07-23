@@ -858,6 +858,7 @@ class OrderController extends Controller
                 'tenant_roles',
                 'tenant_role_ids',
                 'tenant_role_id',
+                'tenant_role_values',
                 'conditions',
                 'other_conditions',
                 'daily_fine',

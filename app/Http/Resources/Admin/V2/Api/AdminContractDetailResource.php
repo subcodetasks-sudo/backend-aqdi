@@ -262,8 +262,32 @@ class AdminContractDetailResource extends JsonResource
             'draft_contract_status_id' => $c->draft_contract_status_id,
             'contract_payments' => $this->paymentsSummary($c->contractPayments),
             'tenant_role' => $this->tenantRoleSummary($c->tenantRole),
+            'tenant_roles_details' => $this->tenantRolesDetails($c),
             'accept_retrun_contract_employee' => $this->employeeSummary($c->acceptRetrunContractEmployee),
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function tenantRolesDetails($c): array
+    {
+        $ids = $c->tenant_role_ids ?? [];
+        if (! is_array($ids) || $ids === []) {
+            return [];
+        }
+
+        $values = is_array($c->tenant_role_values) ? $c->tenant_role_values : [];
+        $roles = TenantRole::query()->whereIn('id', $ids)->orderBy('id')->get();
+
+        return $roles->map(function (TenantRole $role) use ($values) {
+            $key = (string) $role->id;
+            $summary = $this->tenantRoleSummary($role);
+
+            return array_merge($summary ?? [], [
+                'value' => $values[$key] ?? $values[$role->id] ?? null,
+            ]);
+        })->values()->all();
     }
 
     /**
@@ -602,6 +626,10 @@ class AdminContractDetailResource extends JsonResource
             'id' => $m->id,
             'name' => $m->text_of_reason,
             'text_of_reason' => $m->text_of_reason,
+            'service_definition' => $m->service_definition,
+            'input_field_label' => $m->input_field_label,
+            'input_field_type' => $m->input_field_type,
+            'has_user_input' => $m->requiresUserInput(),
         ];
     }
 }
