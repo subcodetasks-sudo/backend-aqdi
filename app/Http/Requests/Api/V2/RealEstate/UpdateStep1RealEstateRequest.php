@@ -7,6 +7,8 @@ use App\Http\Requests\Api\V2\RealEstate\Concerns\NormalizesRealEstateInstrumentT
 use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
 use App\Models\City;
 use App\Models\RealEstate;
+use App\Support\DateInputNormalizer;
+use App\Support\HijriDobParts;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +21,21 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
     {
         $this->normalizeCoordinateInputs();
         $this->normalizeInstrumentTypeInput();
+
+        if (! $this->filled('date_first_registration_day') && $this->filled('date_first_registration')) {
+            $raw = trim((string) $this->input('date_first_registration'));
+            $parts = DateInputNormalizer::splitMysqlDate($raw);
+            if ($parts['day'] === null) {
+                $parts = HijriDobParts::split($raw);
+            }
+            if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
+                $this->merge([
+                    'date_first_registration_day' => (int) $parts['day'],
+                    'date_first_registration_month' => (int) $parts['month'],
+                    'date_first_registration_year' => (int) $parts['year'],
+                ]);
+            }
+        }
     }
 
     public function authorize(): bool
@@ -39,9 +56,17 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'water_meter_ownership' => 'nullable|in:owner,tenant',
             'contract_type' => 'nullable|in:housing,commercial',
             'property_owner_is_deceased' => 'nullable|boolean',
-            'instrument_history' => 'nullable|date',
+            'instrument_history' => 'nullable|string|max:32',
             'real_estate_registry_number' => [Rule::requiredIf($instrumentType === 'strong_argument')],
-            'date_first_registration' => [Rule::requiredIf($instrumentType === 'strong_argument')],
+            'date_first_registration' => [
+                Rule::requiredIf($instrumentType === 'strong_argument'),
+                'nullable',
+                'string',
+                'max:32',
+            ],
+            'date_first_registration_day' => 'nullable|integer|min:1|max:31',
+            'date_first_registration_month' => 'nullable|integer|min:1|max:12',
+            'date_first_registration_year' => 'nullable|integer|min:1',
             'property_type_id' => 'nullable|exists:rea_estat_types,id',
             'number_of_floors' => 'nullable',
             'instrument_type' => ['nullable', Rule::in($instrumentTypes), 'required_if:property_owner_is_deceased,1'],
@@ -139,9 +164,14 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         $data = array_merge([
             'name_real_estate' => $this->input('name_real_estate'),
             'real_estate_registry_number' => $this->input('real_estate_registry_number'),
-            'date_first_registration' => $this->input('date_first_registration'),
             'step' => 1,
         ], $this->locationAttributesForPayload());
+
+        $dateFirst = $this->resolvedDateFirstRegistration();
+        if ($dateFirst !== null) {
+            $data['date_first_registration'] = $dateFirst;
+            $data['type_date_first_registration'] = $this->input('type_date_first_registration', 'hijri');
+        }
 
         if ($this->exists('property_owner_is_deceased')) {
             $data['property_owner_is_deceased'] = $this->input('property_owner_is_deceased') === null
@@ -186,12 +216,9 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         }
 
         if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
-            $data['instrument_history'] = date('Y-m-d', strtotime((string) $this->input('instrument_history')));
+            $data['instrument_history'] = DateInputNormalizer::toMysqlDate((string) $this->input('instrument_history'))
+                ?? date('Y-m-d', strtotime((string) $this->input('instrument_history')));
             $data['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
-        }
-
-        if ($this->input('instrument_type') === 'strong_argument' && $this->filled('date_first_registration')) {
-            $data['type_date_first_registration'] = $this->input('type_date_first_registration', 'hijri');
         }
 
         if ($this->hasFile('image_instrument')) {
@@ -220,5 +247,39 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         }
 
         return $data;
+    }
+
+    public function resolvedDateFirstRegistration(): ?string
+    {
+        $hasDay = $this->filled('date_first_registration_day');
+        $hasMonth = $this->filled('date_first_registration_month');
+        $hasYear = $this->filled('date_first_registration_year');
+
+        if ($hasDay && $hasMonth && $hasYear) {
+            return DateInputNormalizer::combineFromParts(
+                $this->input('date_first_registration_day'),
+                $this->input('date_first_registration_month'),
+                $this->input('date_first_registration_year'),
+            );
+        }
+
+        if ($this->filled('date_first_registration')) {
+            $raw = trim((string) $this->input('date_first_registration'));
+            if ($raw === '') {
+                return null;
+            }
+
+            $mysql = DateInputNormalizer::toMysqlDate($raw);
+            if ($mysql !== null) {
+                return $mysql;
+            }
+
+            $parts = preg_split('/[-\/]/', $raw);
+            if (count($parts) === 3) {
+                return DateInputNormalizer::combineFromParts($parts[0], $parts[1], $parts[2]);
+            }
+        }
+
+        return null;
     }
 }

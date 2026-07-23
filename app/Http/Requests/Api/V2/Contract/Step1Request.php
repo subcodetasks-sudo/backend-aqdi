@@ -38,10 +38,6 @@ class Step1Request extends BaseApiV2Request
             $parts = DateInputNormalizer::splitMysqlDate($raw);
             if ($parts['day'] === null) {
                 $parts = HijriDobParts::split($raw);
-                // HijriDobParts is DD-MM-YYYY; remap to Y-m-d parts for DATE storage UI
-                if ($parts['day'] !== null && $parts['year'] !== null && (int) $parts['year'] < 1700) {
-                    // keep day/month/year as provided (hijri numbers)
-                }
             }
 
             if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
@@ -49,6 +45,23 @@ class Step1Request extends BaseApiV2Request
                     'instrument_history_day' => (int) $parts['day'],
                     'instrument_history_month' => (int) $parts['month'],
                     'instrument_history_year' => (int) $parts['year'],
+                ]);
+            }
+        }
+
+        // Same for date_first_registration (سجل عقاري / strong_argument).
+        if (! $this->filled('date_first_registration_day') && $this->filled('date_first_registration')) {
+            $raw = trim((string) $this->input('date_first_registration'));
+            $parts = DateInputNormalizer::splitMysqlDate($raw);
+            if ($parts['day'] === null) {
+                $parts = HijriDobParts::split($raw);
+            }
+
+            if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
+                $this->merge([
+                    'date_first_registration_day' => (int) $parts['day'],
+                    'date_first_registration_month' => (int) $parts['month'],
+                    'date_first_registration_year' => (int) $parts['year'],
                 ]);
             }
         }
@@ -80,6 +93,11 @@ class Step1Request extends BaseApiV2Request
             'instrument_history_month' => 'nullable|integer|min:1|max:12',
             'instrument_history_year' => 'nullable|integer|min:1',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
+            'real_estate_registry_number' => 'nullable|string|max:255',
+            'date_first_registration' => 'nullable|string|max:32',
+            'date_first_registration_day' => 'nullable|integer|min:1|max:31',
+            'date_first_registration_month' => 'nullable|integer|min:1|max:12',
+            'date_first_registration_year' => 'nullable|integer|min:1',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
             'age_of_the_property' => 'nullable|integer|min:0',
             'number_of_units_per_floor' => 'nullable|string|max:255',
@@ -129,6 +147,11 @@ class Step1Request extends BaseApiV2Request
             'instrument_history_month',
             'instrument_history_year',
             'type_instrument_history',
+            'real_estate_registry_number',
+            'date_first_registration',
+            'date_first_registration_day',
+            'date_first_registration_month',
+            'date_first_registration_year',
             'type_date_first_registration',
             'age_of_the_property',
             'copy_of_the_endowment_registration_certificate',
@@ -190,20 +213,43 @@ class Step1Request extends BaseApiV2Request
      */
     public function resolvedInstrumentHistory(): ?string
     {
-        $hasDay = $this->filled('instrument_history_day');
-        $hasMonth = $this->filled('instrument_history_month');
-        $hasYear = $this->filled('instrument_history_year');
+        return $this->resolveDateField(
+            'instrument_history',
+            'instrument_history_day',
+            'instrument_history_month',
+            'instrument_history_year'
+        );
+    }
+
+    /**
+     * Build date_first_registration for storage (same rules as instrument_history).
+     */
+    public function resolvedDateFirstRegistration(): ?string
+    {
+        return $this->resolveDateField(
+            'date_first_registration',
+            'date_first_registration_day',
+            'date_first_registration_month',
+            'date_first_registration_year'
+        );
+    }
+
+    private function resolveDateField(string $combined, string $dayKey, string $monthKey, string $yearKey): ?string
+    {
+        $hasDay = $this->filled($dayKey);
+        $hasMonth = $this->filled($monthKey);
+        $hasYear = $this->filled($yearKey);
 
         if ($hasDay && $hasMonth && $hasYear) {
             return DateInputNormalizer::combineFromParts(
-                $this->input('instrument_history_day'),
-                $this->input('instrument_history_month'),
-                $this->input('instrument_history_year'),
+                $this->input($dayKey),
+                $this->input($monthKey),
+                $this->input($yearKey),
             );
         }
 
-        if ($this->filled('instrument_history')) {
-            $raw = trim((string) $this->input('instrument_history'));
+        if ($this->filled($combined)) {
+            $raw = trim((string) $this->input($combined));
             if ($raw === '') {
                 return null;
             }
@@ -213,7 +259,6 @@ class Step1Request extends BaseApiV2Request
                 return $mysql;
             }
 
-            // DD-MM-YYYY / DD/MM/YYYY (Hijri UI parts treated as calendar numbers)
             $parts = preg_split('/[-\/]/', $raw);
             if (count($parts) === 3) {
                 return DateInputNormalizer::combineFromParts($parts[0], $parts[1], $parts[2]);

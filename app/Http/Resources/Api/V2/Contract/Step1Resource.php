@@ -48,6 +48,7 @@ class Step1Resource extends JsonResource
     public function toArray(Request $request): array
     {
         $historyParts = $this->instrumentHistoryParts();
+        $firstRegParts = $this->dateFirstRegistrationParts();
 
         return [
             'id' => $this->id,
@@ -78,7 +79,10 @@ class Step1Resource extends JsonResource
             'instrument_history_year' => $historyParts['year'],
             'type_instrument_history' => $this->type_instrument_history ?? 'hijri',
             'real_estate_registry_number' => $this->real_estate_registry_number,
-            'date_first_registration' => $this->date_first_registration,
+            'date_first_registration' => $this->formatMysqlDate($this->date_first_registration),
+            'date_first_registration_day' => $firstRegParts['day'],
+            'date_first_registration_month' => $firstRegParts['month'],
+            'date_first_registration_year' => $firstRegParts['year'],
             'type_date_first_registration' => $this->type_date_first_registration ?? 'hijri',
             'copy_of_the_endowment_registration_certificate' => $this->fileUrl($this->copy_of_the_endowment_registration_certificate),
             'copy_of_the_trusteeship_deed' => $this->fileUrl($this->copy_of_the_trusteeship_deed),
@@ -91,5 +95,26 @@ class Step1Resource extends JsonResource
             ...$this->contractStatusFields(),
             'step' => $this->step,
         ];
+    }
+
+    /**
+     * @return array{day: ?string, month: ?string, year: ?string}
+     */
+    private function dateFirstRegistrationParts(): array
+    {
+        return DateInputNormalizer::splitMysqlDate($this->formatMysqlDate($this->date_first_registration));
+    }
+
+    private function formatMysqlDate(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
     }
 }

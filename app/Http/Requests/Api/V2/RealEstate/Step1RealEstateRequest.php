@@ -7,6 +7,8 @@ use App\Http\Requests\Api\V2\RealEstate\Concerns\NormalizesRealEstateInstrumentT
 use App\Http\Requests\Api\V2\RealEstate\Concerns\RealEstateLocationRules;
 use App\Models\City;
 use App\Models\RealEstate;
+use App\Support\DateInputNormalizer;
+use App\Support\HijriDobParts;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Validation\Rule;
 
@@ -23,6 +25,28 @@ class Step1RealEstateRequest extends BaseApiV2Request
     {
         $this->normalizeCoordinateInputs();
         $this->normalizeInstrumentTypeInput();
+        $this->normalizeDateFirstRegistrationParts();
+    }
+
+    private function normalizeDateFirstRegistrationParts(): void
+    {
+        if ($this->filled('date_first_registration_day') || ! $this->filled('date_first_registration')) {
+            return;
+        }
+
+        $raw = trim((string) $this->input('date_first_registration'));
+        $parts = DateInputNormalizer::splitMysqlDate($raw);
+        if ($parts['day'] === null) {
+            $parts = HijriDobParts::split($raw);
+        }
+
+        if ($parts['day'] !== null && $parts['month'] !== null && $parts['year'] !== null) {
+            $this->merge([
+                'date_first_registration_day' => (int) $parts['day'],
+                'date_first_registration_month' => (int) $parts['month'],
+                'date_first_registration_year' => (int) $parts['year'],
+            ]);
+        }
     }
 
     public function authorize(): bool
@@ -53,8 +77,13 @@ class Step1RealEstateRequest extends BaseApiV2Request
                 Rule::requiredIf(in_array($instrumentType, ['electronic', $ownerEndowment], true)),
             ],
 
-            'instrument_history' => 'nullable|date',
+            'instrument_history' => 'nullable|string|max:32',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
+            'real_estate_registry_number' => 'nullable|string|max:255',
+            'date_first_registration' => 'nullable|string|max:32',
+            'date_first_registration_day' => 'nullable|integer|min:1|max:31',
+            'date_first_registration_month' => 'nullable|integer|min:1|max:12',
+            'date_first_registration_year' => 'nullable|integer|min:1',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
             'age_of_the_property'            => 'nullable|integer|min:0',
             'number_of_units_per_floor'      => 'nullable|string|max:255',
@@ -166,11 +195,18 @@ class Step1RealEstateRequest extends BaseApiV2Request
         }
 
          if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
-            $payload['instrument_history'] = date('Y-m-d', strtotime((string) $this->input('instrument_history')));
+            $payload['instrument_history'] = DateInputNormalizer::toMysqlDate((string) $this->input('instrument_history'))
+                ?? date('Y-m-d', strtotime((string) $this->input('instrument_history')));
             $payload['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
         }
 
-        if ($this->input('instrument_type') === 'strong_argument' && $this->filled('date_first_registration')) {
+        if ($this->filled('real_estate_registry_number')) {
+            $payload['real_estate_registry_number'] = $this->input('real_estate_registry_number');
+        }
+
+        $dateFirst = $this->resolvedDateFirstRegistration();
+        if ($dateFirst !== null) {
+            $payload['date_first_registration'] = $dateFirst;
             $payload['type_date_first_registration'] = $this->input('type_date_first_registration', 'hijri');
         }
 
@@ -201,5 +237,39 @@ class Step1RealEstateRequest extends BaseApiV2Request
         }
 
         return $payload;
+    }
+
+    public function resolvedDateFirstRegistration(): ?string
+    {
+        $hasDay = $this->filled('date_first_registration_day');
+        $hasMonth = $this->filled('date_first_registration_month');
+        $hasYear = $this->filled('date_first_registration_year');
+
+        if ($hasDay && $hasMonth && $hasYear) {
+            return DateInputNormalizer::combineFromParts(
+                $this->input('date_first_registration_day'),
+                $this->input('date_first_registration_month'),
+                $this->input('date_first_registration_year'),
+            );
+        }
+
+        if ($this->filled('date_first_registration')) {
+            $raw = trim((string) $this->input('date_first_registration'));
+            if ($raw === '') {
+                return null;
+            }
+
+            $mysql = DateInputNormalizer::toMysqlDate($raw);
+            if ($mysql !== null) {
+                return $mysql;
+            }
+
+            $parts = preg_split('/[-\/]/', $raw);
+            if (count($parts) === 3) {
+                return DateInputNormalizer::combineFromParts($parts[0], $parts[1], $parts[2]);
+            }
+        }
+
+        return null;
     }
 }

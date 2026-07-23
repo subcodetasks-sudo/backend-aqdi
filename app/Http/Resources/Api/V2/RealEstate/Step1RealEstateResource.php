@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V2\RealEstate;
 
+use App\Support\DateInputNormalizer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,6 +10,9 @@ class Step1RealEstateResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $firstRegParts = DateInputNormalizer::splitMysqlDate($this->formatMysqlDate($this->date_first_registration));
+        $historyParts = DateInputNormalizer::splitMysqlDate($this->formatMysqlDate($this->instrument_history));
+
         return [
             'id' => $this->id,
             'contract_ownership' => $this->contract_ownership,
@@ -26,10 +30,16 @@ class Step1RealEstateResource extends JsonResource
             'number_of_units_in_realestate' => $this->number_of_units_in_realestate,
             'property_owner_is_deceased' => $this->property_owner_is_deceased,
             'instrument_number' => $this->instrument_number,
-            'instrument_history' => $this->instrument_history,
+            'instrument_history' => $this->formatMysqlDate($this->instrument_history),
+            'instrument_history_day' => $historyParts['day'],
+            'instrument_history_month' => $historyParts['month'],
+            'instrument_history_year' => $historyParts['year'],
             'type_instrument_history' => $this->type_instrument_history ?? 'hijri',
             'real_estate_registry_number' => $this->real_estate_registry_number,
-            'date_first_registration' => $this->date_first_registration,
+            'date_first_registration' => $this->formatMysqlDate($this->date_first_registration),
+            'date_first_registration_day' => $firstRegParts['day'],
+            'date_first_registration_month' => $firstRegParts['month'],
+            'date_first_registration_year' => $firstRegParts['year'],
             'type_date_first_registration' => $this->type_date_first_registration ?? 'hijri',
             'name_real_estate' => $this->name_real_estate,
             'image_instrument' => $this->image_instrument
@@ -68,5 +78,18 @@ class Step1RealEstateResource extends JsonResource
             'lng' => $lng,
             'step' => $this->step,
         ];
+    }
+
+    private function formatMysqlDate(mixed $value): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (string) $value;
     }
 }

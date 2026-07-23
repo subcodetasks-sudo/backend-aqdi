@@ -273,6 +273,7 @@ class ContractController extends Controller
             'number_of_units_in_realestate',
             'instrument_number',
             'type_instrument_history',
+            'real_estate_registry_number',
             'type_date_first_registration',
         ] as $optionalField) {
             if (array_key_exists($optionalField, $validated)) {
@@ -285,6 +286,14 @@ class ContractController extends Controller
             $step1Data['instrument_history'] = $instrumentHistory;
             if (! array_key_exists('type_instrument_history', $step1Data)) {
                 $step1Data['type_instrument_history'] = $request->input('type_instrument_history', 'hijri');
+            }
+        }
+
+        $dateFirstRegistration = $request->resolvedDateFirstRegistration();
+        if ($dateFirstRegistration !== null) {
+            $step1Data['date_first_registration'] = $dateFirstRegistration;
+            if (! array_key_exists('type_date_first_registration', $step1Data)) {
+                $step1Data['type_date_first_registration'] = $request->input('type_date_first_registration', 'hijri');
             }
         }
 
