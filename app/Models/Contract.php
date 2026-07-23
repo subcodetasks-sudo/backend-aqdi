@@ -774,6 +774,11 @@ class Contract extends Model
         return $this->hasMany(Invoice::class, 'contract_id');
     }
 
+    public function statusHistories()
+    {
+        return $this->hasMany(ContractStatusHistory::class, 'contract_id')->orderBy('id');
+    }
+
     public function contractPaidByEmployees()
     {
         return $this->hasMany(ContractPaidByEmployee::class, 'contract_uuid', 'uuid');

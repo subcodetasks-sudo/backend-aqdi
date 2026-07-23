@@ -12,6 +12,7 @@ use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\Employee;
 use App\Models\ReceivedContract;
+use App\Services\ContractStatusHistoryService;
 use App\Services\FirebaseNotificationService;
 use Illuminate\Database\QueryException;
 use Throwable;
@@ -137,8 +138,10 @@ class ReceivedContractController extends Controller
                     'contract_status_id' => ContractStatus::RECEIVED_ID,
                 ]);
                 $contractModel->refresh();
+                $contractModel->loadMissing(['contractStatus', 'draftContractStatus']);
 
                 try {
+                    app(ContractStatusHistoryService::class)->record($contractModel, ['source' => 'receive']);
                     app(FirebaseNotificationService::class)
                         ->notifyContractReceivedByEmployee($contractModel, $employee);
                 } catch (Throwable $notifyError) {

@@ -14,6 +14,7 @@ use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\TenantRole;
 use App\Services\FirebaseNotificationService;
+use App\Services\ContractStatusHistoryService;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
@@ -950,6 +951,7 @@ class OrderController extends Controller
             $contract->load($this->contractDetailRelations());
 
             try {
+                app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
                 app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
             } catch (\Throwable $notifyError) {
                 report($notifyError);
@@ -1003,6 +1005,7 @@ class OrderController extends Controller
             $contract->load($this->contractDetailRelations());
 
             try {
+                app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
                 app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
             } catch (\Throwable $notifyError) {
                 report($notifyError);
@@ -1058,6 +1061,7 @@ class OrderController extends Controller
 
             if ($statusChanged) {
                 try {
+                    app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
                     app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
                 } catch (\Throwable $notifyError) {
                     report($notifyError);

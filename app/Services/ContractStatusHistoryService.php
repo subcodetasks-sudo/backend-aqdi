@@ -1,0 +1,154 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Contract;
+use App\Models\ContractStatusHistory;
+use App\Support\ContractFrontendStatus;
+
+class ContractStatusHistoryService
+{
+    /**
+     * Record a status event. Skips if same as the latest history row.
+     *
+     * @param  array{
+     *     status?: string,
+     *     status_label?: string,
+     *     status_type?: string,
+     *     status_id?: int|null,
+     *     status_color?: string|null,
+     *     status_description?: string|null,
+     *     source?: string|null
+     * }  $override
+     */
+    public function record(Contract $contract, array $override = []): ?ContractStatusHistory
+    {
+        $payload = array_merge(ContractFrontendStatus::for($contract), $override);
+
+        $status = (string) ($payload['status'] ?? 'unknown');
+        $label = (string) ($payload['status_label'] ?? 'غير محدد');
+        $type = (string) ($payload['status_type'] ?? 'contract');
+        $statusId = isset($payload['status_id']) ? (int) $payload['status_id'] : null;
+
+        $latest = ContractStatusHistory::query()
+            ->where('contract_id', $contract->id)
+            ->latest('id')
+            ->first();
+
+        if ($latest
+            && $latest->status === $status
+            && (string) $latest->status_label === $label
+            && (int) ($latest->status_id ?? 0) === (int) ($statusId ?? 0)
+        ) {
+            return $latest;
+        }
+
+        return ContractStatusHistory::query()->create([
+            'contract_id' => $contract->id,
+            'status_type' => $type,
+            'status_id' => $statusId,
+            'status' => $status,
+            'status_label' => $label,
+            'status_color' => $payload['status_color'] ?? null,
+            'status_description' => $payload['status_description'] ?? null,
+            'source' => $override['source'] ?? 'system',
+        ]);
+    }
+
+    /**
+     * Record an explicit system step (e.g. payment) with fixed Arabic label.
+     */
+    public function recordExplicit(
+        Contract $contract,
+        string $status,
+        string $statusLabel,
+        string $source = 'system',
+        ?string $color = null,
+        ?string $description = null
+    ): ?ContractStatusHistory {
+        return $this->record($contract, [
+            'status' => $status,
+            'status_label' => $statusLabel,
+            'status_type' => 'system',
+            'status_id' => null,
+            'status_color' => $color,
+            'status_description' => $description,
+            'source' => $source,
+        ]);
+    }
+
+    /**
+     * Ensure history exists for API: backfill current (+ paid) if empty.
+     */
+    public function ensureSeeded(Contract $contract): void
+    {
+        $exists = ContractStatusHistory::query()
+            ->where('contract_id', $contract->id)
+            ->exists();
+
+        if ($exists) {
+            return;
+        }
+
+        if ((bool) $contract->is_completed) {
+            $this->recordExplicit(
+                $contract,
+                'paid',
+                'تم الدفع',
+                'payment',
+                '#16A34A',
+                'تم استلام المقابل المالي'
+            );
+        }
+
+        $this->record($contract, ['source' => 'system']);
+    }
+
+    /**
+     * Dynamic timeline: only statuses that actually happened.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function timeline(Contract $contract): array
+    {
+        $this->ensureSeeded($contract);
+
+        $rows = ContractStatusHistory::query()
+            ->where('contract_id', $contract->id)
+            ->orderBy('id')
+            ->get();
+
+        if ($rows->isEmpty()) {
+            $payload = ContractFrontendStatus::for($contract);
+
+            return [[
+                'status' => $payload['status'],
+                'status_label' => $payload['status_label'],
+                'status_color' => $payload['status_color'],
+                'status_description' => $payload['status_description'],
+                'status_type' => $payload['status_type'],
+                'status_id' => $payload['status_id'],
+                'state' => 'current',
+                'source' => 'system',
+                'created_at' => optional($contract->updated_at)?->toIso8601String(),
+            ]];
+        }
+
+        $lastIndex = $rows->count() - 1;
+
+        return $rows->values()->map(function (ContractStatusHistory $row, int $i) use ($lastIndex) {
+            return [
+                'id' => $row->id,
+                'status' => $row->status,
+                'status_label' => $row->status_label,
+                'status_color' => $row->status_color,
+                'status_description' => $row->status_description,
+                'status_type' => $row->status_type,
+                'status_id' => $row->status_id,
+                'state' => $i < $lastIndex ? 'completed' : 'current',
+                'source' => $row->source,
+                'created_at' => optional($row->created_at)?->toIso8601String(),
+            ];
+        })->all();
+    }
+}

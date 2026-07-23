@@ -1025,6 +1025,22 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
                 ->value('amount') ?? 0);
 
             try {
+                app(ContractStatusHistoryService::class)->recordExplicit(
+                    $contract->fresh(),
+                    'paid',
+                    'تم الدفع',
+                    'payment',
+                    '#16A34A',
+                    'تم استلام المقابل المالي'
+                );
+            } catch (\Throwable $e) {
+                Log::warning('Failed to record paid status history', [
+                    'contract_id' => $contract->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            try {
                 app(FirebaseNotificationService::class)
                     ->notifyEmployeesOfNewContract($contract->fresh(['user']), $paidAmount > 0 ? $paidAmount : null);
             } catch (\Throwable $e) {
