@@ -8,6 +8,10 @@ use App\Models\ContractStatus;
 /**
  * Unified frontend status payload for API v2 + Firebase.
  * Keys: status (machine), status_label (Arabic).
+ *
+ * Important: status / status_label always reflect the dashboard DB status.
+ * Journey must NOT override a paused status like «معلق» with «مستلم من الموظف»
+ * just because a received_contracts row exists.
  */
 class ContractFrontendStatus
 {
@@ -26,6 +30,9 @@ class ContractFrontendStatus
         'توثيق العقد في إيجار' => 'ejar_authenticated',
         'توثيق العقد في ايجار' => 'ejar_authenticated',
     ];
+
+    /** Statuses that pause the journey — badge must show DB label, not a journey step. */
+    private const PAUSED_KEYS = ['on_hold', 'cancelled'];
 
     /**
      * @return array{
@@ -83,7 +90,10 @@ class ContractFrontendStatus
      */
     public static function journey(?Contract $contract): array
     {
-        $current = self::resolveJourneyKey($contract);
+        $statusPayload = self::for($contract);
+        $paused = self::isPausedStatus($statusPayload['status']);
+        $activeKey = $paused ? null : self::resolveActiveJourneyKey($contract);
+        $achievedIndex = self::lastAchievedJourneyIndex($contract);
 
         $steps = [
             [
@@ -96,7 +106,7 @@ class ContractFrontendStatus
                 'key' => 'received_by_employee',
                 'status' => 'received_by_employee',
                 'status_label' => 'مستلم من الموظف',
-                'description' => 'الحالة الآن - يراجع فريقنا بيانات طلبك',
+                'description' => 'يراجع فريقنا بيانات طلبك',
             ],
             [
                 'key' => 'whatsapp_draft',
@@ -113,18 +123,28 @@ class ContractFrontendStatus
         ];
 
         $order = array_column($steps, 'key');
-        $currentIndex = array_search($current, $order, true);
-        if ($currentIndex === false) {
+        $currentIndex = $activeKey !== null ? array_search($activeKey, $order, true) : false;
+        if ($currentIndex === false && ! $paused) {
             $currentIndex = self::isPaid($contract) ? 0 : -1;
         }
 
         foreach ($steps as $i => &$step) {
-            if ($i < $currentIndex) {
-                $step['state'] = 'completed';
-            } elseif ($i === $currentIndex) {
-                $step['state'] = 'current';
+            if ($paused) {
+                $step['state'] = $i <= $achievedIndex ? 'completed' : 'pending';
+            } elseif ($currentIndex !== false && $currentIndex >= 0) {
+                if ($i < $currentIndex) {
+                    $step['state'] = 'completed';
+                } elseif ($i === $currentIndex) {
+                    $step['state'] = 'current';
+                } else {
+                    $step['state'] = 'pending';
+                }
             } else {
-                $step['state'] = 'pending';
+                $step['state'] = $i <= $achievedIndex ? 'completed' : 'pending';
+            }
+
+            if ($step['key'] === 'received_by_employee' && $step['state'] === 'current') {
+                $step['description'] = 'الحالة الآن - يراجع فريقنا بيانات طلبك';
             }
         }
         unset($step);
@@ -134,12 +154,27 @@ class ContractFrontendStatus
 
     public static function journeyStatus(?Contract $contract): string
     {
-        return self::resolveJourneyKey($contract);
+        $payload = self::for($contract);
+
+        // Paused / cancelled: expose real DB status (e.g. on_hold) — never fake «received».
+        if (self::isPausedStatus($payload['status'])) {
+            return $payload['status'];
+        }
+
+        return self::resolveActiveJourneyKey($contract) ?? $payload['status'];
     }
 
     public static function journeyStatusLabel(?Contract $contract): string
     {
-        return self::journeyLabel(self::resolveJourneyKey($contract));
+        $payload = self::for($contract);
+
+        if (self::isPausedStatus($payload['status'])) {
+            return $payload['status_label'];
+        }
+
+        $key = self::resolveActiveJourneyKey($contract);
+
+        return $key ? self::journeyLabel($key) : $payload['status_label'];
     }
 
     /**
@@ -148,7 +183,6 @@ class ContractFrontendStatus
     public static function firebaseData(Contract $contract): array
     {
         $payload = self::for($contract);
-        $currentJourney = self::resolveJourneyKey($contract);
 
         return [
             'type' => 'contract_status_changed',
@@ -161,8 +195,8 @@ class ContractFrontendStatus
             'status_color' => (string) ($payload['status_color'] ?? ''),
             'status_description' => (string) ($payload['status_description'] ?? ''),
             'is_draft' => $contract->is_draft ? '1' : '0',
-            'journey_status' => (string) $currentJourney,
-            'journey_status_label' => (string) self::journeyLabel($currentJourney),
+            'journey_status' => self::journeyStatus($contract),
+            'journey_status_label' => self::journeyStatusLabel($contract),
         ];
     }
 
@@ -247,26 +281,39 @@ class ContractFrontendStatus
         ];
     }
 
-    private static function resolveJourneyKey(?Contract $contract): string
+    private static function isPausedStatus(string $key): bool
+    {
+        return in_array($key, self::PAUSED_KEYS, true);
+    }
+
+    /**
+     * Active journey step from the *current* DB status only.
+     * Does NOT infer «received» from received_contracts alone.
+     */
+    private static function resolveActiveJourneyKey(?Contract $contract): ?string
     {
         if ($contract === null) {
             return 'paid';
         }
 
-        $statusPayload = self::for($contract);
-        $key = $statusPayload['status'];
+        $key = self::for($contract)['status'];
+
+        if (self::isPausedStatus($key)) {
+            return null;
+        }
 
         if (in_array($key, ['ejar_authenticated', 'completed'], true)) {
             return 'ejar_authenticated';
         }
+
         if ($key === 'whatsapp_draft') {
             return 'whatsapp_draft';
         }
-        if (in_array($key, ['received', 'received_by_employee'], true)
-            || (int) $contract->contract_status_id === ContractStatus::RECEIVED_ID
-            || $contract->receivedContract !== null
-        ) {
-            // Advance past received if WhatsApp draft file exists or status already beyond.
+
+        $isReceivedStatus = in_array($key, ['received', 'received_by_employee'], true)
+            || (int) $contract->contract_status_id === ContractStatus::RECEIVED_ID;
+
+        if ($isReceivedStatus) {
             if (self::hasWhatsAppDraft($contract)) {
                 return 'whatsapp_draft';
             }
@@ -283,6 +330,41 @@ class ContractFrontendStatus
         }
 
         return 'paid';
+    }
+
+    /**
+     * Highest journey step already achieved (for completed marks when paused).
+     * Here received_contracts may count as progress history.
+     */
+    private static function lastAchievedJourneyIndex(?Contract $contract): int
+    {
+        if ($contract === null) {
+            return -1;
+        }
+
+        $key = self::for($contract)['status'];
+
+        if (in_array($key, ['ejar_authenticated', 'completed'], true)) {
+            return 3;
+        }
+
+        if ($key === 'whatsapp_draft' || self::hasWhatsAppDraft($contract)) {
+            return 2;
+        }
+
+        $wasReceived = in_array($key, ['received', 'received_by_employee'], true)
+            || (int) $contract->contract_status_id === ContractStatus::RECEIVED_ID
+            || $contract->receivedContract !== null;
+
+        if ($wasReceived) {
+            return 1;
+        }
+
+        if (self::isPaid($contract)) {
+            return 0;
+        }
+
+        return -1;
     }
 
     private static function isPaid(?Contract $contract): bool
@@ -306,6 +388,8 @@ class ContractFrontendStatus
             'received_by_employee' => 'مستلم من الموظف',
             'whatsapp_draft' => 'إرسال مسودة العقد لكم عبر واتساب',
             'ejar_authenticated' => 'توثيق العقد في إيجار',
+            'on_hold' => 'معلق',
+            'cancelled' => 'ملغى',
             default => 'قيد المتابعة',
         };
     }
