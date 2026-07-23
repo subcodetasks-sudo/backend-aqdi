@@ -18,6 +18,13 @@ class TenantRole extends Model
         'service_definition',
         'input_field_label',
         'input_field_type',
+        'icon',
+        'input_icon',
+        'pop',
+    ];
+
+    protected $casts = [
+        'pop' => 'boolean',
     ];
 
     /**
@@ -34,5 +41,13 @@ class TenantRole extends Model
             && $this->input_field_type !== ''
             && $this->input_field_label !== null
             && trim((string) $this->input_field_label) !== '';
+    }
+
+    /**
+     * Whether selecting this role should open a popup/modal.
+     */
+    public function shouldPop(): bool
+    {
+        return (bool) $this->pop;
     }
 }

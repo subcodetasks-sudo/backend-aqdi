@@ -22,6 +22,9 @@ class TenantRoleResource extends JsonResource
             'input_field_label' => $this->input_field_label,
             'input_field_type' => $this->input_field_type,
             'has_user_input' => $hasInput,
+            'icon' => $this->icon,
+            'input_icon' => $this->input_icon,
+            'pop' => (bool) $this->pop,
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
         ];

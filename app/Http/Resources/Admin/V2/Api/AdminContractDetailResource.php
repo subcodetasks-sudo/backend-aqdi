@@ -655,6 +655,9 @@ class AdminContractDetailResource extends JsonResource
             'input_field_label' => $m->input_field_label,
             'input_field_type' => $m->input_field_type,
             'has_user_input' => $m->requiresUserInput(),
+            'icon' => $m->icon,
+            'input_icon' => $m->input_icon,
+            'pop' => (bool) $m->pop,
         ];
     }
 }

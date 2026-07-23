@@ -169,15 +169,22 @@ class TenantRoleController extends Controller
                 'nullable',
                 Rule::in(TenantRole::inputFieldTypes()),
             ],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'input_icon' => ['nullable', 'string', 'max:255'],
+            'pop' => ['sometimes', 'boolean'],
         ], [
             'input_field_label.required' => 'اسم حقل المستخدم مطلوب عند تحديد نوع الحقل.',
             'input_field_type.required' => 'نوع حقل المستخدم مطلوب عند إدخال اسم الحقل.',
             'input_field_type.in' => 'نوع الحقل يجب أن يكون نص أو رقم (text أو number).',
+            'pop.boolean' => 'قيمة pop يجب أن تكون true أو false.',
         ], [
             'text_of_reason' => 'عنوان الصلاحية',
             'service_definition' => 'التعريف بالخدمة',
             'input_field_label' => 'اسم حقل المستخدم',
             'input_field_type' => 'نوع حقل المستخدم',
+            'icon' => 'أيقونة الصلاحية',
+            'input_icon' => 'أيقونة حقل الإدخال',
+            'pop' => 'عرض النافذة المنبثقة',
         ]);
     }
 
@@ -200,11 +207,20 @@ class TenantRoleController extends Controller
         $definition = $request->input('service_definition');
         $definition = ($definition === '' || $definition === null) ? null : trim((string) $definition);
 
+        $icon = $request->input('icon');
+        $icon = ($icon === '' || $icon === null) ? null : trim((string) $icon);
+
+        $inputIcon = $request->input('input_icon');
+        $inputIcon = ($inputIcon === '' || $inputIcon === null) ? null : trim((string) $inputIcon);
+
         return [
             'text_of_reason' => trim((string) $request->input('text_of_reason')),
             'service_definition' => $definition,
             'input_field_label' => $label,
             'input_field_type' => $type,
+            'icon' => $icon,
+            'input_icon' => $inputIcon,
+            'pop' => $request->boolean('pop'),
         ];
     }
 

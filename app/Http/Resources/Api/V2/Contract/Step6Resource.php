@@ -92,6 +92,9 @@ class Step6Resource extends JsonResource
                 'input_field_label' => $role->input_field_label,
                 'input_field_type' => $role->input_field_type,
                 'has_user_input' => $role->requiresUserInput(),
+                'icon' => $role->icon,
+                'input_icon' => $role->input_icon,
+                'pop' => (bool) $role->pop,
                 'value' => $values[$key] ?? $values[$role->id] ?? null,
             ];
         })->values()->all();
