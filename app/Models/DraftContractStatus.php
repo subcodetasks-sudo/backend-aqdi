@@ -14,6 +14,7 @@ class DraftContractStatus extends Model
         'color',
         'color_text',
         'description',
+        'client_explanation',
         'is_active',
     ];
 

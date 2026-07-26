@@ -9,7 +9,8 @@ use App\Services\ContractStatusHistoryService;
  * Unified frontend status payload for API v2 + Firebase.
  *
  * - status / status_label = current dashboard status (Arabic label as stored).
- * - journey / status_timeline = only statuses that actually happened (history), never future fixed steps.
+ * - status_client_explanation = شرح الحالة للعميل (from admin statuses).
+ * - journey / status_timeline = only statuses that actually happened (history).
  */
 class ContractFrontendStatus
 {
@@ -36,7 +37,8 @@ class ContractFrontendStatus
      *     status_type: string,
      *     status_id: int|null,
      *     status_color: string|null,
-     *     status_description: string|null
+     *     status_description: string|null,
+     *     status_client_explanation: string|null
      * }
      */
     public static function for(?Contract $contract): array
@@ -58,6 +60,7 @@ class ContractFrontendStatus
                 name: $row?->name,
                 color: $row?->color,
                 description: $row?->description,
+                clientExplanation: $row?->client_explanation,
                 defaultLabel: 'مسودة',
                 defaultKey: 'draft'
             );
@@ -73,14 +76,13 @@ class ContractFrontendStatus
             name: $row?->name,
             color: $row?->color,
             description: $row?->description,
+            clientExplanation: $row?->client_explanation,
             defaultLabel: 'قيد المراجعة',
             defaultKey: 'under_review'
         );
     }
 
     /**
-     * Dynamic timeline from real status history (alias kept as journey for BC).
-     *
      * @return list<array<string, mixed>>
      */
     public static function journey(?Contract $contract): array
@@ -129,6 +131,7 @@ class ContractFrontendStatus
             'status_id' => $payload['status_id'] !== null ? (string) $payload['status_id'] : '',
             'status_color' => (string) ($payload['status_color'] ?? ''),
             'status_description' => (string) ($payload['status_description'] ?? ''),
+            'status_client_explanation' => (string) ($payload['status_client_explanation'] ?? ''),
             'is_draft' => $contract->is_draft ? '1' : '0',
             'journey_status' => (string) $payload['status'],
             'journey_status_label' => (string) $payload['status_label'],
@@ -148,7 +151,6 @@ class ContractFrontendStatus
             return self::NAME_TO_KEY[$trimmed];
         }
 
-        // Exact-ish helpers only — do NOT map «مكتمل»/random names to توثيق via fuzzy contains.
         if ($trimmed === 'تم الدفع') {
             return 'paid';
         }
@@ -165,7 +167,8 @@ class ContractFrontendStatus
      *     status_type: string,
      *     status_id: int|null,
      *     status_color: string|null,
-     *     status_description: string|null
+     *     status_description: string|null,
+     *     status_client_explanation: string|null
      * }
      */
     private static function fromRow(
@@ -174,11 +177,16 @@ class ContractFrontendStatus
         ?string $name,
         ?string $color,
         ?string $description,
+        ?string $clientExplanation,
         string $defaultLabel,
         string $defaultKey
     ): array {
         $label = $name !== null && trim($name) !== '' ? trim($name) : $defaultLabel;
         $key = self::keyFromName($name, $id ? "{$statusType}_{$id}" : $defaultKey);
+        $client = filled($clientExplanation) ? trim((string) $clientExplanation) : null;
+
+        // Tracking UI prefers client explanation; fall back to internal description.
+        $trackingDescription = $client ?? (filled($description) ? trim((string) $description) : null);
 
         return [
             'status' => $key,
@@ -186,7 +194,8 @@ class ContractFrontendStatus
             'status_type' => $statusType,
             'status_id' => $id,
             'status_color' => $color,
-            'status_description' => $description,
+            'status_description' => $trackingDescription,
+            'status_client_explanation' => $client,
         ];
     }
 
@@ -197,7 +206,8 @@ class ContractFrontendStatus
      *     status_type: string,
      *     status_id: int|null,
      *     status_color: string|null,
-     *     status_description: string|null
+     *     status_description: string|null,
+     *     status_client_explanation: string|null
      * }
      */
     private static function empty(): array
@@ -209,6 +219,7 @@ class ContractFrontendStatus
             'status_id' => null,
             'status_color' => null,
             'status_description' => null,
+            'status_client_explanation' => null,
         ];
     }
 }

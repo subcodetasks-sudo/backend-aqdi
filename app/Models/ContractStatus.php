@@ -23,6 +23,7 @@ class ContractStatus extends Model
         'color',
         'color_text',
         'description',
+        'client_explanation',
         'order',
         'is_active',
     ];

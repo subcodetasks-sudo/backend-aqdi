@@ -140,6 +140,7 @@ class DraftContractStatusController extends Controller
                     'color' => $status->color,
                     'color_text' => $status->color_text,
                     'description' => $status->description,
+                    'client_explanation' => $status->client_explanation,
                     'is_active' => (bool) $status->is_active,
                 ];
 

@@ -30,6 +30,7 @@ trait MapsContractStatusFields
                 'status_id' => null,
                 'status_color' => null,
                 'status_description' => null,
+                'status_client_explanation' => null,
             ];
         }
 
@@ -45,7 +46,9 @@ trait MapsContractStatusFields
                 'status_type' => 'contract',
                 'status_id' => isset($contract->contract_status_id) ? (int) $contract->contract_status_id : null,
                 'status_color' => optional($contract->contractStatus)->color,
-                'status_description' => optional($contract->contractStatus)->description,
+                'status_description' => optional($contract->contractStatus)->client_explanation
+                    ?: optional($contract->contractStatus)->description,
+                'status_client_explanation' => optional($contract->contractStatus)->client_explanation,
             ];
 
         if ($defaultName && ($frontend['status_label'] === null || $frontend['status_label'] === '')) {
@@ -61,6 +64,7 @@ trait MapsContractStatusFields
             'status_id' => $frontend['status_id'],
             'status_color' => $frontend['status_color'],
             'status_description' => $frontend['status_description'],
+            'status_client_explanation' => $frontend['status_client_explanation'] ?? null,
         ];
     }
 }

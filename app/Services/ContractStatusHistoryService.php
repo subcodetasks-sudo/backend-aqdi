@@ -18,6 +18,7 @@ class ContractStatusHistoryService
      *     status_id?: int|null,
      *     status_color?: string|null,
      *     status_description?: string|null,
+     *     status_client_explanation?: string|null,
      *     source?: string|null
      * }  $override
      */
@@ -29,6 +30,7 @@ class ContractStatusHistoryService
         $label = (string) ($payload['status_label'] ?? 'غير محدد');
         $type = (string) ($payload['status_type'] ?? 'contract');
         $statusId = isset($payload['status_id']) ? (int) $payload['status_id'] : null;
+        $clientExplanation = $payload['status_client_explanation'] ?? null;
 
         $latest = ContractStatusHistory::query()
             ->where('contract_id', $contract->id)
@@ -51,6 +53,7 @@ class ContractStatusHistoryService
             'status_label' => $label,
             'status_color' => $payload['status_color'] ?? null,
             'status_description' => $payload['status_description'] ?? null,
+            'client_explanation' => $clientExplanation,
             'source' => $override['source'] ?? 'system',
         ]);
     }
@@ -64,7 +67,8 @@ class ContractStatusHistoryService
         string $statusLabel,
         string $source = 'system',
         ?string $color = null,
-        ?string $description = null
+        ?string $description = null,
+        ?string $clientExplanation = null
     ): ?ContractStatusHistory {
         return $this->record($contract, [
             'status' => $status,
@@ -72,7 +76,8 @@ class ContractStatusHistoryService
             'status_type' => 'system',
             'status_id' => null,
             'status_color' => $color,
-            'status_description' => $description,
+            'status_description' => $clientExplanation ?? $description,
+            'status_client_explanation' => $clientExplanation ?? $description,
             'source' => $source,
         ]);
     }
@@ -97,6 +102,7 @@ class ContractStatusHistoryService
                 'تم الدفع',
                 'payment',
                 '#16A34A',
+                'تم استلام المقابل المالي',
                 'تم استلام المقابل المالي'
             );
         }
@@ -126,6 +132,8 @@ class ContractStatusHistoryService
                 'status_label' => $payload['status_label'],
                 'status_color' => $payload['status_color'],
                 'status_description' => $payload['status_description'],
+                'client_explanation' => $payload['status_client_explanation'],
+                'status_client_explanation' => $payload['status_client_explanation'],
                 'status_type' => $payload['status_type'],
                 'status_id' => $payload['status_id'],
                 'state' => 'current',
@@ -137,12 +145,16 @@ class ContractStatusHistoryService
         $lastIndex = $rows->count() - 1;
 
         return $rows->values()->map(function (ContractStatusHistory $row, int $i) use ($lastIndex) {
+            $client = $row->client_explanation ?: $row->status_description;
+
             return [
                 'id' => $row->id,
                 'status' => $row->status,
                 'status_label' => $row->status_label,
                 'status_color' => $row->status_color,
-                'status_description' => $row->status_description,
+                'status_description' => $client,
+                'client_explanation' => $row->client_explanation,
+                'status_client_explanation' => $row->client_explanation,
                 'status_type' => $row->status_type,
                 'status_id' => $row->status_id,
                 'state' => $i < $lastIndex ? 'completed' : 'current',

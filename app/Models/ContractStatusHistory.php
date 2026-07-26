@@ -15,6 +15,7 @@ class ContractStatusHistory extends Model
         'status_label',
         'status_color',
         'status_description',
+        'client_explanation',
         'source',
     ];
 
