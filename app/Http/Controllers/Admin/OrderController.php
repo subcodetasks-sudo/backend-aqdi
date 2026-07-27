@@ -529,23 +529,11 @@ class OrderController extends Controller
     }
 
     /**
-     * Filter drafts by draft_contract_statuses.id.
-     * For «جديد»: also include rows with null draft_contract_status_id (legacy drafts).
+     * Filter drafts by draft_contract_statuses.id (strict).
      */
     private function applyDraftStatusIdFilter($query, ?int $draftStatusId): void
     {
         if ($draftStatusId === null) {
-            return;
-        }
-
-        $newId = DraftContractStatus::newStatusId();
-
-        if ($newId !== null && $draftStatusId === $newId) {
-            $query->where(function ($q) use ($draftStatusId) {
-                $q->where('draft_contract_status_id', $draftStatusId)
-                    ->orWhereNull('draft_contract_status_id');
-            });
-
             return;
         }
 
