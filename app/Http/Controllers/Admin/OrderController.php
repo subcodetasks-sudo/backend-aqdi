@@ -51,6 +51,7 @@ class OrderController extends Controller
         }
 
         $hasExplicitStatusFilter = $request->filled('status')
+            || $request->filled('status_id')
             || $request->filled('contract_status_id')
             || $request->filled('status_name');
 
@@ -72,12 +73,23 @@ class OrderController extends Controller
             ->latest()
             ->paginate($this->perPageFromRequest($request, 120, 200));
 
+        $resolvedStatusId = null;
+        if ($request->filled('contract_status_id')) {
+            $resolvedStatusId = (int) $request->input('contract_status_id');
+        } elseif ($request->filled('status_id')) {
+            $resolvedStatusId = (int) $request->input('status_id');
+        } elseif (is_numeric($request->input('status'))) {
+            $resolvedStatusId = (int) $request->input('status');
+        } elseif (! $hasExplicitStatusFilter) {
+            $resolvedStatusId = $defaultStatusId;
+        }
+
         return $this->paginatedApiResponse(
             $orders,
             OrderResource::collection($orders),
             trans('api.success'),
             [
-                'contract_status_id' => $hasExplicitStatusFilter ? null : $defaultStatusId,
+                'contract_status_id' => $resolvedStatusId,
                 'is_received' => $receivedPresenceFilter,
             ]
         );
@@ -620,11 +632,14 @@ class OrderController extends Controller
     }
 
     /**
-     * Shared filters: status, status_name, contract_status_id, is_completed.
+     * Shared filters: status, status_id, status_name, contract_status_id, is_completed.
      */
     private function applyContractStatusFiltersToQuery($query, Request $request): void
     {
         $status = $request->get('status');
+        $statusId = $request->filled('status_id')
+            ? (int) $request->input('status_id')
+            : null;
 
         $query
             ->when($request->has('is_completed'), fn ($q) =>
@@ -639,6 +654,9 @@ class OrderController extends Controller
                     $q->completed();
                 }
             })
+            ->when($statusId !== null, fn ($q) =>
+                $q->where('contract_status_id', $statusId)
+            )
             ->when($request->filled('status_name'), fn ($q) =>
                 $q->whereHas('contractStatus', fn ($sq) =>
                     $sq->where('name', 'like', '%'.$request->status_name.'%')
