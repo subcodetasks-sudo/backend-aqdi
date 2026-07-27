@@ -888,9 +888,18 @@ class ContractController extends Controller
         $wasDraft = (bool) $contract->is_draft;
         $isDraft = $request->boolean('is_draft');
 
-        $contract->update([
+        $updates = [
             'is_draft' => $isDraft,
-        ]);
+        ];
+
+        if ($isDraft && ! $contract->draft_contract_status_id) {
+            $newDraftStatusId = \App\Models\DraftContractStatus::newStatusId();
+            if ($newDraftStatusId !== null) {
+                $updates['draft_contract_status_id'] = $newDraftStatusId;
+            }
+        }
+
+        $contract->update($updates);
 
         // Notify admins when the user submits a draft for the first time.
         if ($isDraft && ! $wasDraft) {

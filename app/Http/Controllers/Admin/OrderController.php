@@ -10,6 +10,7 @@ use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Traits\Responser;
 use App\Models\Contract;
 use App\Models\ContractStatus;
+use App\Models\DraftContractStatus;
 use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\TenantRole;
@@ -262,7 +263,7 @@ class OrderController extends Controller
                 ->notDeleted()
                 ->reachedAdminOrderStep()
                 ->draft()
-                ->where('draft_contract_status_id', (int) $statusId)
+                ->tap(fn ($q) => $this->applyDraftStatusIdFilter($q, (int) $statusId))
                 ->when($request->filled('search'), fn ($q) =>
                     $q->adminSearch($request->string('search')->toString())
                 )
@@ -313,21 +314,37 @@ class OrderController extends Controller
 
     /**
      * Draft contracts (is_draft = true).
-     * GET /api/admin/contracts/draft
+     * GET /api/admin/orders/draft
+     * Filter: status_id | draft_contract_status_id → draft_contract_statuses.id
      */
     public function draftContracts(Request $request)
     {
         try {
+            if ($request->filled('status_id') || $request->filled('draft_contract_status_id')) {
+                $statusId = (int) ($request->input('draft_contract_status_id') ?? $request->input('status_id'));
+                $request->merge(['status_id' => $statusId]);
+                $this->validate($request, [
+                    'status_id' => 'required|integer|exists:draft_contract_statuses,id',
+                ]);
+            }
+
             $contracts = $this->draftContractsQuery($request)
                 ->with($this->orderListRelations())
                 ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            $meta = ['is_draft' => true];
+            if ($request->filled('draft_contract_status_id') || $request->filled('status_id')) {
+                $meta['draft_contract_status_id'] = (int) ($request->input('draft_contract_status_id') ?? $request->input('status_id'));
+            }
 
             return $this->paginatedApiResponse(
                 $contracts,
                 OrderResource::collection($contracts),
                 trans('api.success'),
-                ['is_draft' => true]
+                $meta
             );
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
         } catch (\Throwable $e) {
             return $this->apiResponse(
                 null,
@@ -482,11 +499,19 @@ class OrderController extends Controller
 
     private function draftContractsQuery(Request $request)
     {
+        $draftStatusId = null;
+        if ($request->filled('draft_contract_status_id')) {
+            $draftStatusId = (int) $request->input('draft_contract_status_id');
+        } elseif ($request->filled('status_id')) {
+            $draftStatusId = (int) $request->input('status_id');
+        }
+
         return Contract::query()
             ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
             ->notDeleted()
             ->reachedAdminOrderStep()
             ->draft()
+            ->tap(fn ($q) => $this->applyDraftStatusIdFilter($q, $draftStatusId))
             ->when($request->filled('contract_type'), fn ($q) =>
                 $q->where('contract_type', $request->contract_type)
             )
@@ -501,6 +526,30 @@ class OrderController extends Controller
                 $request->get('sort_by', 'created_at'),
                 $request->get('sort_order', 'desc')
             );
+    }
+
+    /**
+     * Filter drafts by draft_contract_statuses.id.
+     * For «جديد»: also include rows with null draft_contract_status_id (legacy drafts).
+     */
+    private function applyDraftStatusIdFilter($query, ?int $draftStatusId): void
+    {
+        if ($draftStatusId === null) {
+            return;
+        }
+
+        $newId = DraftContractStatus::newStatusId();
+
+        if ($newId !== null && $draftStatusId === $newId) {
+            $query->where(function ($q) use ($draftStatusId) {
+                $q->where('draft_contract_status_id', $draftStatusId)
+                    ->orWhereNull('draft_contract_status_id');
+            });
+
+            return;
+        }
+
+        $query->where('draft_contract_status_id', $draftStatusId);
     }
 
     private function completedAndDraftContractsQuery(Request $request)

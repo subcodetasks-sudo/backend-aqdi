@@ -9,6 +9,9 @@ class DraftContractStatus extends Model
 {
     use HasFactory;
 
+    /** Default draft status name for newly created drafts. */
+    public const NEW_NAME = 'جديد';
+
     protected $fillable = [
         'name',
         'color',
@@ -29,5 +32,12 @@ class DraftContractStatus extends Model
         return $this->created_at
             ? date('Y-m-d H:i A', strtotime($this->created_at))
             : null;
+    }
+
+    public static function newStatusId(): ?int
+    {
+        $id = static::query()->where('name', self::NEW_NAME)->value('id');
+
+        return $id !== null ? (int) $id : null;
     }
 }
