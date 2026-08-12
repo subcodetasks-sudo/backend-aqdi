@@ -35,10 +35,18 @@ class OrderController extends Controller
      *   GET /api/admin/orders?status=1
      *   GET /api/admin/orders?status_id=1
      *   GET /api/admin/orders?contract_status_id=1
+     *
+     * Completion filter (returns ALL complete / incomplete orders):
+     *   GET /api/admin/orders?complete=1
+     *   GET /api/admin/orders?incomplete=1
+     *   GET /api/admin/orders?is_completed=1
+     *   GET /api/admin/orders?status=complete
+     *   GET /api/admin/orders?status=incomplete
      */
     public function orders(Request $request)
     {
         $statusId = $this->resolveContractStatusIdFromRequest($request);
+        $isCompleted = $this->resolveCompletionFilterFromRequest($request);
 
         if ($statusId !== null) {
             $request->merge(['status_id' => $statusId]);
@@ -51,6 +59,9 @@ class OrderController extends Controller
                 ->notDeleted()
                 ->reachedAdminOrderStep()
                 ->where('contract_status_id', $statusId)
+                ->when($isCompleted !== null, fn ($q) =>
+                    $q->where('is_completed', $isCompleted ? 1 : 0)
+                )
                 ->when($request->filled('search'), fn ($q) =>
                     $q->adminSearch($request->string('search')->toString())
                 )
@@ -59,9 +70,6 @@ class OrderController extends Controller
                 )
                 ->when($request->filled('user_id'), fn ($q) =>
                     $q->where('user_id', $request->user_id)
-                )
-                ->when($request->has('is_completed'), fn ($q) =>
-                    $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
                 )
                 ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
                 ->with($this->orderListRelations())
@@ -75,6 +83,37 @@ class OrderController extends Controller
                 [
                     'contract_status_id' => $statusId,
                     'status_id' => $statusId,
+                    'is_completed' => $isCompleted,
+                ]
+            );
+        }
+
+        if ($isCompleted !== null) {
+            $orders = Contract::query()
+                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+                ->notDeleted()
+                ->reachedAdminOrderStep()
+                ->where('is_completed', $isCompleted ? 1 : 0)
+                ->when($request->filled('search'), fn ($q) =>
+                    $q->adminSearch($request->string('search')->toString())
+                )
+                ->when($request->filled('contract_type'), fn ($q) =>
+                    $q->where('contract_type', $request->contract_type)
+                )
+                ->when($request->filled('user_id'), fn ($q) =>
+                    $q->where('user_id', $request->user_id)
+                )
+                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+                ->with($this->orderListRelations())
+                ->latest()
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $orders,
+                OrderResource::collection($orders),
+                trans('api.success'),
+                [
+                    'is_completed' => $isCompleted ? 1 : 0,
                 ]
             );
         }
@@ -716,6 +755,48 @@ class OrderController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Resolve complete / incomplete query filter.
+     * true = completed, false = incomplete, null = not requested.
+     *
+     * Params: complete, incomplete, is_completed, status=complete|incomplete
+     */
+    private function resolveCompletionFilterFromRequest(Request $request): ?bool
+    {
+        if ($request->filled('incomplete') && $this->isTruthyQueryFlag($request->input('incomplete'))) {
+            return false;
+        }
+
+        if ($request->filled('complete') && $this->isTruthyQueryFlag($request->input('complete'))) {
+            return true;
+        }
+
+        if ($request->has('is_completed') && $request->query('is_completed') !== null && $request->query('is_completed') !== '') {
+            return $request->boolean('is_completed');
+        }
+
+        $status = strtolower(trim((string) $request->input('status', '')));
+        if (in_array($status, ['complete', 'completed'], true)) {
+            return true;
+        }
+        if (in_array($status, ['incomplete', 'uncompleted', 'not_completed'], true)) {
+            return false;
+        }
+
+        return null;
+    }
+
+    private function isTruthyQueryFlag(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        $normalized = strtolower(trim((string) $value));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 
     /**

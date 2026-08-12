@@ -369,7 +369,9 @@ $queryExamples = [
         ['key' => 'contract_status_id', 'value' => '{{status_id}}', 'disabled' => true],
         ['key' => 'page', 'value' => '1'],
         ['key' => 'per_page', 'value' => '20'],
-        ['key' => 'is_received', 'value' => 'true', 'disabled' => true],
+        ['key' => 'complete', 'value' => '1', 'disabled' => true],
+        ['key' => 'incomplete', 'value' => '1', 'disabled' => true],
+        ['key' => 'is_completed', 'value' => '1', 'disabled' => true],
         ['key' => 'search', 'value' => '', 'disabled' => true],
     ],
     'api/admin/orders/return' => [

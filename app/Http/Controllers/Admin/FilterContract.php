@@ -33,14 +33,24 @@ class FilterContract extends Controller
             $contractsQuery->where('contract_status_id', $statusId);
         }
 
-        if ($request->has('is_completed')) {
-            $contractsQuery->where('is_completed', $request->boolean('is_completed') ? 1 : 0);
-        } elseif ($statusId === null && $request->filled('status')
-            && in_array(strtolower((string) $request->status), ['incomplete', 'uncompleted', 'not_completed'], true)) {
-            $contractsQuery->incomplete();
-        } elseif ($statusId === null && $request->filled('status')
-            && in_array(strtolower((string) $request->status), ['complete', 'completed'], true)) {
-            $contractsQuery->completed();
+        $isCompleted = null;
+        if ($request->filled('incomplete') && in_array(strtolower((string) $request->input('incomplete')), ['1', 'true', 'yes', 'on'], true)) {
+            $isCompleted = false;
+        } elseif ($request->filled('complete') && in_array(strtolower((string) $request->input('complete')), ['1', 'true', 'yes', 'on'], true)) {
+            $isCompleted = true;
+        } elseif ($request->has('is_completed') && $request->query('is_completed') !== null && $request->query('is_completed') !== '') {
+            $isCompleted = $request->boolean('is_completed');
+        } elseif ($statusId === null && $request->filled('status')) {
+            $status = strtolower((string) $request->status);
+            if (in_array($status, ['incomplete', 'uncompleted', 'not_completed'], true)) {
+                $isCompleted = false;
+            } elseif (in_array($status, ['complete', 'completed'], true)) {
+                $isCompleted = true;
+            }
+        }
+
+        if ($isCompleted !== null) {
+            $contractsQuery->where('is_completed', $isCompleted ? 1 : 0);
         }
 
         $createdAtFilter = $request->query('created_at');
