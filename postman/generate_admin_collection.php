@@ -364,10 +364,12 @@ $exampleBodies = [
 
 $queryExamples = [
     'api/admin/orders' => [
+        ['key' => 'status_id', 'value' => '{{status_id}}'],
+        ['key' => 'status', 'value' => '{{status_id}}', 'disabled' => true],
+        ['key' => 'contract_status_id', 'value' => '{{status_id}}', 'disabled' => true],
         ['key' => 'page', 'value' => '1'],
         ['key' => 'per_page', 'value' => '20'],
         ['key' => 'is_received', 'value' => 'true', 'disabled' => true],
-        ['key' => 'contract_status_id', 'value' => '{{status_id}}', 'disabled' => true],
         ['key' => 'search', 'value' => '', 'disabled' => true],
     ],
     'api/admin/orders/return' => [

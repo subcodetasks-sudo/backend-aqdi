@@ -30,10 +30,55 @@ class OrderController extends Controller
      * Main orders list.
      * Default: received contracts (contract_status_id = 6 مستلم).
      * `is_received=false` → new contracts (1) not yet in `received_contracts`.
-     * GET /api/admin/orders
+     *
+     * Status filter (returns ALL orders with that contract_status_id):
+     *   GET /api/admin/orders?status=1
+     *   GET /api/admin/orders?status_id=1
+     *   GET /api/admin/orders?contract_status_id=1
      */
     public function orders(Request $request)
     {
+        $statusId = $this->resolveContractStatusIdFromRequest($request);
+
+        if ($statusId !== null) {
+            $request->merge(['status_id' => $statusId]);
+            $this->validate($request, [
+                'status_id' => 'required|integer|exists:contract_statuses,id',
+            ]);
+
+            $orders = Contract::query()
+                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
+                ->notDeleted()
+                ->reachedAdminOrderStep()
+                ->where('contract_status_id', $statusId)
+                ->when($request->filled('search'), fn ($q) =>
+                    $q->adminSearch($request->string('search')->toString())
+                )
+                ->when($request->filled('contract_type'), fn ($q) =>
+                    $q->where('contract_type', $request->contract_type)
+                )
+                ->when($request->filled('user_id'), fn ($q) =>
+                    $q->where('user_id', $request->user_id)
+                )
+                ->when($request->has('is_completed'), fn ($q) =>
+                    $q->where('is_completed', $request->boolean('is_completed') ? 1 : 0)
+                )
+                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
+                ->with($this->orderListRelations())
+                ->latest()
+                ->paginate($this->perPageFromRequest($request, 120, 200));
+
+            return $this->paginatedApiResponse(
+                $orders,
+                OrderResource::collection($orders),
+                trans('api.success'),
+                [
+                    'contract_status_id' => $statusId,
+                    'status_id' => $statusId,
+                ]
+            );
+        }
+
         $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
 
         if ($receivedPresenceFilter === false) {
@@ -51,11 +96,7 @@ class OrderController extends Controller
             );
         }
 
-        $hasExplicitStatusFilter = $request->filled('status')
-            || $request->filled('status_id')
-            || $request->filled('contract_status_id')
-            || $request->filled('status_name');
-
+        $hasExplicitStatusFilter = $request->filled('status_name');
         $defaultStatusId = ContractStatus::RECEIVED_ID;
 
         $orders = Contract::query()
@@ -74,23 +115,12 @@ class OrderController extends Controller
             ->latest()
             ->paginate($this->perPageFromRequest($request, 120, 200));
 
-        $resolvedStatusId = null;
-        if ($request->filled('contract_status_id')) {
-            $resolvedStatusId = (int) $request->input('contract_status_id');
-        } elseif ($request->filled('status_id')) {
-            $resolvedStatusId = (int) $request->input('status_id');
-        } elseif (is_numeric($request->input('status'))) {
-            $resolvedStatusId = (int) $request->input('status');
-        } elseif (! $hasExplicitStatusFilter) {
-            $resolvedStatusId = $defaultStatusId;
-        }
-
         return $this->paginatedApiResponse(
             $orders,
             OrderResource::collection($orders),
             trans('api.success'),
             [
-                'contract_status_id' => $resolvedStatusId,
+                'contract_status_id' => $hasExplicitStatusFilter ? null : $defaultStatusId,
                 'is_received' => $receivedPresenceFilter,
             ]
         );
@@ -669,14 +699,32 @@ class OrderController extends Controller
     }
 
     /**
+     * Resolve numeric contract status id from query:
+     * status_id | contract_status_id | status (when numeric).
+     */
+    private function resolveContractStatusIdFromRequest(Request $request): ?int
+    {
+        foreach (['status_id', 'contract_status_id', 'status'] as $key) {
+            if (! $request->filled($key)) {
+                continue;
+            }
+
+            $value = $request->input($key);
+            if (is_numeric($value)) {
+                return (int) $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Shared filters: status, status_id, status_name, contract_status_id, is_completed.
      */
     private function applyContractStatusFiltersToQuery($query, Request $request): void
     {
         $status = $request->get('status');
-        $statusId = $request->filled('status_id')
-            ? (int) $request->input('status_id')
-            : null;
+        $statusId = $this->resolveContractStatusIdFromRequest($request);
 
         $query
             ->when($request->has('is_completed'), fn ($q) =>

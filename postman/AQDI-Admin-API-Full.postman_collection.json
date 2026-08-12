@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "aqdi-admin-full-c3fbef535c94",
+        "_postman_id": "aqdi-admin-full-0761d06d1f97",
         "name": "AQDI Admin API — Full Collection",
         "description": "Full Admin API collection generated from Laravel routes (`api/admin/*`).\n\nAuth: most endpoints need `Authorization: Bearer {{employee_token}}` (employee Sanctum).\n\n1) Run **Employees login** first — token is saved automatically.\n2) Set `baseUrl`, ids, and other variables as needed.\n3) Example JSON bodies are included for create/update endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -6882,7 +6882,7 @@
                         "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@store\nRoute name: contract-statuses.store",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"حالة جديدة\",\n    \"color\": \"#3B82F6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف الحالة\",\n    \"order\": 10,\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"حالة جديدة\",\n    \"color\": \"#3B82F6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف داخلي للأدمن\",\n    \"client_explanation\": \"شرح الحالة الذي يظهر للعميل في تتبع الطلب\",\n    \"order\": 10,\n    \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -6992,7 +6992,7 @@
                         "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@update\nRoute name: contract-statuses.update",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"تعديل حالة\",\n    \"color\": \"#F59E0B\",\n    \"color_text\": \"#000000\",\n    \"description\": \"وصف\",\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"تعديل حالة\",\n    \"color\": \"#F59E0B\",\n    \"color_text\": \"#000000\",\n    \"description\": \"وصف\",\n    \"client_explanation\": \"شرح محدث يظهر للعميل\",\n    \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -7115,7 +7115,7 @@
                         "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@store\nRoute name: draft-contract-statuses.store",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف\",\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف\",\n    \"client_explanation\": \"شرح الحالة للعميل في المسودة\",\n    \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -7193,7 +7193,7 @@
                         "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@syncFromContractStatuses\nRoute name: draft-contract-statuses.sync",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"client_explanation\": \"شرح محدث للعميل\",\n    \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -7271,7 +7271,7 @@
                         "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@update\nRoute name: draft-contract-statuses.update",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"client_explanation\": \"شرح محدث للعميل\",\n    \"is_active\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

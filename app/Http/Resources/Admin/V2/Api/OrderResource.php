@@ -33,7 +33,11 @@ class OrderResource extends JsonResource
             'payment_status' => $payment['payment_status'],
             'payment_label_ar' => $payment['payment_label_ar'],
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'contract_status_id' => $this->contract_status_id,
             'status' => [
+                'id' => $this->is_draft
+                    ? ($this->draft_contract_status_id ?? $this->contract_status_id)
+                    : $this->contract_status_id,
                 'name' => $this->is_draft
                     ? ($this->draftContractStatus?->name ?? $this->contractStatus?->name)
                     : $this->contractStatus?->name,
