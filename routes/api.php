@@ -175,7 +175,7 @@ Route::withoutMiddleware([CheckApi::class, ApiLocalization::class])->group(funct
     Route::get('/status/error/{uuid}', [PaymentController::class, 'error'])->name('status.error');
     Route::get('/payment/result/{uuid}', [PaymentController::class, 'paymentResult'])->name('payment.result');
 
-    // Payment Details
+    // Payment
     Route::get('/payment/{uuid}', [PaymentController::class, 'index'])
         ->name('payment.show');
 });
