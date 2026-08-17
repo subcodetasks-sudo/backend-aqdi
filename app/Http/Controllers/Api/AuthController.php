@@ -229,6 +229,7 @@ class AuthController extends Controller
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:8',
             'fcm_token' => 'sometimes',
+            'platform' => 'nullable|string|in:website,web,google_play,google,android,apple_store,ios,apple,appstore,app_store',
         ];
 
         $this->validate($request, $rules);
@@ -261,6 +262,10 @@ class AuthController extends Controller
 
         $verificationCode = rand(1000, 9999);
         $data['verification_code'] = $verificationCode;
+
+        if ($request->filled('platform')) {
+            $data['platform'] = User::normalizePlatform((string) $request->input('platform'));
+        }
 
         $user = User::create($data);
 

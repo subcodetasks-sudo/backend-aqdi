@@ -16,6 +16,7 @@ use App\Models\Payment;
 use App\Models\TenantRole;
 use App\Services\FirebaseNotificationService;
 use App\Services\ContractStatusHistoryService;
+use App\Services\ContractStatusCaseService;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
@@ -27,26 +28,35 @@ class OrderController extends Controller
     use Responser;
 
     /**
-     * Main orders list.
-     * Default: received contracts (contract_status_id = 6 مستلم).
-     * `is_received=false` → new contracts (1) not yet in `received_contracts`.
+     * Single orders list. Filter with query params — do not use a second list URL.
      *
-     * Status filter (returns ALL orders with that contract_status_id):
-     *   GET /api/admin/orders?status=1
-     *   GET /api/admin/orders?status_id=1
-     *   GET /api/admin/orders?contract_status_id=1
-     *
-     * Completion filter (returns ALL complete / incomplete orders):
-     *   GET /api/admin/orders?complete=1
-     *   GET /api/admin/orders?incomplete=1
-     *   GET /api/admin/orders?is_completed=1
-     *   GET /api/admin/orders?status=complete
-     *   GET /api/admin/orders?status=incomplete
+     * GET /api/admin/orders
+     *   status_id=1                 contract status (also: status, contract_status_id)
+     *   is_draft=1                  draft contracts; status_id then filters draft_contract_statuses
+     *   complete=1 | incomplete=1   payment completion
+     *   is_received=0|1             awaiting receipt / already received
+     *   return=1                    return-orders list
+     *   return_status=pending|accept|reject
+     *   list=draft|return|received|completed-draft
+     *   search, contract_type, user_id, page, per_page
      */
     public function orders(Request $request)
     {
+        if ($this->wantsReturnList($request)) {
+            return $this->returnOrders($request);
+        }
+
+        if ($this->wantsDraftList($request)) {
+            return $this->draftContracts($request);
+        }
+
+        if ($this->wantsCompletedDraftList($request)) {
+            return $this->completedAndDraft($request);
+        }
+
         $statusId = $this->resolveContractStatusIdFromRequest($request);
         $isCompleted = $this->resolveCompletionFilterFromRequest($request);
+        $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
 
         if ($statusId !== null) {
             $request->merge(['status_id' => $statusId]);
@@ -80,11 +90,14 @@ class OrderController extends Controller
                 $orders,
                 OrderResource::collection($orders),
                 trans('api.success'),
-                [
-                    'contract_status_id' => $statusId,
-                    'status_id' => $statusId,
-                    'is_completed' => $isCompleted,
-                ]
+                array_merge(
+                    [
+                        'contract_status_id' => $statusId,
+                        'status_id' => $statusId,
+                        'is_completed' => $isCompleted,
+                    ],
+                    $this->newOrdersListSummaryIfNeeded($request, $statusId)
+                )
             );
         }
 
@@ -118,8 +131,6 @@ class OrderController extends Controller
             );
         }
 
-        $receivedPresenceFilter = $this->parseReceivedContractQueryFilter($request);
-
         if ($receivedPresenceFilter === false) {
             $orders = $this->awaitingReceiptOrdersQuery($request)
                 ->paginate($this->perPageFromRequest($request, 120, 200));
@@ -128,11 +139,18 @@ class OrderController extends Controller
                 $orders,
                 OrderResource::collection($orders),
                 trans('api.success'),
-                [
-                    'contract_status_id' => ContractStatus::NEW_ID,
-                    'is_received' => false,
-                ]
+                array_merge(
+                    [
+                        'contract_status_id' => ContractStatus::NEW_ID,
+                        'is_received' => false,
+                    ],
+                    $this->newOrdersListSummary($request)
+                )
             );
+        }
+
+        if ($receivedPresenceFilter === true || strtolower(trim((string) $request->input('list', ''))) === 'received') {
+            return $this->receivedOrders($request);
         }
 
         $hasExplicitStatusFilter = $request->filled('status_name');
@@ -189,6 +207,81 @@ class OrderController extends Controller
             )
             ->with($this->orderListRelations())
             ->latest();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function newOrdersListSummaryIfNeeded(Request $request, int $statusId): array
+    {
+        if ($statusId !== ContractStatus::NEW_ID) {
+            return [];
+        }
+
+        return $this->newOrdersListSummary($request);
+    }
+
+    /**
+     * Dashboard cards for new orders (status = 1): total / waiting > 15 min / waiting > 30 min.
+     *
+     * @return array{summary: array<string, mixed>}
+     */
+    private function newOrdersListSummary(Request $request): array
+    {
+        $now = now();
+        $over15 = $now->copy()->subMinutes(15);
+        $over30 = $now->copy()->subMinutes(30);
+
+        $isCompleted = $this->resolveCompletionFilterFromRequest($request);
+
+        $base = Contract::query()
+            ->notDeleted()
+            ->reachedAdminOrderStep()
+            ->where('contract_status_id', ContractStatus::NEW_ID)
+            ->when($isCompleted !== null, fn ($q) =>
+                $q->where('is_completed', $isCompleted ? 1 : 0)
+            )
+            ->when($request->filled('search'), fn ($q) =>
+                $q->adminSearch($request->string('search')->toString())
+            )
+            ->when($request->filled('contract_type'), fn ($q) =>
+                $q->where('contract_type', $request->contract_type)
+            )
+            ->when($request->filled('user_id'), fn ($q) =>
+                $q->where('user_id', $request->user_id)
+            );
+
+        $total = (clone $base)->count();
+        $exceeded15 = (clone $base)->where('created_at', '<=', $over15)->count();
+        $exceeded30 = (clone $base)->where('created_at', '<=', $over30)->count();
+
+        return [
+            'summary' => [
+                'total_new_orders' => $total,
+                'total_new_orders_label' => 'إجمالي الطلبات الجديدة',
+                'exceeded_15_minutes' => $exceeded15,
+                'exceeded_15_minutes_label' => 'تجاوزت 15 دقيقة',
+                'exceeded_30_minutes' => $exceeded30,
+                'exceeded_30_minutes_label' => 'تجاوزت 30 دقيقة',
+                'cards' => [
+                    [
+                        'key' => 'total_new_orders',
+                        'label' => 'إجمالي الطلبات الجديدة',
+                        'count' => $total,
+                    ],
+                    [
+                        'key' => 'exceeded_15_minutes',
+                        'label' => 'تجاوزت 15 دقيقة',
+                        'count' => $exceeded15,
+                    ],
+                    [
+                        'key' => 'exceeded_30_minutes',
+                        'label' => 'تجاوزت 30 دقيقة',
+                        'count' => $exceeded30,
+                    ],
+                ],
+            ],
+        ];
     }
 
     /**
@@ -275,110 +368,37 @@ class OrderController extends Controller
     }
 
     /**
-     * Contracts filtered by contract_status_id.
-     * GET /api/admin/orders/status/{statusId}
+     * Alias of GET /orders?status_id={statusId}
      */
     public function byStatus(Request $request, $statusId)
     {
         $request->merge(['status_id' => $statusId]);
-        $this->validate($request, [
-            'status_id' => 'required|integer|exists:contract_statuses,id',
-        ]);
 
-        try {
-            $contracts = Contract::query()
-                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
-                ->notDeleted()
-                ->reachedAdminOrderStep()
-                ->where('contract_status_id', (int) $statusId)
-                ->when($request->filled('search'), fn ($q) =>
-                    $q->adminSearch($request->string('search')->toString())
-                )
-                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
-                ->with($this->orderListRelations())
-                ->latest()
-                ->paginate($this->perPageFromRequest($request, 120, 200));
-
-            return $this->paginatedApiResponse(
-                $contracts,
-                OrderResource::collection($contracts),
-                trans('api.success'),
-                ['contract_status_id' => (int) $statusId]
-            );
-        } catch (\Throwable $e) {
-            return $this->apiResponse(
-                null,
-                trans('api.error_occurred').': '.$e->getMessage(),
-                false,
-                500
-            );
-        }
+        return $this->orders($request);
     }
 
     /**
-     * Draft contracts filtered by draft_contract_status_id.
-     * GET /api/admin/orders/draft/status/{statusId}
+     * Alias of GET /orders?is_draft=1&status_id={statusId}
      */
     public function draftByStatus(Request $request, $statusId)
     {
-        $request->merge(['status_id' => $statusId]);
-        $this->validate($request, [
-            'status_id' => 'required|integer|exists:draft_contract_statuses,id',
+        $request->merge([
+            'is_draft' => 1,
+            'status_id' => $statusId,
+            'draft_contract_status_id' => $statusId,
         ]);
 
-        try {
-            $contracts = Contract::query()
-                ->tap(fn ($q) => $this->applySuccessfulPaymentAmountSelect($q))
-                ->notDeleted()
-                ->reachedAdminOrderStep()
-                ->draft()
-                ->tap(fn ($q) => $this->applyDraftStatusIdFilter($q, (int) $statusId))
-                ->when($request->filled('search'), fn ($q) =>
-                    $q->adminSearch($request->string('search')->toString())
-                )
-                ->tap(fn ($q) => $this->applyReceivedContractPresenceToQuery($q, $request))
-                ->with($this->orderListRelations())
-                ->latest()
-                ->paginate($this->perPageFromRequest($request, 120, 200));
-
-            return $this->paginatedApiResponse(
-                $contracts,
-                OrderResource::collection($contracts),
-                trans('api.success'),
-                ['is_draft' => true, 'draft_contract_status_id' => (int) $statusId]
-            );
-        } catch (\Throwable $e) {
-            return $this->apiResponse(
-                null,
-                trans('api.error_occurred').': '.$e->getMessage(),
-                false,
-                500
-            );
-        }
+        return $this->orders($request);
     }
 
+    /**
+     * Alias of GET /orders?incomplete=1
+     */
     public function incomplete(Request $request)
     {
-        try {
-            $contracts = $this->incompleteContractsQuery($request)
-                ->with($this->orderListRelations())
-                ->paginate($this->perPageFromRequest($request, 120, 200));
+        $request->merge(['incomplete' => 1]);
 
-            return $this->paginatedApiResponse(
-                $contracts,
-                OrderResource::collection($contracts),
-                trans('api.success'),
-                ['is_completed' => 0, 'is_delete' => 0]
-            );
-
-        } catch (\Throwable $e) {
-            return $this->apiResponse(
-                null,
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                false,
-                500
-            );
-        }
+        return $this->orders($request);
     }
 
     /**
@@ -684,6 +704,8 @@ class OrderController extends Controller
             'draftContractStatus',
             'contractPayments',
             'tenantRole',
+            'comments.employee',
+            'invoices',
         ];
     }
 
@@ -691,26 +713,9 @@ class OrderController extends Controller
 
      public function complete(Request $request)
     {
-        try {
-            $completedOrders = $this->completeContractsQuery($request)
-                ->with($this->orderListRelations())
-                ->paginate($this->perPageFromRequest($request, 120, 200));
+        $request->merge(['complete' => 1]);
 
-            return $this->paginatedApiResponse(
-                $completedOrders,
-                OrderResource::collection($completedOrders),
-                trans('api.success'),
-                ['is_completed' => 1, 'is_delete' => 0]
-            );
- 
-        } catch (\Exception $e) {
-            return $this->apiResponse(
-                null,
-                trans('api.error_occurred') . ': ' . $e->getMessage(),
-                false,
-                500
-            );
-        }
+        return $this->orders($request);
     }
 
     private function completeContractsQuery(Request $request)
@@ -755,6 +760,27 @@ class OrderController extends Controller
         }
 
         return null;
+    }
+
+    private function listQueryName(Request $request): string
+    {
+        return strtolower(trim((string) $request->input('list', '')));
+    }
+
+    private function wantsReturnList(Request $request): bool
+    {
+        return $this->listQueryName($request) === 'return' || $request->boolean('return');
+    }
+
+    private function wantsDraftList(Request $request): bool
+    {
+        return $this->listQueryName($request) === 'draft' || $request->boolean('is_draft');
+    }
+
+    private function wantsCompletedDraftList(Request $request): bool
+    {
+        return $this->listQueryName($request) === 'completed-draft'
+            || $request->boolean('completed_draft');
     }
 
     /**
@@ -836,17 +862,9 @@ class OrderController extends Controller
     public function show(Request $request, $id)
     {
         $contract = $this->findAdminContract((int) $id);
-        $contract->load($this->contractDetailRelations());
-        $detail = (new AdminContractDetailResource($contract))->toArray($request);
 
         return $this->apiResponse(
-            array_merge(
-                $detail,
-                $this->buildStepBasedDetailResponse($detail),
-                [
-                    'user_contracts' => $this->userContractSummariesForUser($contract->user_id),
-                ]
-            ),
+            $this->fullAdminContractPayload($contract, $request),
             trans('api.success')
         );
     }
@@ -872,6 +890,25 @@ class OrderController extends Controller
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Single admin contract payload: all columns, relations, comments, invoice, timeline, and step groups.
+     *
+     * @return array<string, mixed>
+     */
+    private function fullAdminContractPayload(Contract $contract, Request $request): array
+    {
+        $contract->load($this->contractDetailRelations());
+        $detail = (new AdminContractDetailResource($contract))->toArray($request);
+
+        return array_merge(
+            $detail,
+            $this->buildStepBasedDetailResponse($detail),
+            [
+                'user_contracts' => $this->userContractSummariesForUser($contract->user_id),
+            ]
+        );
     }
 
     /**
@@ -938,6 +975,11 @@ class OrderController extends Controller
                 'return_contract' => (bool) Arr::get($detail, 'return_contract', false),
                 'draft_contract_number' => Arr::get($detail, 'draft_contract_number'),
                 'refund_amount' => Arr::get($detail, 'refund_amount'),
+                'received_at' => Arr::get($detail, 'received_at'),
+                'received_since' => Arr::get($detail, 'received_since'),
+                'received_since_label_ar' => Arr::get($detail, 'received_since_label_ar'),
+                'receive_speed' => Arr::get($detail, 'receive_speed'),
+                'receive_speed_label_ar' => Arr::get($detail, 'receive_speed_label_ar'),
             ]),
             'step1' => array_merge(Arr::only($detail, [
                
@@ -1117,6 +1159,67 @@ class OrderController extends Controller
         return [];
     }
 
+    /**
+     * Single status update for contract or draft.
+     * POST /api/admin/orders/{id}/status
+     *
+     * Body: status_id (required). Optional is_draft (auto from the contract).
+     * Extra case fields: deed_type, deed_number, ejar_contract_number, notes,
+     * attachment, ejar_contract_draft_number, contact_number_mode, contact_number.
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $statusId = $request->input('status_id')
+            ?? $request->input('contract_status_id')
+            ?? $request->input('draft_contract_status_id');
+
+        if ($statusId === null || ! is_numeric($statusId)) {
+            return $this->errorResponse([
+                'status_id' => ['status_id مطلوب.'],
+            ], 422);
+        }
+
+        try {
+            $contract = $this->findAdminContract((int) $id);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return $this->apiResponse(
+                null,
+                trans('api.contract_not_found'),
+                false,
+                404
+            );
+        }
+
+        $isDraft = $request->exists('is_draft')
+            ? $request->boolean('is_draft')
+            : (bool) $contract->is_draft;
+
+        if ($isDraft) {
+            $request->merge([
+                'draft_contract_status_id' => (int) $statusId,
+                'status_id' => (int) $statusId,
+            ]);
+
+            return $this->updateDraftContractStatus($request, $id);
+        }
+
+        $request->merge([
+            'contract_status_id' => (int) $statusId,
+            'status_id' => (int) $statusId,
+        ]);
+
+        return $this->updateContractStatus($request, $id);
+    }
+
+    /**
+     * POST /api/admin/orders/{id}/contract-status
+     *
+     * Extra fields by status:
+     * - 9 توثيق العقد في إيجار: deed_type (paper|electronic|other), deed_number
+     * - 10 بانتظار المشرف: ejar_contract_number, notes?
+     * - 2 استرجاع: attachment? (file)
+     * - 8 إرسال مسودة عبر واتساب: ejar_contract_draft_number, contact_number_mode (same|another), contact_number if another
+     */
     public function updateContractStatus(Request $request, $id)
     {
         try {
@@ -1129,20 +1232,18 @@ class OrderController extends Controller
             }
 
             $contract = $this->findAdminContract((int) $id);
-            $contract->update([
-                'contract_status_id' => (int) $request->contract_status_id,
-            ]);
-            $contract->load($this->contractDetailRelations());
+            $statusId = (int) $request->contract_status_id;
+            $status = ContractStatus::query()->find($statusId);
 
-            try {
-                app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
-                app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
-            } catch (\Throwable $notifyError) {
-                report($notifyError);
+            $caseError = $this->validateStatusCase($request, $contract, $statusId, $status?->name);
+            if ($caseError !== null) {
+                return $caseError;
             }
 
+            $this->persistStatusChange($request, $contract, 'contract_status_id', $statusId, $status?->name);
+
             return $this->apiResponse(
-                new AdminContractDetailResource($contract),
+                $this->fullAdminContractPayload($contract, $request),
                 trans('api.updated_successfully')
             );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1183,20 +1284,18 @@ class OrderController extends Controller
                 return $this->errorMessage('العقد ليس مسودة.', 422);
             }
 
-            $contract->update([
-                'draft_contract_status_id' => (int) $request->draft_contract_status_id,
-            ]);
-            $contract->load($this->contractDetailRelations());
+            $statusId = (int) $request->draft_contract_status_id;
+            $status = DraftContractStatus::query()->find($statusId);
 
-            try {
-                app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
-                app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
-            } catch (\Throwable $notifyError) {
-                report($notifyError);
+            $caseError = $this->validateStatusCase($request, $contract, $statusId, $status?->name);
+            if ($caseError !== null) {
+                return $caseError;
             }
 
+            $this->persistStatusChange($request, $contract, 'draft_contract_status_id', $statusId, $status?->name);
+
             return $this->apiResponse(
-                new AdminContractDetailResource($contract),
+                $this->fullAdminContractPayload($contract, $request),
                 trans('api.updated_successfully')
             );
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -1226,6 +1325,31 @@ class OrderController extends Controller
             $contract = $this->findAdminContract((int) $id);
 
             $payload = $request->updatePayload();
+            $caseExtra = [];
+
+            if (array_key_exists('contract_status_id', $payload)) {
+                $statusId = (int) $payload['contract_status_id'];
+                $status = ContractStatus::query()->find($statusId);
+                $caseError = $this->validateStatusCase($request, $contract, $statusId, $status?->name);
+                if ($caseError !== null) {
+                    return $caseError;
+                }
+                $extracted = app(ContractStatusCaseService::class)->extract($request, $contract, $statusId, $status?->name);
+                $caseExtra = array_merge($caseExtra, $extracted);
+                $payload = array_merge($payload, $extracted);
+            }
+
+            if (array_key_exists('draft_contract_status_id', $payload)) {
+                $statusId = (int) $payload['draft_contract_status_id'];
+                $status = DraftContractStatus::query()->find($statusId);
+                $caseError = $this->validateStatusCase($request, $contract, $statusId, $status?->name);
+                if ($caseError !== null) {
+                    return $caseError;
+                }
+                $extracted = app(ContractStatusCaseService::class)->extract($request, $contract, $statusId, $status?->name);
+                $caseExtra = array_merge($caseExtra, $extracted);
+                $payload = array_merge($payload, $extracted);
+            }
 
             $statusFields = ['contract_status_id', 'draft_contract_status_id', 'draft_before_paid', 'draft_after_paid'];
             $statusChanged = false;
@@ -1241,21 +1365,29 @@ class OrderController extends Controller
             $contract->fill($payload);
             $contract->save();
             $contract->refresh();
-            $contract->load($this->contractDetailRelations());
 
             if ($statusChanged) {
                 try {
-                    app(ContractStatusHistoryService::class)->record($contract, ['source' => 'admin']);
+                    $contract->loadMissing(['contractStatus', 'draftContractStatus']);
+                    $caseService = app(ContractStatusCaseService::class);
+                    $statusId = (int) ($contract->is_draft
+                        ? $contract->draft_contract_status_id
+                        : $contract->contract_status_id);
+                    $statusName = $contract->is_draft
+                        ? $contract->draftContractStatus?->name
+                        : $contract->contractStatus?->name;
+                    app(ContractStatusHistoryService::class)->record($contract, [
+                        'source' => 'admin',
+                        'meta' => $caseService->historyMeta($statusId, $statusName, $caseExtra),
+                    ]);
                     app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
                 } catch (\Throwable $notifyError) {
                     report($notifyError);
                 }
             }
 
-            $detail = (new AdminContractDetailResource($contract))->toArray($request);
-
             return $this->apiResponse(
-                $this->buildStepBasedDetailResponse($detail),
+                $this->fullAdminContractPayload($contract, $request),
                 trans('api.contract_updated_successfully')
             );
 
@@ -1324,11 +1456,8 @@ class OrderController extends Controller
                 'accept_retrun_contract_employee_id' => $employee->id,
             ]);
 
-            $contract->load($this->contractDetailRelations());
-            $detail = (new AdminContractDetailResource($contract))->toArray($request);
-
             return $this->apiResponse(
-                $this->buildStepBasedDetailResponse($detail),
+                $this->fullAdminContractPayload($contract, $request),
                 $accepted
                     ? trans('api.return_contract_accepted_successfully')
                     : trans('api.return_contract_rejected_successfully')
@@ -1353,6 +1482,57 @@ class OrderController extends Controller
     private function findAdminContract(int $id): Contract
     {
         return Contract::query()->whereKey($id)->firstOrFail();
+    }
+
+    /**
+     * @return \Illuminate\Http\JsonResponse|null
+     */
+    private function validateStatusCase(Request $request, Contract $contract, int $statusId, ?string $statusName)
+    {
+        $contract->loadMissing('user');
+
+        $caseService = app(ContractStatusCaseService::class);
+        $validator = Validator::make(
+            $request->all(),
+            $caseService->rules($statusId, $statusName),
+            $caseService->messages()
+        );
+        $validator->after(function ($validator) use ($caseService, $request, $statusId, $statusName, $contract) {
+            $caseService->afterValidation($validator, $request, $statusId, $statusName, $contract);
+        });
+
+        if ($validator->fails()) {
+            return $this->errorResponse($validator->errors(), 422);
+        }
+
+        return null;
+    }
+
+    private function persistStatusChange(
+        Request $request,
+        Contract $contract,
+        string $statusColumn,
+        int $statusId,
+        ?string $statusName
+    ): void {
+        $caseService = app(ContractStatusCaseService::class);
+        $extra = $caseService->extract($request, $contract, $statusId, $statusName);
+
+        $contract->update(array_merge(
+            [$statusColumn => $statusId],
+            $extra
+        ));
+        $contract->load($this->contractDetailRelations());
+
+        try {
+            app(ContractStatusHistoryService::class)->record($contract, [
+                'source' => 'admin',
+                'meta' => $caseService->historyMeta($statusId, $statusName, $extra),
+            ]);
+            app(FirebaseNotificationService::class)->notifyContractStatusChanged($contract);
+        } catch (\Throwable $notifyError) {
+            report($notifyError);
+        }
     }
 
     private function applyReceivedContractPresenceToQuery($query, Request $request): void

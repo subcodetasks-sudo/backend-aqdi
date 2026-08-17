@@ -97,9 +97,23 @@ $exampleBodies = [
     ],
     'api/admin/orders/{id}/contract-status' => [
         'contract_status_id' => '{{status_id}}',
+        'deed_type' => 'electronic',
+        'deed_number' => '1234567890',
+        'ejar_contract_number' => 'EJR-2026-001',
+        'notes' => 'ملاحظة اختيارية',
+        'ejar_contract_draft_number' => 'DRAFT-001',
+        'contact_number_mode' => 'same',
+        'contact_number' => '0500000000',
     ],
     'api/admin/orders/{id}/draft-contract-status' => [
         'draft_contract_status_id' => '{{draft_status_id}}',
+        'deed_type' => 'electronic',
+        'deed_number' => '1234567890',
+        'ejar_contract_number' => 'EJR-2026-001',
+        'notes' => 'ملاحظة اختيارية',
+        'ejar_contract_draft_number' => 'DRAFT-001',
+        'contact_number_mode' => 'same',
+        'contact_number' => '0500000000',
     ],
     'api/admin/orders/{id}/return-contract-status' => [
         'accept_retrun_contract' => true,
@@ -398,6 +412,39 @@ $queryExamples = [
     ],
 ];
 
+function statusCaseDescription(string $uri): string
+{
+    if (! str_contains($uri, '/contract-status') && ! str_contains($uri, '/draft-contract-status')) {
+        return '';
+    }
+
+    if (str_contains($uri, '/return-contract-status')) {
+        return '';
+    }
+
+    return <<<'TXT'
+
+
+Status extra fields (required only for the matching status):
+
+- Status ID 9 (توثيق العقد في إيجار):
+  deed_type = paper | electronic | other
+  deed_number (required)
+
+- Status ID 10 (بانتظار المشرف):
+  ejar_contract_number (required)
+  notes (optional)
+
+- Status ID 2 (استرجاع / مسترجع):
+  attachment (optional file — send as multipart form-data)
+
+- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):
+  ejar_contract_draft_number (required)
+  contact_number_mode = same | another
+  contact_number (required when contact_number_mode = another)
+TXT;
+}
+
 function folderNameFromUri(string $uri): string
 {
     $parts = explode('/', $uri);
@@ -569,7 +616,11 @@ function makeRequestItem(array $route, array $exampleBodies, array $queryExample
                 'host' => ['{{baseUrl}}'],
                 'path' => $pathParts,
             ],
-            'description' => trim(($action ? "Action: {$action}\n" : '').($name ? "Route name: {$name}" : '')),
+            'description' => trim(
+                ($action ? "Action: {$action}\n" : '')
+                .($name ? "Route name: {$name}" : '')
+                .statusCaseDescription($uri)
+            ),
         ];
 
         if ($query !== []) {

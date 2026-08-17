@@ -3179,10 +3179,10 @@
                                 "contract-status"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateContractStatus\nRoute name: orders.update-contract-status",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateContractStatus\nRoute name: orders.update-contract-status\n\nStatus extra fields (required only for the matching status):\n\n- Status ID 9 (توثيق العقد في إيجار):\n  deed_type = paper | electronic | other\n  deed_number (required)\n\n- Status ID 10 (بانتظار المشرف):\n  ejar_contract_number (required)\n  notes (optional)\n\n- Status ID 2 (استرجاع / مسترجع):\n  attachment (optional file — send as multipart form-data)\n\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\n  ejar_contract_draft_number (required)\n  contact_number_mode = same | another\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"contract_status_id\": \"{{status_id}}\"\n}",
+                            "raw": "{\n    \"contract_status_id\": \"{{status_id}}\",\n    \"deed_type\": \"electronic\",\n    \"deed_number\": \"1234567890\",\n    \"ejar_contract_number\": \"EJR-2026-001\",\n    \"notes\": \"ملاحظة اختيارية\",\n    \"ejar_contract_draft_number\": \"DRAFT-001\",\n    \"contact_number_mode\": \"same\",\n    \"contact_number\": \"0500000000\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -3226,10 +3226,10 @@
                                 "draft-contract-status"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateDraftContractStatus\nRoute name: orders.update-draft-contract-status",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateDraftContractStatus\nRoute name: orders.update-draft-contract-status\n\nStatus extra fields (required only for the matching status):\n\n- Status ID 9 (توثيق العقد في إيجار):\n  deed_type = paper | electronic | other\n  deed_number (required)\n\n- Status ID 10 (بانتظار المشرف):\n  ejar_contract_number (required)\n  notes (optional)\n\n- Status ID 2 (استرجاع / مسترجع):\n  attachment (optional file — send as multipart form-data)\n\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\n  ejar_contract_draft_number (required)\n  contact_number_mode = same | another\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"draft_contract_status_id\": \"{{draft_status_id}}\"\n}",
+                            "raw": "{\n    \"draft_contract_status_id\": \"{{draft_status_id}}\",\n    \"deed_type\": \"electronic\",\n    \"deed_number\": \"1234567890\",\n    \"ejar_contract_number\": \"EJR-2026-001\",\n    \"notes\": \"ملاحظة اختيارية\",\n    \"ejar_contract_draft_number\": \"DRAFT-001\",\n    \"contact_number_mode\": \"same\",\n    \"contact_number\": \"0500000000\"\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

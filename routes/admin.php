@@ -229,6 +229,7 @@ use Illuminate\Support\Facades\Route;
         Route::get('/complete/list', 'complete')->name('complete');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/status', 'updateStatus')->whereNumber('id')->name('update-status');
         Route::post('/{id}/contract-status', 'updateContractStatus')->whereNumber('id')->name('update-contract-status');
         Route::post('/{id}/draft-contract-status', 'updateDraftContractStatus')->whereNumber('id')->name('update-draft-contract-status');
         Route::post('/{id}/return-contract-status', 'updateReturnContractAcceptance')->whereNumber('id')->middleware('auth:sanctum')->name('return-contract-status');

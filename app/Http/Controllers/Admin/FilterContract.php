@@ -14,7 +14,7 @@ class FilterContract extends Controller
 
     public function filter(Request $request)
     {
-        return $this->allcontracts($request);
+        return app(OrderController::class)->orders($request);
     }
 
     public function allcontracts(Request $request)

@@ -29,8 +29,20 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<int, string>
      */
 
+    public const PLATFORM_WEBSITE = 'website';
+
+    public const PLATFORM_GOOGLE_PLAY = 'google_play';
+
+    public const PLATFORM_APPLE_STORE = 'apple_store';
+
     protected $guarded = ['id'];
     protected $appends = ['name', 'photo_path', 'status', 'fcm_token', 'created_at_label', 'mobile', 'email', 'password'];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_active' => 'boolean',
+    ];
 
  
     public function getCreatedAtLabelAttribute()
@@ -47,17 +59,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'remember_token',
     ];
-
-    /**1
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-
 
     /*
     |--------------------------------------------------------------------------
@@ -172,6 +173,45 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getStatusAttribute()
     {
         return $this->is_active == 1 ? 'active' : 'inactive';
+    }
+
+    public function customerNumber(): string
+    {
+        return 'C-'.$this->id;
+    }
+
+    public function resolvedPlatform(): string
+    {
+        $platform = (string) ($this->platform ?? '');
+
+        return match ($platform) {
+            self::PLATFORM_APPLE_STORE, 'ios', 'apple', 'appstore' => self::PLATFORM_APPLE_STORE,
+            self::PLATFORM_GOOGLE_PLAY, 'android', 'google' => self::PLATFORM_GOOGLE_PLAY,
+            default => self::PLATFORM_WEBSITE,
+        };
+    }
+
+    public function platformLabelAr(): string
+    {
+        return match ($this->resolvedPlatform()) {
+            self::PLATFORM_APPLE_STORE => 'عملاء أبل ستور',
+            self::PLATFORM_GOOGLE_PLAY => 'عملاء قوقل بلاي',
+            default => 'عملاء الموقع',
+        };
+    }
+
+    public static function normalizePlatform(?string $platform): ?string
+    {
+        if ($platform === null || trim($platform) === '') {
+            return null;
+        }
+
+        return match (strtolower(trim($platform))) {
+            'apple_store', 'ios', 'apple', 'appstore', 'app_store' => self::PLATFORM_APPLE_STORE,
+            'google_play', 'android', 'google', 'googleplay' => self::PLATFORM_GOOGLE_PLAY,
+            'website', 'web' => self::PLATFORM_WEBSITE,
+            default => self::PLATFORM_WEBSITE,
+        };
     }
 
     

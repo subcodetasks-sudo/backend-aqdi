@@ -19,7 +19,8 @@ class ContractStatusHistoryService
      *     status_color?: string|null,
      *     status_description?: string|null,
      *     status_client_explanation?: string|null,
-     *     source?: string|null
+     *     source?: string|null,
+     *     meta?: array<string, mixed>|null
      * }  $override
      */
     public function record(Contract $contract, array $override = []): ?ContractStatusHistory
@@ -31,6 +32,7 @@ class ContractStatusHistoryService
         $type = (string) ($payload['status_type'] ?? 'contract');
         $statusId = isset($payload['status_id']) ? (int) $payload['status_id'] : null;
         $clientExplanation = $payload['status_client_explanation'] ?? null;
+        $meta = $override['meta'] ?? null;
 
         $latest = ContractStatusHistory::query()
             ->where('contract_id', $contract->id)
@@ -55,6 +57,7 @@ class ContractStatusHistoryService
             'status_description' => $payload['status_description'] ?? null,
             'client_explanation' => $clientExplanation,
             'source' => $override['source'] ?? 'system',
+            'meta' => is_array($meta) && $meta !== [] ? $meta : null,
         ]);
     }
 
@@ -159,6 +162,7 @@ class ContractStatusHistoryService
                 'status_id' => $row->status_id,
                 'state' => $i < $lastIndex ? 'completed' : 'current',
                 'source' => $row->source,
+                'meta' => $row->meta,
                 'created_at' => optional($row->created_at)?->toIso8601String(),
             ];
         })->all();

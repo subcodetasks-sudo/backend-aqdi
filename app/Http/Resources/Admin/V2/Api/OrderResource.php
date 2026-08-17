@@ -6,6 +6,7 @@ use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnOrderFields;
 use App\Models\ReceivedContract;
+use App\Support\ContractReceivedTiming;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -58,6 +59,7 @@ class OrderResource extends JsonResource
             'is_received' => $receivedContractExists,
             'received_contract_exists' => $receivedContractExists,
             'employee_name' => $receivedContract?->employee?->name ?? 'لم يتم الاستلام',
+            ...ContractReceivedTiming::for($this->resource, $receivedContract),
             'user_id' => $this->user_id,
             'user_name' => $this->user->name ?? null,
             'user_mobile' => $this->user->mobile ?? null,

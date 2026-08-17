@@ -6,25 +6,32 @@ use App\Enums\ReceivedContractStatus;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractPaymentForAdmin;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnAcceptance;
 use App\Http\Resources\Admin\V2\Api\Concerns\ResolvesContractReturnOrderFields;
+use App\Http\Resources\Admin\V2\Api\ContractCommentResource;
 use App\Http\Resources\Api\V2\UnitResource;
 use App\Models\Account;
 use App\Models\City;
 use App\Models\ContractPeriod;
 use App\Models\ContractStatus;
 use App\Models\Employee;
+use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentType;
 use App\Models\RealEstate;
 use App\Models\ReceivedContract;
 use App\Models\ReaEstatType;
 use App\Models\ReaEstatUsage;
+use App\Models\RefundableContract;
 use App\Models\Region;
 use App\Models\TenantRole;
 use App\Models\UnitType;
 use App\Models\UnitsReal;
 use App\Models\UsageUnit;
 use App\Models\User;
+use App\Support\ContractFrontendStatus;
+use App\Support\ContractReceivedTiming;
 use App\Support\HijriDobParts;
+use App\Services\ContractStatusCaseService;
+use App\Services\ContractStatusHistoryService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Str;
@@ -62,11 +69,48 @@ class AdminContractDetailResource extends JsonResource
         }
 
         $enriched = $this->enrichedRelations($c);
+        $frontend = ContractFrontendStatus::for($c);
+        $receivedTiming = ContractReceivedTiming::for($c, $c->receivedContract);
 
-        return array_merge($full, $enriched, $this->step4TenantFields($c), $this->ownerAndDateSplitFields($c, $full), $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), [
+        return array_merge($full, $enriched, $this->step4TenantFields($c), $this->ownerAndDateSplitFields($c, $full), $this->returnOrderFields(), $this->returnAcceptanceFields(), $this->contractPaymentFields(), $this->displayAliases($c, $frontend), $receivedTiming, [
             'relation_labels' => $this->relationLabels($c),
             'documentation_deadline_at' => $c->documentationDeadlineAt()?->format('Y-m-d H:i:s'),
+            'status_case' => $this->statusCasePayload($c, $full),
+            'deed_type' => $c->deed_addition_method,
+            'ejar_contract_draft_number' => $c->ejar_contract_draft_number,
+            'contact_number_mode' => $c->draft_contact_number_mode,
+            'contact_number' => $c->draft_contact_number,
+            'comments' => $this->commentsPayload($c, $request),
+            'comments_count' => $c->relationLoaded('comments') ? $c->comments->count() : 0,
+            'status_timeline' => app(ContractStatusHistoryService::class)->timeline($c),
+            'invoice' => $this->invoiceSummary($c),
         ]);
+    }
+
+    /**
+     * Extra fields collected when changing contract / draft status (IDs 9, 10, 2, send-draft).
+     *
+     * @param  array<string, mixed>  $full
+     * @return array<string, mixed>
+     */
+    private function statusCasePayload($c, array $full): array
+    {
+        $attachment = $full['status_attachment'] ?? $this->publicStorageUrl($c->status_attachment);
+
+        return [
+            'deed_type' => $c->deed_addition_method,
+            'deed_addition_method' => $c->deed_addition_method,
+            'deed_number' => $c->deed_number,
+            'ejar_contract_number' => $c->ejar_contract_number,
+            'notes' => $c->ejar_status_notes,
+            'ejar_status_notes' => $c->ejar_status_notes,
+            'attachment' => $attachment,
+            'status_attachment' => $attachment,
+            'ejar_contract_draft_number' => $c->ejar_contract_draft_number,
+            'contact_number_mode' => $c->draft_contact_number_mode,
+            'contact_number' => $c->draft_contact_number,
+            'current_contact_number' => app(ContractStatusCaseService::class)->currentContactNumber($c),
+        ];
     }
 
     /**
@@ -208,6 +252,7 @@ class AdminContractDetailResource extends JsonResource
             'draft_before_paid',
             'draft_after_paid',
             'file',
+            'status_attachment',
             'strong_argument_photo',
             'photo_of_the_electronic',
             'Image_from_the_agency',
@@ -289,6 +334,7 @@ class AdminContractDetailResource extends JsonResource
             'tenant_role' => $this->tenantRoleSummary($c->tenantRole),
             'tenant_roles_details' => $this->tenantRolesDetails($c),
             'accept_retrun_contract_employee' => $this->employeeSummary($c->acceptRetrunContractEmployee),
+            'refundable_contract' => $this->refundableContractSummary($c->refundableContract),
         ];
     }
 
@@ -575,6 +621,8 @@ class AdminContractDetailResource extends JsonResource
             return null;
         }
 
+        $timing = ContractReceivedTiming::for($this->resource, $r);
+
         return [
             'id' => $r->id,
             'contract_id' => $r->contract_id,
@@ -583,7 +631,13 @@ class AdminContractDetailResource extends JsonResource
                 ? $r->status->value
                 : $r->status,
             'notes' => $r->notes,
-            'date_of_received' => $r->date_of_received,
+            'date_of_received' => $r->date_of_received?->format('Y-m-d'),
+            'created_at' => $r->created_at?->format('Y-m-d H:i:s'),
+            'received_at' => $timing['received_at'],
+            'received_since' => $timing['received_since'],
+            'received_since_label_ar' => $timing['received_since_label_ar'],
+            'receive_speed' => $timing['receive_speed'],
+            'receive_speed_label_ar' => $timing['receive_speed_label_ar'],
             'employee' => $this->employeeSummary($r->employee),
         ];
     }
@@ -614,7 +668,9 @@ class AdminContractDetailResource extends JsonResource
             'color' => $m->color ?? null,
             'color_text' => $m->color_text ?? null,
             'description' => $m->description ?? null,
+            'client_explanation' => $m->client_explanation ?? null,
             'is_active' => (bool) ($m->is_active ?? false),
+            'status_case' => $m->status_case,
         ];
     }
 
@@ -658,6 +714,107 @@ class AdminContractDetailResource extends JsonResource
             'icon' => $m->icon,
             'input_icon' => $m->input_icon,
             'pop' => (bool) $m->pop,
+        ];
+    }
+
+    /**
+     * Flat display names so the admin UI does not need to assemble step objects.
+     *
+     * @param  array{status: string, status_label: string, status_type: string, status_id: int|null, status_color: string|null, status_description: string|null, status_client_explanation: string|null}  $frontend
+     * @return array<string, mixed>
+     */
+    private function displayAliases($c, array $frontend): array
+    {
+        $labels = $this->relationLabels($c);
+        $tenantRoleNames = collect($this->tenantRolesDetails($c))
+            ->pluck('name')
+            ->filter(static fn ($v) => is_string($v) && trim($v) !== '')
+            ->map(static fn ($v) => trim((string) $v))
+            ->values()
+            ->all();
+
+        if ($tenantRoleNames === [] && is_string($c->tenantRole?->text_of_reason) && trim($c->tenantRole->text_of_reason) !== '') {
+            $tenantRoleNames = [trim($c->tenantRole->text_of_reason)];
+        }
+
+        return [
+            'status' => $frontend['status'],
+            'status_label' => $frontend['status_label'],
+            'status_type' => $frontend['status_type'],
+            'status_id' => $frontend['status_id'],
+            'status_color' => $frontend['status_color'],
+            'status_description' => $frontend['status_description'],
+            'status_client_explanation' => $frontend['status_client_explanation'],
+            'property_place_name' => $labels['property_region'] ?? null,
+            'city_name' => $labels['property_city'] ?? null,
+            'property_type_name' => $labels['property_type'] ?? null,
+            'property_usages_name' => $labels['property_usages'] ?? null,
+            'unit_type_name' => $labels['unit_type'] ?? null,
+            'unit_usage_name' => $labels['unit_usage'] ?? null,
+            'contract_term_name' => $labels['contract_term'] ?? null,
+            'payment_type_name' => $labels['payment_type'] ?? null,
+            'contract_status_name' => $c->contractStatus?->name,
+            'contract_status_color' => $c->contractStatus?->color,
+            'tenant_role_names' => $tenantRoleNames,
+            'contract_type_key' => $c->contract_type,
+            'instrument_type_key' => $c->instrument_type,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function commentsPayload($c, Request $request): array
+    {
+        if (! $c->relationLoaded('comments')) {
+            return [];
+        }
+
+        return ContractCommentResource::collection(
+            $c->comments->sortByDesc('id')->values()
+        )->toArray($request);
+    }
+
+    private function invoiceSummary($c): ?array
+    {
+        $invoice = $c->relationLoaded('invoices')
+            ? $c->invoices->sortByDesc('id')->first()
+            : null;
+
+        if (! $invoice instanceof Invoice) {
+            return null;
+        }
+
+        return [
+            'id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'order_number' => $invoice->order_number,
+            'date' => optional($invoice->date)?->format('Y-m-d'),
+            'customer_phone' => $invoice->customer_phone,
+            'description' => $invoice->description,
+            'rental_fees' => $invoice->rental_fees,
+            'service_fees' => $invoice->service_fees,
+            'total_amount' => $invoice->total_amount,
+        ];
+    }
+
+    private function refundableContractSummary(?RefundableContract $m): ?array
+    {
+        if ($m === null) {
+            return null;
+        }
+
+        return [
+            'id' => $m->id,
+            'user_id' => $m->user_id,
+            'contract_id' => $m->contract_id,
+            'employee_id' => $m->employee_id,
+            'has_draft_contract' => (bool) $m->has_draft_contract,
+            'refund_amount' => $m->refund_amount,
+            'notes' => $m->notes,
+            'admin_confirmed' => (bool) $m->admin_confirmed,
+            'is_refunded' => (bool) $m->is_refunded,
+            'created_at' => optional($m->created_at)?->format('Y-m-d H:i:s'),
         ];
     }
 }

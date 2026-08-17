@@ -17,6 +17,11 @@ class ContractStatusHistory extends Model
         'status_description',
         'client_explanation',
         'source',
+        'meta',
+    ];
+
+    protected $casts = [
+        'meta' => 'array',
     ];
 
     public function contract(): BelongsTo
