@@ -181,6 +181,22 @@ $exampleBodies = [
             'date' => '2026-07-23',
         ],
     ],
+    'api/admin/operating-expenses' => [
+        'POST' => [
+            'expense' => 'إيجار المكتب',
+            'amount' => 4500,
+        ],
+    ],
+    'api/admin/operating-expenses/{id}' => [
+        'POST' => [
+            'expense' => 'إيجار المكتب',
+            'amount' => 4800,
+        ],
+        'PUT' => [
+            'expense' => 'إيجار المكتب',
+            'amount' => 4800,
+        ],
+    ],
     'api/admin/contract-statuses' => [
         'POST' => [
             'name' => 'حالة جديدة',
@@ -407,6 +423,12 @@ $queryExamples = [
     'api/admin/payments' => [
         ['key' => 'page', 'value' => '1'],
     ],
+    'api/admin/operating-expenses' => [
+        ['key' => 'page', 'value' => '1'],
+        ['key' => 'per_page', 'value' => '20'],
+        ['key' => 'search', 'value' => '', 'disabled' => true],
+        ['key' => 'created_at', 'value' => 'month', 'disabled' => true],
+    ],
     'api/admin/refundable-contracts' => [
         ['key' => 'page', 'value' => '1'],
     ],
@@ -463,6 +485,7 @@ function folderNameFromUri(string $uri): string
         'payments' => '06 Payments & Finance',
         'payment-gateway' => '06 Payments & Finance',
         'finance' => '06 Payments & Finance',
+        'operating-expenses' => '06 Payments & Finance',
         'contract-paid-by-employees' => '06 Payments & Finance',
         'users' => '07 Users',
         'regions' => '08 Locations',
@@ -739,6 +762,7 @@ $collection = [
         ['key' => 'comment_id', 'value' => '1'],
         ['key' => 'unit_id', 'value' => '1'],
         ['key' => 'expense_id', 'value' => '1'],
+        ['key' => 'operating_expense_id', 'value' => '1'],
         ['key' => 'section_id', 'value' => '1'],
         ['key' => 'image_id', 'value' => '1'],
     ],

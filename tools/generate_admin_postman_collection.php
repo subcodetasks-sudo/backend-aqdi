@@ -300,6 +300,17 @@ $folders = [
         ]),
         req('Delete expense', 'DELETE', '/finance/expenses/{{expense_id}}'),
     ],
+    'Finance — operating expenses' => [
+        req('List operating expenses', 'GET', '/operating-expenses', ['query' => ['page' => 1, 'per_page' => 20]]),
+        req('Create operating expense', 'POST', '/operating-expenses', [
+            'body' => ['expense' => 'إيجار المكتب', 'amount' => 4500],
+        ]),
+        req('Show operating expense', 'GET', '/operating-expenses/{{operating_expense_id}}'),
+        req('Update operating expense', 'POST', '/operating-expenses/{{operating_expense_id}}', [
+            'body' => ['expense' => 'إيجار المكتب', 'amount' => 4800],
+        ]),
+        req('Delete operating expense', 'POST', '/operating-expenses/{{operating_expense_id}}/delete'),
+    ],
     'Regions & cities' => [
         req('List regions', 'GET', '/regions', ['query' => ['per_page' => 20]]),
         req('Create region', 'POST', '/regions', ['body' => ['name_ar' => 'منطقة الرياض', 'name_en' => 'Riyadh Region']]),
@@ -544,6 +555,7 @@ $collectionVars = [
     ['key' => 'payment_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'payment_type_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'expense_id', 'value' => '1', 'type' => 'default'],
+    ['key' => 'operating_expense_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'id', 'value' => '1', 'type' => 'default'],
     ['key' => 'message_alert_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'message_alert_section_id', 'value' => '1', 'type' => 'default'],

@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "aqdi-admin-full-0761d06d1f97",
+        "_postman_id": "aqdi-admin-full-e3d7df6cd03d",
         "name": "AQDI Admin API — Full Collection",
         "description": "Full Admin API collection generated from Laravel routes (`api/admin/*`).\n\nAuth: most endpoints need `Authorization: Bearer {{employee_token}}` (employee Sanctum).\n\n1) Run **Employees login** first — token is saved automatically.\n2) Set `baseUrl`, ids, and other variables as needed.\n3) Example JSON bodies are included for create/update endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -56,6 +56,10 @@
         },
         {
             "key": "expense_id",
+            "value": "1"
+        },
+        {
+            "key": "operating_expense_id",
             "value": "1"
         },
         {
@@ -2251,7 +2255,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/orders?page=1&per_page=20",
+                            "raw": "{{baseUrl}}/api/admin/orders?status_id={{status_id}}&page=1&per_page=20",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -2262,6 +2266,20 @@
                             ],
                             "query": [
                                 {
+                                    "key": "status_id",
+                                    "value": "{{status_id}}"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "{{status_id}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "contract_status_id",
+                                    "value": "{{status_id}}",
+                                    "disabled": true
+                                },
+                                {
                                     "key": "page",
                                     "value": "1"
                                 },
@@ -2270,13 +2288,18 @@
                                     "value": "20"
                                 },
                                 {
-                                    "key": "is_received",
-                                    "value": "true",
+                                    "key": "complete",
+                                    "value": "1",
                                     "disabled": true
                                 },
                                 {
-                                    "key": "contract_status_id",
-                                    "value": "{{status_id}}",
+                                    "key": "incomplete",
+                                    "value": "1",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "is_completed",
+                                    "value": "1",
                                     "disabled": true
                                 },
                                 {
@@ -3179,7 +3202,7 @@
                                 "contract-status"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateContractStatus\nRoute name: orders.update-contract-status\n\nStatus extra fields (required only for the matching status):\n\n- Status ID 9 (توثيق العقد في إيجار):\n  deed_type = paper | electronic | other\n  deed_number (required)\n\n- Status ID 10 (بانتظار المشرف):\n  ejar_contract_number (required)\n  notes (optional)\n\n- Status ID 2 (استرجاع / مسترجع):\n  attachment (optional file — send as multipart form-data)\n\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\n  ejar_contract_draft_number (required)\n  contact_number_mode = same | another\n  contact_number (required when contact_number_mode = another)",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateContractStatus\nRoute name: orders.update-contract-status\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"contract_status_id\": \"{{status_id}}\",\n    \"deed_type\": \"electronic\",\n    \"deed_number\": \"1234567890\",\n    \"ejar_contract_number\": \"EJR-2026-001\",\n    \"notes\": \"ملاحظة اختيارية\",\n    \"ejar_contract_draft_number\": \"DRAFT-001\",\n    \"contact_number_mode\": \"same\",\n    \"contact_number\": \"0500000000\"\n}",
@@ -3226,7 +3249,7 @@
                                 "draft-contract-status"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateDraftContractStatus\nRoute name: orders.update-draft-contract-status\n\nStatus extra fields (required only for the matching status):\n\n- Status ID 9 (توثيق العقد في إيجار):\n  deed_type = paper | electronic | other\n  deed_number (required)\n\n- Status ID 10 (بانتظار المشرف):\n  ejar_contract_number (required)\n  notes (optional)\n\n- Status ID 2 (استرجاع / مسترجع):\n  attachment (optional file — send as multipart form-data)\n\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\n  ejar_contract_draft_number (required)\n  contact_number_mode = same | another\n  contact_number (required when contact_number_mode = another)",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateDraftContractStatus\nRoute name: orders.update-draft-contract-status\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"draft_contract_status_id\": \"{{draft_status_id}}\",\n    \"deed_type\": \"electronic\",\n    \"deed_number\": \"1234567890\",\n    \"ejar_contract_number\": \"EJR-2026-001\",\n    \"notes\": \"ملاحظة اختيارية\",\n    \"ejar_contract_draft_number\": \"DRAFT-001\",\n    \"contact_number_mode\": \"same\",\n    \"contact_number\": \"0500000000\"\n}",
@@ -3277,6 +3300,53 @@
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"accept_retrun_contract\": true\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /orders/{{id}}/status  (orders.update-status)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/orders/{{id}}/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "orders",
+                                "{{id}}",
+                                "status"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OrderController@updateStatus\nRoute name: orders.update-status",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"example\": true\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -4006,6 +4076,325 @@
                             ]
                         },
                         "description": "Action: App\\Http\\Controllers\\Admin\\FinanceController@destroy\nRoute name: finance.expenses.destroy"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /operating-expenses  (operating-expenses.index)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses?page=1&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "created_at",
+                                    "value": "month",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@index\nRoute name: operating-expenses.index"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /operating-expenses  (operating-expenses.store)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses?page=1&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "created_at",
+                                    "value": "month",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@store\nRoute name: operating-expenses.store",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expense\": \"إيجار المكتب\",\n    \"amount\": 4500\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /operating-expenses/{{id}}  (operating-expenses.show)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses/{{id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses",
+                                "{{id}}"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@show\nRoute name: operating-expenses.show"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /operating-expenses/{{id}}  (operating-expenses.update)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses/{{id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses",
+                                "{{id}}"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@update\nRoute name: operating-expenses.update",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expense\": \"إيجار المكتب\",\n    \"amount\": 4800\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "PUT /operating-expenses/{{id}}  (operating-expenses.update.put)",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses/{{id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses",
+                                "{{id}}"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@update\nRoute name: operating-expenses.update.put",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"expense\": \"إيجار المكتب\",\n    \"amount\": 4800\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "DELETE /operating-expenses/{{id}}  (operating-expenses.destroy.delete)",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses/{{id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses",
+                                "{{id}}"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@destroy\nRoute name: operating-expenses.destroy.delete"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "POST /operating-expenses/{{id}}/delete  (operating-expenses.destroy)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/operating-expenses/{{id}}/delete",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "operating-expenses",
+                                "{{id}}",
+                                "delete"
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\OperatingExpenseController@destroy\nRoute name: operating-expenses.destroy",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 },
@@ -6843,7 +7232,7 @@
                                 "contract-statuses"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@index\nRoute name: contract-statuses.index"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@index\nRoute name: contract-statuses.index\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -6879,7 +7268,7 @@
                                 "contract-statuses"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@store\nRoute name: contract-statuses.store",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@store\nRoute name: contract-statuses.store\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"حالة جديدة\",\n    \"color\": \"#3B82F6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف داخلي للأدمن\",\n    \"client_explanation\": \"شرح الحالة الذي يظهر للعميل في تتبع الطلب\",\n    \"order\": 10,\n    \"is_active\": true\n}",
@@ -6920,7 +7309,7 @@
                                 "active"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@active\nRoute name: contract-statuses.active"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@active\nRoute name: contract-statuses.active\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -6952,7 +7341,7 @@
                                 "{{id}}"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@show\nRoute name: contract-statuses.show"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@show\nRoute name: contract-statuses.show\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -6989,7 +7378,7 @@
                                 "{{id}}"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@update\nRoute name: contract-statuses.update",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@update\nRoute name: contract-statuses.update\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"تعديل حالة\",\n    \"color\": \"#F59E0B\",\n    \"color_text\": \"#000000\",\n    \"description\": \"وصف\",\n    \"client_explanation\": \"شرح محدث يظهر للعميل\",\n    \"is_active\": true\n}",
@@ -7036,7 +7425,7 @@
                                 "delete"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@destroy\nRoute name: contract-statuses.destroy",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\ContractStatusController@destroy\nRoute name: contract-statuses.destroy\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "[]",
@@ -7076,7 +7465,7 @@
                                 "draft-contract-statuses"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@index\nRoute name: draft-contract-statuses.index"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@index\nRoute name: draft-contract-statuses.index\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -7112,7 +7501,7 @@
                                 "draft-contract-statuses"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@store\nRoute name: draft-contract-statuses.store",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@store\nRoute name: draft-contract-statuses.store\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"color_text\": \"#FFFFFF\",\n    \"description\": \"وصف\",\n    \"client_explanation\": \"شرح الحالة للعميل في المسودة\",\n    \"is_active\": true\n}",
@@ -7153,7 +7542,7 @@
                                 "active"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@active\nRoute name: draft-contract-statuses.active"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@active\nRoute name: draft-contract-statuses.active\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -7190,7 +7579,7 @@
                                 "sync"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@syncFromContractStatuses\nRoute name: draft-contract-statuses.sync",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@syncFromContractStatuses\nRoute name: draft-contract-statuses.sync\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"client_explanation\": \"شرح محدث للعميل\",\n    \"is_active\": true\n}",
@@ -7231,7 +7620,7 @@
                                 "{{id}}"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@show\nRoute name: draft-contract-statuses.show"
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@show\nRoute name: draft-contract-statuses.show\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)"
                     },
                     "response": []
                 },
@@ -7268,7 +7657,7 @@
                                 "{{id}}"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@update\nRoute name: draft-contract-statuses.update",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@update\nRoute name: draft-contract-statuses.update\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "{\n    \"name\": \"تعديل حالة مسودة\",\n    \"color\": \"#8B5CF6\",\n    \"client_explanation\": \"شرح محدث للعميل\",\n    \"is_active\": true\n}",
@@ -7315,7 +7704,7 @@
                                 "delete"
                             ]
                         },
-                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@destroy\nRoute name: draft-contract-statuses.destroy",
+                        "description": "Action: App\\Http\\Controllers\\Admin\\DraftContractStatusController@destroy\nRoute name: draft-contract-statuses.destroy\r\n\r\nStatus extra fields (required only for the matching status):\r\n\r\n- Status ID 9 (توثيق العقد في إيجار):\r\n  deed_type = paper | electronic | other\r\n  deed_number (required)\r\n\r\n- Status ID 10 (بانتظار المشرف):\r\n  ejar_contract_number (required)\r\n  notes (optional)\r\n\r\n- Status ID 2 (استرجاع / مسترجع):\r\n  attachment (optional file — send as multipart form-data)\r\n\r\n- Send contract draft to client (ID 8 / إرسال مسودة العقد لكم عبر واتساب):\r\n  ejar_contract_draft_number (required)\r\n  contact_number_mode = same | another\r\n  contact_number (required when contact_number_mode = another)",
                         "body": {
                             "mode": "raw",
                             "raw": "[]",
