@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "aqdi-admin-full-e3d7df6cd03d",
+        "_postman_id": "aqdi-admin-full-903a3624f1b9",
         "name": "AQDI Admin API — Full Collection",
         "description": "Full Admin API collection generated from Laravel routes (`api/admin/*`).\n\nAuth: most endpoints need `Authorization: Bearer {{employee_token}}` (employee Sanctum).\n\n1) Run **Employees login** first — token is saved automatically.\n2) Set `baseUrl`, ids, and other variables as needed.\n3) Example JSON bodies are included for create/update endpoints.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -262,6 +262,44 @@
                     "response": []
                 },
                 {
+                    "name": "GET /employees/kpis  (employees.kpis.index)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/kpis?period=today",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "kpis"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "today"
+                                }
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\EmployeeKpiController@index\nRoute name: employees.kpis.index"
+                    },
+                    "response": []
+                },
+                {
                     "name": "POST /employees/login  (employees.login)",
                     "request": {
                         "method": "POST",
@@ -365,6 +403,45 @@
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /employees/me/kpis  (employees.kpis.me)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/me/kpis?period=today",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "me",
+                                "kpis"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "today"
+                                }
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\EmployeeKpiController@me\nRoute name: employees.kpis.me"
                     },
                     "response": []
                 },
@@ -537,6 +614,45 @@
                                 }
                             }
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "GET /employees/{{id}}/kpis  (employees.kpis.show)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/{{id}}/kpis?period=today",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "{{id}}",
+                                "kpis"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "today"
+                                }
+                            ]
+                        },
+                        "description": "Action: App\\Http\\Controllers\\Admin\\EmployeeKpiController@show\nRoute name: employees.kpis.show"
                     },
                     "response": []
                 },

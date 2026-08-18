@@ -420,6 +420,18 @@ $queryExamples = [
         ['key' => 'page', 'value' => '1'],
         ['key' => 'search', 'value' => '', 'disabled' => true],
     ],
+    'api/admin/employees/kpis' => [
+        ['key' => 'period', 'value' => 'today'],
+    ],
+    'api/admin/employees/me/kpis' => [
+        ['key' => 'period', 'value' => 'today'],
+    ],
+    'api/admin/employees/{id}/kpis' => [
+        ['key' => 'period', 'value' => 'today'],
+    ],
+    'api/admin/employees/{id}/kpis/details' => [
+        ['key' => 'period', 'value' => 'today'],
+    ],
     'api/admin/payments' => [
         ['key' => 'page', 'value' => '1'],
     ],

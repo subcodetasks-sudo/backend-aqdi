@@ -101,6 +101,61 @@ class ContractReceivedTiming
         return max(0, (int) floor($seconds / 60));
     }
 
+    /**
+     * Minutes that fall inside the daily shift window (د عمل).
+     *
+     * @param  array{start: string, end: string}  $shift
+     */
+    public static function workMinutesBetween(Carbon $from, Carbon $to, array $shift): int
+    {
+        if ($to->lte($from)) {
+            return 0;
+        }
+
+        $startClock = $shift['start'] ?? '09:00';
+        $endClock = $shift['end'] ?? '17:00';
+        $total = 0;
+        $day = $from->copy()->startOfDay();
+        $lastDay = $to->copy()->startOfDay();
+
+        while ($day->lte($lastDay)) {
+            $shiftStart = self::clockOnDay($day, $startClock);
+            $shiftEnd = self::clockOnDay($day, $endClock);
+
+            if ($startClock <= $endClock) {
+                $windows = [[$shiftStart, $shiftEnd]];
+            } else {
+                $windows = [
+                    [$day->copy()->startOfDay(), $shiftEnd],
+                    [$shiftStart, $day->copy()->endOfDay()],
+                ];
+            }
+
+            foreach ($windows as [$windowStart, $windowEnd]) {
+                $overlapStart = $from->greaterThan($windowStart) ? $from : $windowStart;
+                $overlapEnd = $to->lessThan($windowEnd) ? $to : $windowEnd;
+                if ($overlapEnd->gt($overlapStart)) {
+                    $total += self::minutesBetween($overlapStart, $overlapEnd);
+                }
+            }
+
+            $day->addDay();
+        }
+
+        return $total;
+    }
+
+    private static function clockOnDay(Carbon $day, string $clock): Carbon
+    {
+        try {
+            $parsed = Carbon::createFromFormat('H:i', $clock);
+        } catch (\Throwable) {
+            return $day->copy()->startOfDay();
+        }
+
+        return $day->copy()->setTime((int) $parsed->format('H'), (int) $parsed->format('i'), 0);
+    }
+
     public static function durationPhrase(int $minutes): string
     {
         if ($minutes < 1) {
