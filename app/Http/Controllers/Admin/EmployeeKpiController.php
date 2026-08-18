@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Services\Admin\EmployeeKpiService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 use Throwable;
 
 class EmployeeKpiController extends Controller
@@ -21,14 +22,20 @@ class EmployeeKpiController extends Controller
     public function index(Request $request)
     {
         try {
-            $period = $this->kpis->normalizePeriod($request->query('period'));
+            $filter = $this->kpis->resolvePeriodFilter($request);
             $viewerId = $request->user() instanceof Employee ? (int) $request->user()->id : null;
+            $items = $this->kpis->forAllEmployees($filter, $viewerId);
 
             return $this->apiResponse([
-                'periods' => $this->kpis->periodTabs($period),
-                'period' => $period,
-                'items' => $this->kpis->forAllEmployees($period, $viewerId),
+                'periods' => $this->kpis->periodTabs($filter['key']),
+                'period' => $filter['key'],
+                'date_from' => $filter['date_from'],
+                'date_to' => $filter['date_to'],
+                'summary' => $this->kpis->summarize($items),
+                'items' => $items,
             ], trans('api.success'));
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
@@ -43,6 +50,8 @@ class EmployeeKpiController extends Controller
             }
 
             return $this->showPayload($request, $employee);
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
@@ -54,6 +63,8 @@ class EmployeeKpiController extends Controller
             $employee = Employee::query()->with('roleRelation')->findOrFail($id);
 
             return $this->showPayload($request, $employee);
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.employee_not_found'), 404);
         } catch (Throwable $e) {
@@ -69,12 +80,14 @@ class EmployeeKpiController extends Controller
     private function showPayload(Request $request, Employee $employee)
     {
         $employee->loadMissing('roleRelation');
-        $period = $this->kpis->normalizePeriod($request->query('period'));
+        $filter = $this->kpis->resolvePeriodFilter($request);
         $viewerId = $request->user() instanceof Employee ? (int) $request->user()->id : null;
-        $detail = $this->kpis->forEmployee($employee, $period, $viewerId, true);
+        $detail = $this->kpis->forEmployee($employee, $filter, $viewerId, true);
 
         return $this->apiResponse(array_merge([
-            'periods' => $this->kpis->periodTabs($period),
+            'periods' => $this->kpis->periodTabs($filter['key']),
+            'date_from' => $filter['date_from'],
+            'date_to' => $filter['date_to'],
         ], $detail), trans('api.success'));
     }
 }

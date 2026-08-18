@@ -53,7 +53,65 @@ class Handler extends ExceptionHandler
             ], 422);
         }
 
+        if ($e instanceof ModelNotFoundException || $e instanceof NotFoundHttpException) {
+            if ($this->isApiRequest($request)) {
+                return $this->errorMessage(trans('api.not_found'), 404);
+            }
+
+            return $this->renderWithoutDebug($request, $e);
+        }
+
+        if ($this->isApiRequest($request)) {
+            if ($e instanceof ValidationException) {
+                $errors = $e->validator->errors()->first();
+
+                return $this->errorMessage($errors ?: trans('api.error_occurred'), 422);
+            }
+
+            if ($e instanceof MethodNotAllowedHttpException) {
+                return $this->errorMessage('Method not allowed.', 405);
+            }
+
+            if ($e instanceof AuthenticationException) {
+                return $this->errorMessage(trans('api.unauthorized'), 401);
+            }
+
+            if ($e instanceof AuthorizationException) {
+                return $this->errorMessage($e->getMessage() ?: trans('api.unauthorized'), 403);
+            }
+
+            if ($e instanceof HttpException) {
+                $message = trim((string) $e->getMessage());
+
+                return $this->errorMessage(
+                    $message !== '' ? $message : trans('api.error_occurred'),
+                    $e->getStatusCode()
+                );
+            }
+
+            if (! config('app.debug')) {
+                return $this->errorMessage(trans('api.error_occurred'), 500);
+            }
+        }
+
         return parent::render($request, $e);
+    }
+
+    private function isApiRequest($request): bool
+    {
+        return $request->is('api/*') || $request->expectsJson();
+    }
+
+    private function renderWithoutDebug($request, Throwable $e)
+    {
+        $previous = config('app.debug');
+        config(['app.debug' => false]);
+
+        try {
+            return parent::render($request, $e);
+        } finally {
+            config(['app.debug' => $previous]);
+        }
     }
 
     // public function render($request, Throwable $e)

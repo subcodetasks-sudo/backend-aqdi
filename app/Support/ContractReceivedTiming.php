@@ -156,6 +156,33 @@ class ContractReceivedTiming
         return $day->copy()->setTime((int) $parsed->format('H'), (int) $parsed->format('i'), 0);
     }
 
+    /**
+     * Compact Arabic duration for KPI cards, e.g. 80 → "1 س 20 د".
+     */
+    public static function compactDurationPhrase(?int $minutes): string
+    {
+        if ($minutes === null) {
+            return '—';
+        }
+
+        if ($minutes < 1) {
+            return '0 د';
+        }
+
+        $hours = intdiv($minutes, 60);
+        $remain = $minutes % 60;
+
+        if ($hours === 0) {
+            return $remain.' د';
+        }
+
+        if ($remain === 0) {
+            return $hours.' س';
+        }
+
+        return $hours.' س '.$remain.' د';
+    }
+
     public static function durationPhrase(int $minutes): string
     {
         if ($minutes < 1) {

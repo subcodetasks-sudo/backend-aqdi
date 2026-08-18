@@ -50,6 +50,8 @@ $makeGet = static function (string $name, string $path, array $query, string $de
 
 $periodQuery = static fn (string $period): array => [
     ['key' => 'period', 'value' => $period],
+    ['key' => 'date_from', 'value' => '2026-08-01', 'disabled' => true],
+    ['key' => 'date_to', 'value' => '2026-08-18', 'disabled' => true],
 ];
 
 $login = [
@@ -95,13 +97,16 @@ $login = [
 ];
 
 $periodHelp = <<<'TXT'
-period = today | yesterday | last_7_days | last_30_days | all
+period = today | yesterday | last_7_days | last_30_days | all | custom
 
-List (all employees): cards + avg_receive + receive_sla
+Custom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD
+(or pass date_from + date_to with any period — dates win)
+
+List (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary
 Details: same + received_orders table + full activity log
 
-Cards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س
-Metrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د
+Cards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع
+Metrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق
 TXT;
 
 $collection = [
@@ -172,6 +177,16 @@ $collection = [
                     'api/admin/employees/{{employee_id}}/kpis',
                     $periodQuery('all'),
                     ''
+                ),
+                $makeGet(
+                    'Custom date range',
+                    'api/admin/employees/kpis',
+                    [
+                        ['key' => 'period', 'value' => 'custom'],
+                        ['key' => 'date_from', 'value' => '2026-08-01'],
+                        ['key' => 'date_to', 'value' => '2026-08-18'],
+                    ],
+                    $periodHelp."\n\nList includes top-level summary rollup."
                 ),
             ],
         ],

@@ -76,10 +76,6 @@ use Illuminate\Support\Facades\Route;
             Route::get('/', 'index')->name('index');
             Route::get('/employee-salary', 'employeeSalary')->name('employee-salary');
             Route::get('/employee-notes', 'employeeNotes')->name('employee-notes');
-            Route::get('/kpis', [EmployeeKpiController::class, 'index'])->name('kpis.index');
-            Route::get('/me/kpis', [EmployeeKpiController::class, 'me'])->name('kpis.me');
-            Route::get('/{id}/kpis/details', [EmployeeKpiController::class, 'details'])->whereNumber('id')->name('kpis.details');
-            Route::get('/{id}/kpis', [EmployeeKpiController::class, 'show'])->whereNumber('id')->name('kpis.show');
             Route::post('/fcm', 'updateFcmToken')->name('fcm');
             Route::post('/{id}/salary', 'storeSalary')->whereNumber('id')->name('salary.store');
             Route::post('/{id}/note', 'storeNote')->whereNumber('id')->name('note.store');
@@ -92,6 +88,13 @@ use Illuminate\Support\Facades\Route;
             Route::post('/{id}/block', 'block')->whereNumber('id')->name('block');
             Route::post('/{id}/unblock', 'unblock')->whereNumber('id')->name('unblock');
         });
+    });
+
+    Route::prefix('employees')->name('employees.')->middleware('auth:sanctum')->controller(EmployeeKpiController::class)->group(function () {
+        Route::get('/kpis', 'index')->name('kpis.index');
+        Route::get('/me/kpis', 'me')->name('kpis.me');
+        Route::get('/{id}/kpis/details', 'details')->whereNumber('id')->name('kpis.details');
+        Route::get('/{id}/kpis', 'show')->whereNumber('id')->name('kpis.show');
     });
 
     // Firebase notifications

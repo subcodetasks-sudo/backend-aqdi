@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "aqdi-admin-emp-kpis-2cae24316021",
         "name": "AQDI Admin — Employee KPIs",
-        "description": "KPIs لكل موظف بنفس تفاصيل شاشة الداشبورد.\n\nAuth: Bearer {{employee_token}}\n\nperiod = today | yesterday | last_7_days | last_30_days | all\n\nList (all employees): cards + avg_receive + receive_sla\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د",
+        "description": "KPIs لكل موظف بنفس تفاصيل شاشة الداشبورد.\n\nAuth: Bearer {{employee_token}}\n\nperiod = today | yesterday | last_7_days | last_30_days | all | custom\n\nCustom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD\n(or pass date_from + date_to with any period — dates win)\n\nList (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -122,10 +122,20 @@
                                 {
                                     "key": "period",
                                     "value": "today"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
-                        "description": "period = today | yesterday | last_7_days | last_30_days | all\n\nList (all employees): cards + avg_receive + receive_sla\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د\n\nIncludes activity (آخر التحركات)."
+                        "description": "period = today | yesterday | last_7_days | last_30_days | all | custom\n\nCustom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD\n(or pass date_from + date_to with any period — dates win)\n\nList (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق\n\nIncludes activity (آخر التحركات)."
                     },
                     "response": []
                 },
@@ -160,10 +170,20 @@
                                 {
                                     "key": "period",
                                     "value": "today"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
-                        "description": "period = today | yesterday | last_7_days | last_30_days | all\n\nList (all employees): cards + avg_receive + receive_sla\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د\n\nList: cards + avg + SLA. No table / activity."
+                        "description": "period = today | yesterday | last_7_days | last_30_days | all | custom\n\nCustom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD\n(or pass date_from + date_to with any period — dates win)\n\nList (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق\n\nList: cards + avg + SLA. No table / activity."
                     },
                     "response": []
                 },
@@ -200,10 +220,20 @@
                                 {
                                     "key": "period",
                                     "value": "today"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
-                        "description": "period = today | yesterday | last_7_days | last_30_days | all\n\nList (all employees): cards + avg_receive + receive_sla\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د\n\nIncludes received_orders table + سجل التحركات الكامل."
+                        "description": "period = today | yesterday | last_7_days | last_30_days | all | custom\n\nCustom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD\n(or pass date_from + date_to with any period — dates win)\n\nList (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق\n\nIncludes received_orders table + سجل التحركات الكامل."
                     },
                     "response": []
                 },
@@ -239,6 +269,16 @@
                                 {
                                     "key": "period",
                                     "value": "today"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
@@ -278,6 +318,16 @@
                                 {
                                     "key": "period",
                                     "value": "yesterday"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
@@ -317,6 +367,16 @@
                                 {
                                     "key": "period",
                                     "value": "last_7_days"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
@@ -356,6 +416,16 @@
                                 {
                                     "key": "period",
                                     "value": "last_30_days"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
@@ -395,10 +465,66 @@
                                 {
                                     "key": "period",
                                     "value": "all"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18",
+                                    "disabled": true
                                 }
                             ]
                         },
                         "description": ""
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Custom date range",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/kpis?period=custom&date_from=2026-08-01&date_to=2026-08-18",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "kpis"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "custom"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-18"
+                                }
+                            ]
+                        },
+                        "description": "period = today | yesterday | last_7_days | last_30_days | all | custom\n\nCustom range: period=custom&date_from=YYYY-MM-DD&date_to=YYYY-MM-DD\n(or pass date_from + date_to with any period — dates win)\n\nList (all employees): cards + avg_receive + avg_process + revenue + receive_sla + summary\nDetails: same + received_orders table + full activity log\n\nCards: استلم / منجز بالفترة / مفتوح الآن / متأخر > 24 س / طلبات مسندة / مسترجع\nMetrics: متوسط الاستلام (د عمل) | التزام الاستلام ≤5د | متوسط المعالجة | إيراد محقق\n\nList includes top-level summary rollup."
                     },
                     "response": []
                 }

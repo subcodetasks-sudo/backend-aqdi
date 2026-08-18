@@ -422,15 +422,23 @@ $queryExamples = [
     ],
     'api/admin/employees/kpis' => [
         ['key' => 'period', 'value' => 'today'],
+        ['key' => 'date_from', 'value' => '2026-08-01', 'disabled' => true],
+        ['key' => 'date_to', 'value' => '2026-08-18', 'disabled' => true],
     ],
     'api/admin/employees/me/kpis' => [
         ['key' => 'period', 'value' => 'today'],
+        ['key' => 'date_from', 'value' => '2026-08-01', 'disabled' => true],
+        ['key' => 'date_to', 'value' => '2026-08-18', 'disabled' => true],
     ],
     'api/admin/employees/{id}/kpis' => [
         ['key' => 'period', 'value' => 'today'],
+        ['key' => 'date_from', 'value' => '2026-08-01', 'disabled' => true],
+        ['key' => 'date_to', 'value' => '2026-08-18', 'disabled' => true],
     ],
     'api/admin/employees/{id}/kpis/details' => [
         ['key' => 'period', 'value' => 'today'],
+        ['key' => 'date_from', 'value' => '2026-08-01', 'disabled' => true],
+        ['key' => 'date_to', 'value' => '2026-08-18', 'disabled' => true],
     ],
     'api/admin/payments' => [
         ['key' => 'page', 'value' => '1'],

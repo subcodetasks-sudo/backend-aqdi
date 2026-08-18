@@ -9,9 +9,11 @@ use App\Models\Employee;
 use App\Models\ReceivedContract;
 use App\Support\ContractReceivedTiming;
 use App\Support\ContractStatusCase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class EmployeeKpiService
 {
@@ -21,6 +23,7 @@ class EmployeeKpiService
         'last_7_days' => 'آخر 7 أيام',
         'last_30_days' => 'آخر 30 يومًا',
         'all' => 'كل الفترات',
+        'custom' => 'مدة محددة',
     ];
 
     /**
@@ -65,6 +68,8 @@ class EmployeeKpiService
             'آخر 30 يومًا' => 'last_30_days',
             'all' => 'all',
             'كل الفترات' => 'all',
+            'custom' => 'custom',
+            'مدة محددة' => 'custom',
         ];
 
         $normalized = mb_strtolower(str_replace('ً', '', $value));
@@ -84,48 +89,193 @@ class EmployeeKpiService
             'yesterday' => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
             'last_7_days' => [$now->copy()->subDays(6)->startOfDay(), $now->copy()->endOfDay()],
             'last_30_days' => [$now->copy()->subDays(29)->startOfDay(), $now->copy()->endOfDay()],
-            'all' => null,
+            'all', 'custom' => null,
             default => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
         };
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{
+     *     key: string,
+     *     label_ar: string,
+     *     range: array{0: Carbon, 1: Carbon}|null,
+     *     date_from: string|null,
+     *     date_to: string|null
+     * }
      */
-    public function forEmployee(Employee $employee, string $period, ?int $viewerEmployeeId = null, bool $withDetails = true): array
+    public function resolvePeriodFilter(Request $request): array
+    {
+        $dateFromRaw = $this->queryString($request, 'date_from');
+        $dateToRaw = $this->queryString($request, 'date_to');
+        $hasFrom = $dateFromRaw !== null;
+        $hasTo = $dateToRaw !== null;
+
+        if ($hasFrom xor $hasTo) {
+            throw new InvalidArgumentException('يجب تحديد date_from و date_to معاً.');
+        }
+
+        $period = $this->normalizePeriod($request->query('period'));
+
+        if ($hasFrom && $hasTo) {
+            $from = $this->parseDateBoundary($dateFromRaw, false);
+            $to = $this->parseDateBoundary($dateToRaw, true);
+            if ($from->gt($to)) {
+                throw new InvalidArgumentException('date_from يجب أن يكون قبل أو يساوي date_to.');
+            }
+
+            return [
+                'key' => 'custom',
+                'label_ar' => self::PERIODS['custom'],
+                'range' => [$from, $to],
+                'date_from' => $from->toDateString(),
+                'date_to' => $to->toDateString(),
+            ];
+        }
+
+        if ($period === 'custom') {
+            throw new InvalidArgumentException('يجب تحديد date_from و date_to عند اختيار مدة محددة.');
+        }
+
+        return $this->filterFromPeriodKey($period);
+    }
+
+    /**
+     * @return array{
+     *     key: string,
+     *     label_ar: string,
+     *     range: array{0: Carbon, 1: Carbon}|null,
+     *     date_from: string|null,
+     *     date_to: string|null
+     * }
+     */
+    public function filterFromPeriodKey(string $period): array
     {
         $period = $this->normalizePeriod($period);
-        $payloads = $this->buildForEmployees(collect([$employee]), $period, $viewerEmployeeId, $withDetails);
+        if ($period === 'custom') {
+            $period = 'today';
+        }
+
+        $range = $this->periodRange($period);
+
+        return [
+            'key' => $period,
+            'label_ar' => self::PERIODS[$period],
+            'range' => $range,
+            'date_from' => $range === null ? null : $range[0]->toDateString(),
+            'date_to' => $range === null ? null : $range[1]->toDateString(),
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return array<string, mixed>
+     */
+    public function summarize(array $items): array
+    {
+        $received = 0;
+        $completed = 0;
+        $late = 0;
+        $assigned = 0;
+        $returned = 0;
+        $receiveAvgs = [];
+        $processAvgs = [];
+        $revenue = 0.0;
+
+        foreach ($items as $item) {
+            $cards = collect($item['cards'] ?? [])->keyBy('key');
+            $received += (int) ($cards->get('received')['value'] ?? 0);
+            $completed += (int) ($cards->get('completed')['value'] ?? 0);
+            $late += (int) ($cards->get('late_over_24h')['value'] ?? 0);
+            $assigned += (int) ($cards->get('assigned')['value'] ?? 0);
+            $returned += (int) ($cards->get('returned')['value'] ?? 0);
+
+            $receiveAvg = $item['avg_receive']['value'] ?? null;
+            if (is_numeric($receiveAvg)) {
+                $receiveAvgs[] = (float) $receiveAvg;
+            }
+
+            $processAvg = $item['avg_process']['value'] ?? null;
+            if (is_numeric($processAvg)) {
+                $processAvgs[] = (float) $processAvg;
+            }
+
+            $revenue += (float) ($item['revenue']['value'] ?? 0);
+        }
+
+        return [
+            'employees_count' => count($items),
+            'received_total' => $received,
+            'completed_total' => $completed,
+            'late_over_24h_total' => $late,
+            'assigned_total' => $assigned,
+            'returned_total' => $returned,
+            'avg_receive_work_minutes' => $this->averageOrNull($receiveAvgs),
+            'avg_process_minutes' => $this->averageOrNull($processAvgs),
+            'revenue_sar_total' => $this->moneyValue($revenue),
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     key: string,
+     *     label_ar: string,
+     *     range: array{0: Carbon, 1: Carbon}|null,
+     *     date_from: string|null,
+     *     date_to: string|null
+     * }|string  $period
+     * @return array<string, mixed>
+     */
+    public function forEmployee(Employee $employee, array|string $period, ?int $viewerEmployeeId = null, bool $withDetails = true): array
+    {
+        $filter = is_array($period) ? $period : $this->filterFromPeriodKey($period);
+        $payloads = $this->buildForEmployees(collect([$employee]), $filter, $viewerEmployeeId, $withDetails);
 
         return $payloads[0];
     }
 
     /**
+     * @param  array{
+     *     key: string,
+     *     label_ar: string,
+     *     range: array{0: Carbon, 1: Carbon}|null,
+     *     date_from: string|null,
+     *     date_to: string|null
+     * }|string  $period
      * @return list<array<string, mixed>>
      */
-    public function forAllEmployees(string $period, ?int $viewerEmployeeId = null): array
+    public function forAllEmployees(array|string $period, ?int $viewerEmployeeId = null): array
     {
-        $period = $this->normalizePeriod($period);
+        $filter = is_array($period) ? $period : $this->filterFromPeriodKey($period);
         $employees = Employee::query()
             ->with('roleRelation')
             ->orderBy('name')
             ->get();
 
-        return $this->buildForEmployees($employees, $period, $viewerEmployeeId, false);
+        return $this->buildForEmployees($employees, $filter, $viewerEmployeeId, false);
     }
 
     /**
      * @param  Collection<int, Employee>  $employees
+     * @param  array{
+     *     key: string,
+     *     label_ar: string,
+     *     range: array{0: Carbon, 1: Carbon}|null,
+     *     date_from: string|null,
+     *     date_to: string|null
+     * }  $filter
      * @return list<array<string, mixed>>
      */
     private function buildForEmployees(
         Collection $employees,
-        string $period,
+        array $filter,
         ?int $viewerEmployeeId,
         bool $withDetails
     ): array {
-        $range = $this->periodRange($period);
+        $period = $filter['key'];
+        $periodLabel = $filter['label_ar'] ?? (self::PERIODS[$period] ?? $period);
+        $range = $filter['range'] ?? $this->periodRange($period);
         $doneIds = $this->doneStatusIds();
+        $returnIds = $this->returnStatusIds();
         $notOpenIds = $this->notOpenStatusIds();
         $lateBefore = now()->subHours((int) config('employee_kpis.late_after_hours', 24));
         $ids = $employees->pluck('id')->all();
@@ -134,7 +284,10 @@ class EmployeeKpiService
         $lateCounts = $this->countLateByEmployee($ids, $notOpenIds, $lateBefore);
         $receivedCounts = $this->countReceivedInPeriodByEmployee($ids, $range);
         $completedCounts = $this->countCompletedInPeriodByEmployee($ids, $doneIds, $range);
+        $returnedCounts = $this->countReturnedInPeriodByEmployee($ids, $returnIds, $range);
+        $revenueByEmployee = $this->revenueByEmployee($ids, $doneIds, $range);
         $receiveRows = $this->receivedRowsInPeriod($ids, $range);
+        $processRows = $this->processRowsInPeriod($ids, $doneIds, $range);
 
         $payloads = [];
         foreach ($employees as $employee) {
@@ -143,13 +296,20 @@ class EmployeeKpiService
             $late = (int) ($lateCounts[$employeeId] ?? 0);
             $received = (int) ($receivedCounts[$employeeId] ?? 0);
             $completed = (int) ($completedCounts[$employeeId] ?? 0);
+            $returned = (int) ($returnedCounts[$employeeId] ?? 0);
+            $assigned = $received;
+            $revenue = (float) ($revenueByEmployee[$employeeId] ?? 0);
             $rows = $receiveRows->get($employeeId, collect());
             $receiveStats = $this->receiveWorkStats($employee, $rows);
+            $processStats = $this->processTimeStats($processRows->get($employeeId, collect()));
             $slaMinutes = (int) config('employee_kpis.receive_sla_minutes', 5);
 
             $isYou = $viewerEmployeeId !== null && $viewerEmployeeId === $employeeId;
             $shift = $this->shiftFor($employee);
             $onDuty = $this->isOnDutyNow($shift);
+            $receiveLabel = $period === 'custom' && $filter['date_from'] && $filter['date_to']
+                ? $filter['date_from'].' → '.$filter['date_to']
+                : $periodLabel;
 
             $payload = [
                 'employee' => [
@@ -174,14 +334,16 @@ class EmployeeKpiService
                 ],
                 'period' => [
                     'key' => $period,
-                    'label_ar' => self::PERIODS[$period],
+                    'label_ar' => $periodLabel,
                     'from' => $range === null ? null : $range[0]->format('Y-m-d H:i:s'),
                     'to' => $range === null ? null : $range[1]->format('Y-m-d H:i:s'),
+                    'date_from' => $filter['date_from'] ?? ($range === null ? null : $range[0]->toDateString()),
+                    'date_to' => $filter['date_to'] ?? ($range === null ? null : $range[1]->toDateString()),
                 ],
                 'cards' => [
                     [
                         'key' => 'received',
-                        'label_ar' => 'استلم ('.self::PERIODS[$period].')',
+                        'label_ar' => 'استلم ('.$receiveLabel.')',
                         'value' => $received,
                         'tone' => 'default',
                     ],
@@ -203,6 +365,18 @@ class EmployeeKpiService
                         'value' => $late,
                         'tone' => 'danger',
                     ],
+                    [
+                        'key' => 'assigned',
+                        'label_ar' => 'طلبات مسندة',
+                        'value' => $assigned,
+                        'tone' => 'default',
+                    ],
+                    [
+                        'key' => 'returned',
+                        'label_ar' => 'مسترجع',
+                        'value' => $returned,
+                        'tone' => $returned > 0 ? 'warning' : 'default',
+                    ],
                 ],
                 'avg_receive' => [
                     'key' => 'avg_receive_work_minutes',
@@ -210,6 +384,21 @@ class EmployeeKpiService
                     'value' => $receiveStats['avg'],
                     'value_label' => $receiveStats['avg'] === null ? '—' : (string) $receiveStats['avg'],
                     'unit' => 'د عمل',
+                ],
+                'avg_process' => [
+                    'key' => 'avg_process_minutes',
+                    'label_ar' => 'متوسط المعالجة',
+                    'value' => $processStats['avg'],
+                    'value_label' => $processStats['avg'] === null
+                        ? '—'
+                        : ContractReceivedTiming::compactDurationPhrase((int) round($processStats['avg'])),
+                    'unit' => 'دقيقة',
+                ],
+                'revenue' => [
+                    'key' => 'revenue_sar',
+                    'label_ar' => 'إيراد محقق',
+                    'value' => $this->moneyValue($revenue),
+                    'currency' => 'SAR',
                 ],
                 'receive_sla' => [
                     'key' => 'receive_sla_within_5m',
@@ -233,12 +422,27 @@ class EmployeeKpiService
                         'percent' => $receiveStats['sla_percent'],
                         'tone' => $receiveStats['sla_percent'] >= 90 ? 'success' : ($receiveStats['sla_percent'] >= 50 ? 'warning' : 'danger'),
                     ],
+                    [
+                        'key' => 'avg_process_minutes',
+                        'label_ar' => 'متوسط المعالجة',
+                        'value' => $processStats['avg'],
+                        'value_label' => $processStats['avg'] === null
+                            ? '—'
+                            : ContractReceivedTiming::compactDurationPhrase((int) round($processStats['avg'])),
+                        'unit' => 'دقيقة',
+                    ],
+                    [
+                        'key' => 'revenue_sar',
+                        'label_ar' => 'إيراد محقق',
+                        'value' => $this->moneyValue($revenue),
+                        'currency' => 'SAR',
+                    ],
                 ],
                 'details_path' => '/api/admin/employees/'.$employeeId.'/kpis/details',
             ];
 
             if ($withDetails) {
-                $payload['received_orders'] = $this->receivedOrdersTable($employee, $period, $range);
+                $payload['received_orders'] = $this->receivedOrdersTable($employee, $periodLabel, $range);
                 $payload['activity'] = [
                     'label_ar' => 'سجل التحركات الكامل',
                     'items' => $this->activityForEmployee(
@@ -392,15 +596,16 @@ class EmployeeKpiService
             return [];
         }
 
-        $query = DB::table('contract_status_histories')
-            ->join('received_contracts', 'received_contracts.contract_id', '=', 'contract_status_histories.contract_id')
+        $completed = $this->firstStatusEventSubquery($doneIds, 'completed_at');
+
+        $query = DB::table('received_contracts')
+            ->joinSub($completed, 'done', 'done.contract_id', '=', 'received_contracts.contract_id')
             ->join('contracts', 'contracts.id', '=', 'received_contracts.contract_id')
             ->whereIn('received_contracts.employee_id', $employeeIds)
-            ->where('contracts.is_delete', 0)
-            ->whereIn('contract_status_histories.status_id', $doneIds);
+            ->where('contracts.is_delete', 0);
 
         if ($range !== null) {
-            $query->whereBetween('contract_status_histories.created_at', [
+            $query->whereBetween('done.completed_at', [
                 $range[0]->toDateTimeString(),
                 $range[1]->toDateTimeString(),
             ]);
@@ -408,10 +613,157 @@ class EmployeeKpiService
 
         return $query
             ->groupBy('received_contracts.employee_id')
-            ->selectRaw('received_contracts.employee_id, COUNT(DISTINCT contract_status_histories.contract_id) as aggregate')
+            ->selectRaw('received_contracts.employee_id, COUNT(DISTINCT received_contracts.contract_id) as aggregate')
             ->pluck('aggregate', 'employee_id')
             ->map(fn ($v) => (int) $v)
             ->all();
+    }
+
+    /**
+     * @param  list<int>  $employeeIds
+     * @param  list<int>  $returnIds
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return array<int, int>
+     */
+    private function countReturnedInPeriodByEmployee(array $employeeIds, array $returnIds, ?array $range): array
+    {
+        if ($employeeIds === [] || $returnIds === []) {
+            return [];
+        }
+
+        $returned = $this->firstStatusEventSubquery($returnIds, 'returned_at');
+
+        $query = DB::table('received_contracts')
+            ->joinSub($returned, 'returned', 'returned.contract_id', '=', 'received_contracts.contract_id')
+            ->join('contracts', 'contracts.id', '=', 'received_contracts.contract_id')
+            ->whereIn('received_contracts.employee_id', $employeeIds)
+            ->where('contracts.is_delete', 0);
+
+        if ($range !== null) {
+            $query->whereBetween('returned.returned_at', [
+                $range[0]->toDateTimeString(),
+                $range[1]->toDateTimeString(),
+            ]);
+        }
+
+        return $query
+            ->groupBy('received_contracts.employee_id')
+            ->selectRaw('received_contracts.employee_id, COUNT(DISTINCT received_contracts.contract_id) as aggregate')
+            ->pluck('aggregate', 'employee_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+    }
+
+    /**
+     * @param  list<int>  $employeeIds
+     * @param  list<int>  $doneIds
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return array<int, float>
+     */
+    private function revenueByEmployee(array $employeeIds, array $doneIds, ?array $range): array
+    {
+        if ($employeeIds === [] || $doneIds === []) {
+            return [];
+        }
+
+        $completed = $this->firstStatusEventSubquery($doneIds, 'completed_at');
+
+        $query = DB::table('received_contracts')
+            ->joinSub($completed, 'done', 'done.contract_id', '=', 'received_contracts.contract_id')
+            ->join('contracts', 'contracts.id', '=', 'received_contracts.contract_id')
+            ->join('payments', function ($join) {
+                $join->where('payments.status', '=', 'success')
+                    ->where(function ($q) {
+                        $q->whereColumn('payments.contract_uuid', 'contracts.uuid')
+                            ->orWhereRaw("payments.contract_uuid LIKE CONCAT(CAST(contracts.uuid AS CHAR), '-%')");
+                    });
+            })
+            ->whereIn('received_contracts.employee_id', $employeeIds)
+            ->where('contracts.is_delete', 0);
+
+        if ($range !== null) {
+            $query->whereBetween('done.completed_at', [
+                $range[0]->toDateTimeString(),
+                $range[1]->toDateTimeString(),
+            ]);
+        }
+
+        return $query
+            ->groupBy('received_contracts.employee_id')
+            ->selectRaw('received_contracts.employee_id, COALESCE(SUM(payments.amount), 0) as aggregate')
+            ->pluck('aggregate', 'employee_id')
+            ->map(fn ($v) => (float) $v)
+            ->all();
+    }
+
+    /**
+     * @param  list<int>  $employeeIds
+     * @param  list<int>  $doneIds
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return Collection<int, Collection<int, object>>
+     */
+    private function processRowsInPeriod(array $employeeIds, array $doneIds, ?array $range): Collection
+    {
+        if ($employeeIds === [] || $doneIds === []) {
+            return collect();
+        }
+
+        $completed = $this->firstStatusEventSubquery($doneIds, 'completed_at');
+
+        $query = DB::table('received_contracts')
+            ->joinSub($completed, 'done', 'done.contract_id', '=', 'received_contracts.contract_id')
+            ->join('contracts', 'contracts.id', '=', 'received_contracts.contract_id')
+            ->whereIn('received_contracts.employee_id', $employeeIds)
+            ->where('contracts.is_delete', 0)
+            ->select([
+                'received_contracts.employee_id',
+                'received_contracts.contract_id',
+                'received_contracts.created_at as received_at',
+                'received_contracts.date_of_received',
+                'done.completed_at',
+            ]);
+
+        if ($range !== null) {
+            $query->whereBetween('done.completed_at', [
+                $range[0]->toDateTimeString(),
+                $range[1]->toDateTimeString(),
+            ]);
+        }
+
+        return $query->get()->groupBy('employee_id');
+    }
+
+    /**
+     * @param  list<int>  $statusIds
+     */
+    private function firstStatusEventSubquery(array $statusIds, string $alias): \Illuminate\Database\Query\Builder
+    {
+        return DB::table('contract_status_histories')
+            ->select('contract_id')
+            ->selectRaw('MIN(created_at) as '.$alias)
+            ->whereIn('status_id', $statusIds)
+            ->groupBy('contract_id');
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function returnStatusIds(): array
+    {
+        $ids = ContractStatus::query()
+            ->where(function ($q) {
+                $q->whereKey(ContractStatus::RETURN_ID)
+                    ->orWhereIn('name', ['مسترجع', 'استرجاع']);
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if ($ids === []) {
+            return [ContractStatus::RETURN_ID];
+        }
+
+        return $ids;
     }
 
     /**
@@ -513,10 +865,98 @@ class EmployeeKpiService
     }
 
     /**
+     * @param  Collection<int, object>  $rows
+     * @return array{avg: float|null}
+     */
+    private function processTimeStats(Collection $rows): array
+    {
+        $minutes = [];
+
+        foreach ($rows as $row) {
+            $receivedAt = $row->received_at
+                ? Carbon::parse($row->received_at)
+                : ($row->date_of_received ? Carbon::parse($row->date_of_received)->startOfDay() : null);
+            if ($receivedAt === null || empty($row->completed_at)) {
+                continue;
+            }
+
+            $minutes[] = ContractReceivedTiming::minutesBetween(
+                $receivedAt,
+                Carbon::parse($row->completed_at)
+            );
+        }
+
+        return [
+            'avg' => $this->averageOrNull($minutes),
+        ];
+    }
+
+    /**
+     * @param  list<int|float>  $values
+     */
+    private function averageOrNull(array $values): ?float
+    {
+        if ($values === []) {
+            return null;
+        }
+
+        $rawAvg = array_sum($values) / count($values);
+
+        return abs($rawAvg - round($rawAvg)) < 0.05
+            ? (float) (int) round($rawAvg)
+            : round($rawAvg, 1);
+    }
+
+    private function moneyValue(float $amount): int|float
+    {
+        $rounded = round($amount, 2);
+
+        return abs($rounded - (int) round($rounded)) < 0.005
+            ? (int) round($rounded)
+            : $rounded;
+    }
+
+    private function queryString(Request $request, string $key): ?string
+    {
+        $raw = $request->query($key);
+        if ($raw === null) {
+            return null;
+        }
+
+        $value = trim((string) $raw);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function parseDateBoundary(string $value, bool $endOfDay): Carbon
+    {
+        try {
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+                $date = Carbon::createFromFormat('Y-m-d', $value);
+                if (! $date instanceof Carbon || $date->format('Y-m-d') !== $value) {
+                    throw new InvalidArgumentException('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');
+                }
+            } else {
+                $date = Carbon::parse($value);
+            }
+        } catch (InvalidArgumentException $e) {
+            throw $e;
+        } catch (\Throwable) {
+            throw new InvalidArgumentException('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');
+        }
+
+        if (! $date instanceof Carbon) {
+            throw new InvalidArgumentException('صيغة التاريخ يجب أن تكون YYYY-MM-DD.');
+        }
+
+        return $endOfDay ? $date->copy()->endOfDay() : $date->copy()->startOfDay();
+    }
+
+    /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      * @return array<string, mixed>
      */
-    private function receivedOrdersTable(Employee $employee, string $period, ?array $range): array
+    private function receivedOrdersTable(Employee $employee, string $periodLabel, ?array $range): array
     {
         $shift = $this->shiftFor($employee);
         $sla = (int) config('employee_kpis.receive_sla_minutes', 5);
@@ -570,7 +1010,7 @@ class EmployeeKpiService
         }
 
         return [
-            'label_ar' => 'الطلبات المستلمة ('.self::PERIODS[$period].')',
+            'label_ar' => 'الطلبات المستلمة ('.$periodLabel.')',
             'count' => count($items),
             'count_label_ar' => count($items).' طلب',
             'columns' => [
