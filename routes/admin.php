@@ -53,6 +53,7 @@ use App\Http\Controllers\Admin\MessageAlertController;
 use App\Http\Controllers\Admin\RefundableContractController;
 use App\Http\Controllers\Admin\EmployeeDashboardAnalyticsController;
 use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
+use App\Http\Controllers\Admin\GeneralSettingController;
 use App\Http\Controllers\Admin\MessageAlertSectionController;
 use App\Http\Controllers\Admin\MessageAlertSectionItemController;
 use App\Http\Controllers\Admin\ReportController;
@@ -627,6 +628,16 @@ use Illuminate\Support\Facades\Route;
         Route::post('/image-banner', 'updateImageBanner')->name('image-banner.update');
         Route::post('/cover', 'updateCover')->name('cover.update');
     });
+
+    // General settings toggles (/home/settings page: website, stores, thank-you card)
+    Route::prefix('settings/general')->name('settings.general.')
+        ->controller(GeneralSettingController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::get('/', 'index')->middleware('permission:settings.view')->name('index');
+            Route::put('/', 'bulkUpdate')->middleware('permission:settings.edit')->name('bulk-update');
+            Route::put('/{key}', 'update')->middleware('permission:settings.edit')->name('update');
+        });
 
     // App content dashboard (payment methods, legal pages, customer messages)
     Route::prefix('app-content')->name('app-content.')->controller(AppContentOverviewController::class)->group(function () {

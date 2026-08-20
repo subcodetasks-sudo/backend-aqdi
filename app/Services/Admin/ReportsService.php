@@ -485,7 +485,7 @@ class ReportsService
             ->pluck('aggregate', 'contract_status_id');
 
         return ContractStatus::query()
-            ->orderBy('order')
+            ->orderBy('id')
             ->get(['id', 'name'])
             ->map(fn (ContractStatus $status) => [
                 'stage' => 'status_'.$status->id,
