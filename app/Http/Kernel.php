@@ -72,5 +72,6 @@ class Kernel extends HttpKernel
         'setLocale' => \App\Http\Middleware\SetLocale::class,
         'LoginWebsite'=>\App\Http\Middleware\Website::class,
         'seo' => \App\Http\Middleware\PreventSeoAccess::class,
+        'permission' => \App\Http\Middleware\CheckEmployeePermission::class,
      ];
 }

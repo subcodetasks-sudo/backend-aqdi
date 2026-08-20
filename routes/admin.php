@@ -55,6 +55,7 @@ use App\Http\Controllers\Admin\EmployeeDashboardAnalyticsController;
 use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
 use App\Http\Controllers\Admin\MessageAlertSectionController;
 use App\Http\Controllers\Admin\MessageAlertSectionItemController;
+use App\Http\Controllers\Admin\ReportController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -200,13 +201,27 @@ use Illuminate\Support\Facades\Route;
         ->controller(OperatingExpenseController::class)
         ->middleware('auth:sanctum')
         ->group(function () {
-            Route::get('/', 'index')->name('index');
-            Route::post('/', 'store')->name('store');
-            Route::get('/{id}', 'show')->whereNumber('id')->name('show');
-            Route::post('/{id}', 'update')->whereNumber('id')->name('update');
-            Route::put('/{id}', 'update')->whereNumber('id')->name('update.put');
-            Route::post('/{id}/delete', 'destroy')->whereNumber('id')->name('destroy');
-            Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy.delete');
+            Route::get('/', 'index')->middleware('permission:analytics.view')->name('index');
+            Route::post('/', 'store')->middleware('permission:analytics.create')->name('store');
+            Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:analytics.view')->name('show');
+            Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:analytics.edit')->name('update');
+            Route::put('/{id}', 'update')->whereNumber('id')->middleware('permission:analytics.edit')->name('update.put');
+            Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:analytics.delete')->name('destroy');
+            Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware('permission:analytics.delete')->name('destroy.delete');
+        });
+
+    // Reports page (/home/reports on the admin frontend)
+    Route::prefix('reports')->name('reports.')
+        ->controller(ReportController::class)
+        ->middleware('auth:sanctum')
+        ->group(function () {
+            Route::get('/orders', 'orders')->middleware('permission:analytics.view')->name('orders');
+            Route::get('/sales', 'sales')->middleware('permission:analytics.view')->name('sales');
+            Route::get('/profits', 'profits')->middleware('permission:analytics.view')->name('profits');
+            Route::get('/profit-settings', 'profitSettingsShow')->middleware('permission:analytics.view')->name('profit-settings.show');
+            Route::put('/profit-settings', 'profitSettingsUpdate')->middleware('permission:analytics.edit')->name('profit-settings.update');
+            Route::get('/customers', 'customers')->middleware('permission:analytics.view')->name('customers');
+            Route::get('/performance', 'performance')->middleware('permission:analytics.view')->name('performance');
         });
 
 

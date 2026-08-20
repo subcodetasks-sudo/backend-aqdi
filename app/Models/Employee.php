@@ -115,4 +115,21 @@ class Employee extends Authenticatable
 
         return $this->resolvedRoleName();
     }
+
+    /**
+     * Whether this employee's role has the given "section.action" permission
+     * (e.g. "analytics.view"). Employees without a linked role are denied.
+     */
+    public function hasPermission(string $permissionName): bool
+    {
+        if (! $this->roleRelation) {
+            return false;
+        }
+
+        $this->loadMissing('roleRelation.permissions');
+
+        return $this->roleRelation->permissions
+            ->where('is_active', true)
+            ->contains('name', $permissionName);
+    }
 }
