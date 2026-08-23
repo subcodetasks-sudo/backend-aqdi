@@ -342,6 +342,7 @@ class RefundableContractService
 
         $record = RefundableContract::query()->create([
             'contract_id' => $contract->id,
+            'user_id' => $contract->user_id,
             'employee_id' => $employee->id,
             'has_draft_contract' => $hasDraft,
             'refund_amount' => $data['refund_amount'],
