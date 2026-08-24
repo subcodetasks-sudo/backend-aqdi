@@ -7,14 +7,13 @@ use App\Http\Resources\OfferResource;
 use App\Http\Resources\UserResource;
 use App\Http\Traits\Responser;
 use App\Models\Offer;
-use App\Models\User;
 use App\Models\SmsLog;
-
+use App\Models\User;
+use App\Services\TaqnyatSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Socialite\Facades\Socialite;
-use TaqnyatSms;
 
 class AuthController extends Controller
 {
@@ -32,7 +31,7 @@ class AuthController extends Controller
             $national = $mobile;
         }
 
-        return '00966' . $national;
+        return '00966'.$national;
     }
 
     /**
@@ -55,8 +54,8 @@ class AuthController extends Controller
         return array_values(array_unique(array_filter([
             $mobile,
             $formattedMobile,
-            '966' . $national,
-            '0' . $national,
+            '966'.$national,
+            '0'.$national,
             $national,
         ])));
     }
@@ -73,7 +72,7 @@ class AuthController extends Controller
     public function handleGoogleCallback(Request $request)
     {
         $rules = [
-            'google_token' => 'required'
+            'google_token' => 'required',
         ];
         $this->validate($request, $rules);
 
@@ -84,7 +83,7 @@ class AuthController extends Controller
             $fullname = explode(' ', $user->getName());
             $user = User::firstOrCreate(
                 [
-                    'email' => $user->getEmail()
+                    'email' => $user->getEmail(),
                 ],
                 [
                     'email_verified_at' => now(),
@@ -96,15 +95,12 @@ class AuthController extends Controller
             $user->refresh();
             $result['user'] = new UserResource($user);
             $result['token'] = $user->createToken('user_token')->plainTextToken;
+
             return $this->apiResponse($result, trans('api.success'));
         } catch (\Exception $e) {
             return $this->errorMessage($e->getMessage());
         }
     }
-
-    
-
-
 
     public function login(Request $request)
     {
@@ -124,9 +120,9 @@ class AuthController extends Controller
             return $this->errorMessage(trans('api.credentials_error'));
         }
 
-        if (!$user->isVerified()) {
-            $otpType = 'login_account_verification';   
- 
+        if (! $user->isVerified()) {
+            $otpType = 'login_account_verification';
+
             $recentOtp = $this->recentSmsLog($otpType, $formattedMobile);
 
             if ($recentOtp) {
@@ -149,7 +145,7 @@ class AuthController extends Controller
             $user->save();
 
             $recipients = $user->mobile;
-            $body = "كود تأكيد حسابك الخاص في عقدي هو: " . $verificationCode;
+            $body = 'كود تأكيد حسابك الخاص في عقدي هو: '.$verificationCode;
             $sender = 'AqdiCo';
             $smsId = '25489';
 
@@ -163,7 +159,7 @@ class AuthController extends Controller
         }
 
         // Check if the user is active
-        if (!$user->isActive()) {
+        if (! $user->isActive()) {
             return $this->errorMessage(trans('api.block_account'));
         }
 
@@ -185,42 +181,19 @@ class AuthController extends Controller
         return $this->errorMessage(trans('api.credentials_error'));
     }
 
-
-
-
     public function sendSmsMessage($body, $recipients, $sender, $smsId, $type = null)
     {
-        $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';
-        $taqnyt = new TaqnyatSms($bearer);
-
-        try {
-            $message = $taqnyt->sendMsg($body, $recipients, $sender, $smsId);
-
-            SmsLog::create([
-                'user_id' => auth()->id() ?? null,
-                'phone_number' => $this->normalizeSaudiMobile((string) $recipients),
-                'message' => $body,
-                'sms_id' => $smsId,
-                'type' => $type,
-                'sent_at' => now(),
-            ]);
-
-            return $message ? true : false;
-        } catch (\Exception $e) {
-            SmsLog::create([
-                'user_id' => auth()->id() ?? null,
-                'phone_number' => $this->normalizeSaudiMobile((string) $recipients),
-                'message' => 'SMS Error: ' . $e->getMessage(),
-                'sms_id' => $smsId,
-                'type' => $type,
-                'sent_at' => now(),
-            ]);
-            return 'SMS Error: ' . $e->getMessage();
-        }
+        return app(TaqnyatSmsService::class)->sendAndLog(
+            $body,
+            $recipients,
+            $type,
+            auth()->id(),
+            $sender,
+            $smsId,
+            $this->normalizeSaudiMobile((string) $recipients)
+        );
     }
 
-
-  
     public function signup(Request $request)
     {
         $rules = [
@@ -230,6 +203,16 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
             'fcm_token' => 'sometimes',
             'platform' => 'nullable|string|in:website,web,google_play,google,android,apple_store,ios,apple,appstore,app_store',
+            'utm_source' => 'nullable|string|max:64',
+            'utm_medium' => 'nullable|string|max:64',
+            'utm_campaign' => 'nullable|string|max:191',
+            'utm_term' => 'nullable|string|max:191',
+            'utm_content' => 'nullable|string|max:191',
+            'gclid' => 'nullable|string|max:191',
+            'fbclid' => 'nullable|string|max:191',
+            'ttclid' => 'nullable|string|max:191',
+            'twclid' => 'nullable|string|max:191',
+            'sccid' => 'nullable|string|max:191',
         ];
 
         $this->validate($request, $rules);
@@ -250,6 +233,7 @@ class AuthController extends Controller
                 'sms_id' => null,
                 'sent_at' => now(),
             ]);
+
             return $this->errorMessage('يرجى الانتظار قبل طلب رمز تحقق جديد.', 429);
         }
 
@@ -270,7 +254,7 @@ class AuthController extends Controller
         $user = User::create($data);
 
         $recipients = $user->mobile;
-        $body = "كود تأكيد حسابك الخاص في عقدي هو: " . $verificationCode;
+        $body = 'كود تأكيد حسابك الخاص في عقدي هو: '.$verificationCode;
         $sender = 'AqdiCo';
         $smsId = '25489';
 
@@ -296,11 +280,13 @@ class AuthController extends Controller
         if ($user->verification_code == $request->verification_code) {
             $user->email_verified_at = now();
             $user->save();
+
             return $this->successMessage(trans('api.verification_success'));
         } else {
             return $this->errorMessage(trans('api.verification_faild'));
         }
     }
+
     public function resend(Request $request)
     {
         $rules = [
@@ -312,7 +298,7 @@ class AuthController extends Controller
 
         $user = User::whereIn('mobile', $this->mobileLookupVariants($request->mobile))->first();
 
-        if (!$user) {
+        if (! $user) {
             return $this->errorMessage(trans('api.user_not_found'), 404);
         }
 
@@ -335,6 +321,7 @@ class AuthController extends Controller
                 'sms_id' => null,
                 'sent_at' => now(),
             ]);
+
             return $this->errorMessage('يرجى الانتظار قبل طلب رمز تحقق جديد.', 429);
         }
 
@@ -343,7 +330,7 @@ class AuthController extends Controller
         $user->save();
 
         $recipients = $user->mobile;
-        $body = "كود تأكيد حسابك الخاص في عقدي هو: " . $user->verification_code;
+        $body = 'كود تأكيد حسابك الخاص في عقدي هو: '.$user->verification_code;
         $sender = 'AqdiCo';
         $smsId = '25489';
 
@@ -355,8 +342,6 @@ class AuthController extends Controller
 
         return $this->errorMessage($smsResult ?: trans('api.error_sending_sms'));
     }
-
- 
 
     public function forgotPassword(Request $request)
     {
@@ -386,6 +371,7 @@ class AuthController extends Controller
                 'sms_id' => null,
                 'sent_at' => now(),
             ]);
+
             return $this->errorMessage('يرجى الانتظار قبل طلب رمز جديد.', 429);
         }
 
@@ -393,7 +379,7 @@ class AuthController extends Controller
         $user->reset_password_code = User::generateResetPasswordCode();
         $user->save();
 
-        $body = "الكود الخاص بتغير كلمة مرور حسابك في عقدي هو : " . $user->reset_password_code;
+        $body = 'الكود الخاص بتغير كلمة مرور حسابك في عقدي هو : '.$user->reset_password_code;
         $sender = 'AqdiCo';
         $smsId = '25489';
 
@@ -408,8 +394,6 @@ class AuthController extends Controller
         }
     }
 
-
-
     public function resetPasswordCode(Request $request)
     {
         $rules = [
@@ -421,7 +405,7 @@ class AuthController extends Controller
         $user = User::where('mobile', $request->mobile)->firstOrFail();
 
         if ($user->reset_password_code != $request->code) {
-            return $this->errorMessage(trans("api.wrong_otp"));
+            return $this->errorMessage(trans('api.wrong_otp'));
         }
 
         return $this->successMessage(trans('api.valid_code_to_reset_password'));
@@ -439,7 +423,7 @@ class AuthController extends Controller
         $user = User::where('mobile', $request->mobile)->firstOrFail();
 
         if ($user->reset_password_code != $request->code) {
-            return $this->errorMessage(trans("api.wrong_code_to_reset_password"));
+            return $this->errorMessage(trans('api.wrong_code_to_reset_password'));
         }
 
         $user->password = bcrypt($request->password);
@@ -462,11 +446,10 @@ class AuthController extends Controller
         return $this->apiResponse(new UserResource($user), trans('api.success'));
     }
 
-
     public function deactivateUser()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return $this->errorMessage(trans('api.profile_not_exist'));
         }
 
@@ -482,20 +465,19 @@ class AuthController extends Controller
         }
     }
 
-
     public function updateProfile(Request $request)
     {
         $user = auth('api')->user();
 
-        if (!$user) {
+        if (! $user) {
             return $this->apiResponse(null, trans('api.user_not_found'), 404);
         }
 
         $rules = [
-            'fname'  => 'nullable|string|max:255',
-            'email'  => 'nullable|email|unique:users,email,' . $user->id,
+            'fname' => 'nullable|string|max:255',
+            'email' => 'nullable|email|unique:users,email,'.$user->id,
             'mobile' => 'nullable|string|max:20',
-            'photo'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048'
+            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ];
 
         $this->validate($request, $rules);
@@ -521,7 +503,6 @@ class AuthController extends Controller
         return $this->apiResponse(new UserResource($user), trans('api.success'));
     }
 
-
     public function updatePassword(Request $request)
     {
         $rules = [
@@ -534,6 +515,7 @@ class AuthController extends Controller
         $data['password'] = bcrypt($request->password);
 
         $user->update($data);
+
         return $this->successMessage(trans('api.success'));
     }
 
@@ -547,7 +529,7 @@ class AuthController extends Controller
         $user = $request->user('api');
 
         $user->update([
-            'fcm_token' => $request->fcm_token
+            'fcm_token' => $request->fcm_token,
         ]);
 
         return $this->successMessage(trans('api.success'));

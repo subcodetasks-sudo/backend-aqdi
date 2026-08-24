@@ -76,6 +76,7 @@ class MoyasarEmployeePaidContractIpnTest extends TestCase
             $table->string('contract_uuid')->nullable();
             $table->string('tran_currency')->nullable();
             $table->string('payment_method')->nullable();
+            $table->string('payment_brand')->nullable();
             $table->string('status')->nullable();
             $table->timestamp('payment_date')->nullable();
             $table->timestamps();

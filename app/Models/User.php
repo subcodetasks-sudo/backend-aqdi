@@ -2,20 +2,17 @@
 
 namespace App\Models;
 
-use App\Models\RealEstate;
-use App\Models\UnitsReal;
+use App\Services\Marketing\AttributionService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable,SoftDeletes;
-
 
     /*
     |--------------------------------------------------------------------------
@@ -28,7 +25,6 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var array<int, string>
      */
-
     public const PLATFORM_WEBSITE = 'website';
 
     public const PLATFORM_GOOGLE_PLAY = 'google_play';
@@ -36,15 +32,16 @@ class User extends Authenticatable implements MustVerifyEmail
     public const PLATFORM_APPLE_STORE = 'apple_store';
 
     protected $guarded = ['id'];
+
     protected $appends = ['name', 'photo_path', 'status', 'fcm_token', 'created_at_label', 'mobile', 'email', 'password'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
+        'attributed_at' => 'datetime',
     ];
 
- 
     public function getCreatedAtLabelAttribute()
     {
         return date('Y-m-d H:i A', strtotime($this->created_at));
@@ -68,10 +65,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public static function boot()
     {
-   
+
         parent::boot();
         self::creating(function ($model) {
             $model->verification_code = User::generateVerificationCode();
+            app(AttributionService::class)->stampOnCreating($model);
         });
     }
 
@@ -86,16 +84,17 @@ class User extends Authenticatable implements MustVerifyEmail
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
-    
+
     public function getMobileAttribute($value)
     {
-        return $this->attributes['mobile'] ?? null;   
+        return $this->attributes['mobile'] ?? null;
     }
-     
+
     public function getEmailAttribute($value)
     {
-    return $this->attributes['email'] ?? null;   
+        return $this->attributes['email'] ?? null;
     }
+
     public function isVerified()
     {
         return $this->email_verified_at != null;
@@ -115,7 +114,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return mt_rand(1000, 9999);
     }
-    
+
     public function getSingle($id)
     {
         return User::find($id);
@@ -126,34 +125,31 @@ class User extends Authenticatable implements MustVerifyEmail
     |--------------------------------------------------------------------------
     */
 
-   
-    
     public function realEstate()
     {
-      return $this->hasMany(RealEstate::class);        
+        return $this->hasMany(RealEstate::class);
     }
 
     public function unitReal()
     {
-      return $this->hasMany(UnitsReal::class);        
+        return $this->hasMany(UnitsReal::class);
     }
 
-     public function devicesToken()
+    public function devicesToken()
     {
-        return $this->hasMany(Device_token::class);  
+        return $this->hasMany(Device_token::class);
     }
-    
-    
-     public function payments()
+
+    public function payments()
     {
-        return $this->hasMany(Payment::class);  
+        return $this->hasMany(Payment::class);
     }
 
     public function notifications()
     {
         return $this->hasMany(Offer::class, 'user_id', 'id');
     }
-    
+
     /*
     |--------------------------------------------------------------------------
     | ACCESORS
@@ -162,7 +158,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getNameAttribute()
     {
-        return $this->fname . ' ' . $this->lname;
+        return $this->fname.' '.$this->lname;
     }
 
     public function getPhotoPathAttribute()
@@ -214,31 +210,29 @@ class User extends Authenticatable implements MustVerifyEmail
         };
     }
 
-    
-     /*
+    /*
     |--------------------------------------------------------------------------
     | relation
     |--------------------------------------------------------------------------
     */
 
-     public function contracts()
+    public function contracts()
     {
         return $this->hasMany(Contract::class);
     }
+
     public function getFcmTokenAttribute()
     {
-        return $this->attributes['fcm_token'] ?? null;   
+        return $this->attributes['fcm_token'] ?? null;
     }
-       
+
     public function authHistory()
     {
         return $this->hasMany(AuthHistory::class);
     }
+
     public function fullname()
     {
-        return $this->fname . ' ' . $this->lname;
+        return $this->fname.' '.$this->lname;
     }
-
-    
-
 }

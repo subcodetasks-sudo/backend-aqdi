@@ -8,14 +8,13 @@ declare(strict_types=1);
  *
  * Run: php tools/generate_admin_postman_collection.php
  */
-
 $basePath = dirname(__DIR__);
 
 function uuid4(): string
 {
     $data = random_bytes(16);
-    $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
-    $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+    $data[6] = chr(ord($data[6]) & 0x0F | 0x40);
+    $data[8] = chr(ord($data[8]) & 0x3F | 0x80);
 
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 }
@@ -208,6 +207,30 @@ $folders = [
         req('Refund contracts list', 'GET', '/analytics/refunds/contracts', ['query' => ['period' => 'month', 'per_page' => 20]]),
         req('Refund contract show', 'GET', '/analytics/refunds/contracts/{{id}}'),
     ],
+    'Reports' => [
+        req('Orders report', 'GET', '/reports/orders', ['query' => ['period' => 'last_30_days']]),
+        req('Sales report', 'GET', '/reports/sales', ['query' => ['period' => 'last_30_days']]),
+        req('Profits report', 'GET', '/reports/profits', ['query' => ['period' => 'last_30_days']]),
+        req('Marketing dashboard', 'GET', '/reports/marketing', ['query' => ['period' => 'last_30_days']]),
+        req('Marketing UTM template', 'GET', '/reports/marketing/utm-template'),
+        req('Import ad spend', 'POST', '/reports/marketing/spend', [
+            'body' => [
+                'rows' => [
+                    [
+                        'spent_on' => '2026-08-01',
+                        'platform' => 'google',
+                        'campaign_id' => '123',
+                        'campaign_name' => 'Google - Awareness Campaign (Display)',
+                        'spend' => 9300,
+                        'currency' => 'SAR',
+                    ],
+                ],
+            ],
+        ]),
+        req('Sync ad spend from ad accounts', 'POST', '/reports/marketing/sync', [
+            'body' => ['days' => 7, 'platform' => 'google'],
+        ]),
+    ],
     'Orders' => [
         req('List orders', 'GET', '/orders', ['query' => ['per_page' => 20, 'page' => 1]]),
         req('List orders — is_received', 'GET', '/orders', ['query' => ['is_received' => 1, 'per_page' => 20]]),
@@ -261,8 +284,29 @@ $folders = [
         ]),
     ],
     'Users' => [
-        req('All users', 'GET', '/users', ['query' => ['per_page' => 20, 'page' => 1]]),
+        req('All users', 'GET', '/users', ['query' => ['per_page' => 20, 'page' => 1, 'search' => '']]),
+        req('Export users (CSV)', 'GET', '/users/export', [
+            'query' => ['search' => '', 'platform' => 'website'],
+            'description' => 'Same filters as GET /users. File download (CSV, UTF-8 BOM). Omit page to export all matching rows (max 10000).',
+        ]),
         req('Show user (with contracts)', 'GET', '/users/{{user_id}}'),
+        req('User properties / units', 'GET', '/users/{{user_id}}/properties', ['query' => ['per_page' => 20, 'page' => 1]]),
+        req('Download property deed', 'GET', '/users/{{user_id}}/properties/{{property_id}}/deed'),
+        req('Delete user property', 'DELETE', '/users/{{user_id}}/properties/{{property_id}}', [
+            'description' => 'Blocked with 422 if the property or its units are linked to contracts.',
+        ]),
+        req('Delete user unit', 'DELETE', '/users/{{user_id}}/units/{{unit_id}}', [
+            'description' => 'Blocked with 422 if the unit is linked to contracts.',
+        ]),
+        req('Apply custom discount / waiver', 'POST', '/users/{{user_id}}/discount', [
+            'body' => [
+                'contract_id' => '{{contract_id}}',
+                'type' => 'percentage',
+                'value' => 10,
+                'reason' => 'خصم مخصص من الإدارة',
+            ],
+            'description' => 'type: percentage | fixed | waiver. value required unless waiver. Applies to an unpaid contract of this user and creates a coupon usage so payment totals update.',
+        ]),
         req('New users today', 'GET', '/users/new', ['query' => ['per_page' => 20]]),
         req('Users with completed contracts', 'GET', '/users/contracts-complete'),
         req('Toggle user block / unblock', 'POST', '/users/{{user_id}}/block', [
@@ -619,4 +663,4 @@ $requestCount = array_sum(array_map(fn ($f) => count($f), $folders));
 
 echo "Wrote {$collectionPath}\n";
 echo "Wrote {$environmentPath}\n";
-echo "Folders: ".count($folders).", Requests: {$requestCount}\n";
+echo 'Folders: '.count($folders).", Requests: {$requestCount}\n";

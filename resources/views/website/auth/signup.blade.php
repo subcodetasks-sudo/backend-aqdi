@@ -28,6 +28,7 @@
 
         <form action="{{ route('website.PostSignup') }}" method="POST" id="signupForm">
             @csrf
+            @include('website.partials.utm_fields')
             <div class="links">
                 <a href="{{ route('website.login') }}">تسجيل الدخول</a>
                 <a href="{{ route('website.signup') }}" class="active">إنشاء حساب</a>

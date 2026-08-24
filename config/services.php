@@ -61,4 +61,10 @@ return [
         'payment_app_error_url_template' => env('PAYMENT_APP_ERROR_URL_TEMPLATE'),
     ],
 
+    'taqnyat' => [
+        'bearer' => env('TAQNYAT_BEARER', '5ed5a6f23fb215fa7c1a38ec12f58491'),
+        'sender' => env('TAQNYAT_SENDER', 'AqdiCo'),
+        'sms_id' => env('TAQNYAT_SMS_ID', '25489'),
+    ],
+
 ];

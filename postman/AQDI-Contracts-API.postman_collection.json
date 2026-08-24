@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "c4b78393-fa4f-4510-875b-626c7b51efcf",
+        "_postman_id": "f9206e10-678b-433e-b40c-eeec1530402d",
         "name": "AQDI Contracts API (V2)",
         "description": "Contract endpoints from routes\/api_v2.php.\n\nBase path: `{{baseUrl}}\/api\/v2`\n\nRequires `auth:sanctum` Bearer token (except public routes).\n\n1. Set `baseUrl` and `token`\n2. Run Start contract → save `contract_id` \/ `uuid` from response",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -296,6 +296,167 @@
                     "response": []
                 },
                 {
+                    "name": "Preview doc fee — housing 1y (249)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/doc-fee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "doc-fee"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"duration_preset\": \"other\",\n    \"duration_years\": 1,\n    \"duration_months\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "معاينة رسوم التوثيق بدون حفظ. سكني: 249 أول سنة، +150 لكل سنة إضافية. تجاري: 349 \/ +500. أي جزء من سنة = سنة كاملة."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Preview doc fee — housing 1y 1m (399)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/doc-fee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "doc-fee"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"duration_preset\": \"other\",\n    \"duration_years\": 1,\n    \"duration_months\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Preview doc fee — commercial 2y (849)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/doc-fee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "doc-fee"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"commercial\",\n    \"duration_preset\": \"other\",\n    \"duration_years\": 2,\n    \"duration_months\": 0\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Preview doc fee — by contract id",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/doc-fee",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "doc-fee"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"duration_preset\": \"other\",\n    \"duration_years\": 1,\n    \"duration_months\": 3\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
                     "name": "Step 6 — terms & payment (tenant_role_ids)",
                     "request": {
                         "method": "POST",
@@ -333,6 +494,47 @@
                             }
                         },
                         "description": "Preferred: tenant_role_ids array. Legacy single tenant_role_id still accepted."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Step 6 — مدة أخرى (رسوم إيجار)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/contract\/step6",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "contract",
+                                "step6"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"id\": \"{{contract_id}}\",\n    \"type_contract_starting_date\": \"hijri\",\n    \"contract_starting_date_day\": \"01\",\n    \"contract_starting_date_month\": \"01\",\n    \"contract_starting_date_year\": \"1447\",\n    \"duration_preset\": \"other\",\n    \"duration_years\": 1,\n    \"duration_months\": 1,\n    \"annual_rent_amount_for_the_unit\": 24000,\n    \"payment_type_id\": 1,\n    \"conditions\": false,\n    \"tenant_roles\": true,\n    \"tenant_role_ids\": [\n        1,\n        2\n    ],\n    \"additional_terms\": false\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "يحفظ رسوم التوثيق على العقد. الرد يشمل doc_fee و doc_fee_lines."
                     },
                     "response": []
                 },

@@ -3,15 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\AdminSearchableContract;
-use App\Models\Payment;
-use App\Models\UnitsReal;
-use App\Models\UsageUnit;
+use App\Services\Marketing\AttributionService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
-use Illuminate\Support\Str;
-use TaqnyatSms;
 
 class Contract extends Model
 {
@@ -105,7 +100,7 @@ class Contract extends Model
     | GLOBAL VARIABLES
     |--------------------------------------------------------------------------
     */
- 
+
     protected $guarded = ['id'];
 
     protected $casts = [
@@ -116,6 +111,7 @@ class Contract extends Model
         'furnished' => 'boolean',
         'accept_retrun_contract' => 'boolean',
         'is_draft' => 'boolean',
+        'attributed_at' => 'datetime',
     ];
 
     protected $appends = [
@@ -128,18 +124,18 @@ class Contract extends Model
         'draft_after_paid_path',
         'total_price',
         'dob_of_property_owner_agent',
-     ];
+    ];
 
     /*
     |--------------------------------------------------------------------------
     | BOOT
     |--------------------------------------------------------------------------
     */
-    
-     public static function boot()
+
+    public static function boot()
     {
         parent::boot();
-    
+
         self::creating(function ($model) {
             $model->uuid = self::generateUUID();
 
@@ -152,6 +148,8 @@ class Contract extends Model
                 && ContractStatus::query()->whereKey(ContractStatus::NEW_ID)->exists()) {
                 $model->contract_status_id = ContractStatus::NEW_ID;
             }
+
+            app(AttributionService::class)->stampOnCreating($model);
         });
 
         self::saving(function (Contract $model): void {
@@ -225,10 +223,10 @@ class Contract extends Model
     | FUNCTIONS
     |--------------------------------------------------------------------------
     */
- 
+
     public function getContractAttribute()
     {
-      
+
         $contractsToDelete = $this->where('is_delete', 0)
             // ->where('step', '>', 6)
             ->where(function ($query) {
@@ -237,56 +235,53 @@ class Contract extends Model
                     ->where('created_at', '<', now()->subDays(7));
             })
             ->get();
-    
+
         foreach ($contractsToDelete as $contract) {
             $contract->update(['is_delete' => 1]);
         }
-    
-       
-        $query = $this->where('is_delete', 0)->where('step','>=',5);
-    
+
+        $query = $this->where('is_delete', 0)->where('step', '>=', 5);
+
         $query->when(Request::filled('uuid'), function ($q) {
-            $q->where('uuid', 'like', '%' . Request::get('uuid') . '%');
+            $q->where('uuid', 'like', '%'.Request::get('uuid').'%');
         });
-    
+
         // Filter by contract ownership
         $query->when(Request::filled('contract_ownership'), function ($q) {
-            $q->where('contract_ownership', 'like', '%' . Request::get('contract_ownership') . '%');
+            $q->where('contract_ownership', 'like', '%'.Request::get('contract_ownership').'%');
         });
-    
+
         // Filter by contract type
         $query->when(Request::filled('contract_type'), function ($q) {
-            $q->where('contract_type', 'like', '%' . Request::get('contract_type') . '%');
+            $q->where('contract_type', 'like', '%'.Request::get('contract_type').'%');
         });
-    
+
         // Fetch and paginate results
         $result = $query->orderBy('id', 'desc')->paginate(10);
-    
+
         return $result;
     }
+
     //reset contract
     public function getContractDeleteAttribute()
     {
- 
 
-     $query = $this->where('is_delete', 1) ;
- 
+        $query = $this->where('is_delete', 1);
 
-        if (!empty(Request::get('uuid'))) {
-            $query = $query->where('uuid', 'like', '%' . Request::get('uuid') . '%');
+        if (! empty(Request::get('uuid'))) {
+            $query = $query->where('uuid', 'like', '%'.Request::get('uuid').'%');
         }
 
-        if (!empty(Request::get('contract_ownership'))) {
-            $query = $query->where('contract_ownership', 'like', '%' . Request::get('contract_ownership') . '%');
+        if (! empty(Request::get('contract_ownership'))) {
+            $query = $query->where('contract_ownership', 'like', '%'.Request::get('contract_ownership').'%');
         }
 
-        if (!empty(Request::get('contract_type'))) {
-            $query = $query->where('contract_type', 'like', '%' . Request::get('contract_type') . '%');
+        if (! empty(Request::get('contract_type'))) {
+            $query = $query->where('contract_type', 'like', '%'.Request::get('contract_type').'%');
         }
 
-      
         $result = $query->orderBy('contracts.id', 'desc')
-                       ->paginate(10);
+            ->paginate(10);
 
         return $result;
     }
@@ -295,11 +290,11 @@ class Contract extends Model
     {
         $uuids = self::select('uuid')->get()->pluck('uuid')->toArray();
         $uuid = random_int(100000, 999999);
-       
 
         while (in_array($uuid, $uuids)) {
             $uuid = random_int(100000, 999999);
         }
+
         return intval($uuid);
     }
 
@@ -331,7 +326,6 @@ class Contract extends Model
         return $this->number_of_units_in_realestate;
     }
 
-     
     public function propertyType()
     {
         return $this->belongsTo(ReaEstatType::class, 'property_type_id');
@@ -347,12 +341,10 @@ class Contract extends Model
         return $this->belongsTo(City::class, 'property_city_id');
     }
 
-    
     public function propertyRegion()
     {
         return $this->belongsTo(Region::class, 'property_place_id');
     }
-    
 
     public function tenantEntityLegalRegion()
     {
@@ -387,9 +379,6 @@ class Contract extends Model
         return $this->belongsTo(City::class, 'city_of_the_tenant_legal_agent');
     }
 
-   
-  
-
     public function tenantEntityCity()
     {
         return $this->belongsTo(City::class, 'tenant_entity_city_id');
@@ -404,7 +393,6 @@ class Contract extends Model
     {
         return $this->belongsTo(UnitType::class, 'unit_type_id');
     }
-
 
     public function unitUsage()
     {
@@ -449,35 +437,26 @@ class Contract extends Model
     {
         return date('Y-m-d H:i A', strtotime($this->created_at));
     }
+
     public function getUpdateAtLabelAttribute()
     {
         return date('Y-m-d H:i A', strtotime($this->updated_at));
     }
 
-  
-
-   
-    
     public function getCopyOfTheoOwnerRecord()
     {
         return getFilePath($this->copy_of_the_owner_record);
     }
 
-    
-
-
     public function getStrongArgumentPhotoPathAttribute()
     {
         return getFilePath($this->strong_argument_photo);
     }
-    
-     
+
     public function getPhotoOfElectronic()
     {
         return getFilePath($this->photo_of_the_electronic);
     }
-    
-
 
     public function getCopyOfTheAuthorizationOrAgencyPathAttribute()
     {
@@ -649,6 +628,7 @@ class Contract extends Model
 
         return $labels[$field][$lang] ?? $field;
     }
+
     public function getDraftBeforePaidPathAttribute()
     {
         return isset($this->draft_before_paid) ? getFilePath($this->draft_before_paid) : '';
@@ -659,22 +639,18 @@ class Contract extends Model
         return isset($this->draft_before_paid) ? getFilePath($this->draft_after_paid) : '';
     }
 
-    
     public function getTotalPriceAttribute()
     {
-        $contract=Contract::get();
+        $contract = Contract::get();
         $setting = Setting::first();
         $app_fees = $setting ? $setting->application_fees : '';
         // $contract_period_price = $this->contractTermInYears?->price;
         if ($this->contract_type == 'housing') {
             $tax = $setting ? $setting->housing_tax : '';
-            $tax_name = "Residential_contract_tax";
-        } 
-        
-        else 
-        {
+            $tax_name = 'Residential_contract_tax';
+        } else {
             $tax = $setting ? $setting->commercial_tax : '';
-            $tax_name = "Value_added_tax";
+            $tax_name = 'Value_added_tax';
         }
 
         $total_price = intval($app_fees) + intval($tax);
@@ -682,26 +658,27 @@ class Contract extends Model
         $details = [
             'Application_fees' => $app_fees,
             // 'Contract_period' => $contract_period_price,
-            $tax_name => $tax
+            $tax_name => $tax,
         ];
 
         return [
             'details' => $details,
-            'total_price' => $total_price
+            'total_price' => $total_price,
         ];
     }
-    
+
     public function getServicesAttribute()
     {
         return ServicesPricing::where('contract_type', $this->contract_type)->get();
     }
+
     public function getPriceContractAttribute()
     {
         // $accountsHandwrite = Account::first();
-        
+
         $contractPeriodPrice = ContractPeriod::where('id', $this->id)->value('price') ?? 0;
-      
-        $contractType = $this->contract_type;         
+
+        $contractType = $this->contract_type;
         $services = ServicesPricing::where('contract_type', $contractType)
             ->get(['name_ar', 'price'])
             ->map(function ($service) {
@@ -710,28 +687,24 @@ class Contract extends Model
                     'service_price' => $service->price,
                 ];
             })->toArray();
- 
+
         $setting = Setting::first();
         $appFees = $setting ? intval($setting->application_fees) : 0;
-    
-         if ($this->contract_type == 'housing') {
+
+        if ($this->contract_type == 'housing') {
             $tax = $setting ? intval($setting->housing_tax) : 0;
         } else {
             $tax = $setting ? intval($setting->commercial_tax) : 0;
         }
-            
-         $servicesTotalPrice = array_sum(array_column($services, 'service_price'));
-      
-         $totalContractPrice = $contractPeriodPrice + $servicesTotalPrice + $appFees + $tax;
 
-         return $totalContractPrice;
-     }
-    
-    
-    
+        $servicesTotalPrice = array_sum(array_column($services, 'service_price'));
 
-    
-    static public function getSingle($id)
+        $totalContractPrice = $contractPeriodPrice + $servicesTotalPrice + $appFees + $tax;
+
+        return $totalContractPrice;
+    }
+
+    public static function getSingle($id)
     {
         return User::find($id);
     }
@@ -789,27 +762,25 @@ class Contract extends Model
         return $this->hasMany(ContractComment::class, 'contract_id');
     }
 
-       /*
+    /*
     |--------------------------------------------------------------------------
     | Scope Contract Review
     |--------------------------------------------------------------------------
     */
 
- 
-    public function scopeGetCompeleteContract($query,$uuids)
+    public function scopeGetCompeleteContract($query, $uuids)
     {
-     return $query=Contract::whereIn('uuid',$uuids)->where('is_completed',1)->where('is_review',0);
-    } 
-    
-    public function scopeGetPaymentContract($query)
-    {
-        return $query=Payment::where('status', 'success')->pluck('contract_uuid');
+        return $query = Contract::whereIn('uuid', $uuids)->where('is_completed', 1)->where('is_review', 0);
     }
 
-    
+    public function scopeGetPaymentContract($query)
+    {
+        return $query = Payment::where('status', 'success')->pluck('contract_uuid');
+    }
+
     public function scopeGetReview($query)
     {
-        return $query=Contract::where('is_review', true) ;
+        return $query = Contract::where('is_review', true);
     }
 
     protected static bool $documentationOffsetDaysLoaded = false;
@@ -838,4 +809,3 @@ class Contract extends Model
         return $this->created_at->copy()->addDays($days);
     }
 }
- 

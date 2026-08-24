@@ -36,7 +36,7 @@ class StoreUserDiscountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
+            'contract_id' => ['required', 'integer', 'min:1'],
             'type' => ['required', Rule::in([
                 CustomDiscount::TYPE_PERCENTAGE,
                 CustomDiscount::TYPE_FIXED,
@@ -59,7 +59,7 @@ class StoreUserDiscountRequest extends FormRequest
     {
         return [
             'contract_id.required' => 'رقم العقد مطلوب.',
-            'contract_id.exists' => 'العقد غير موجود.',
+            'contract_id.min' => 'رقم العقد غير صالح.',
             'type.required' => 'نوع الخصم مطلوب (percentage أو fixed أو waiver).',
             'type.in' => 'نوع الخصم يجب أن يكون percentage أو fixed أو waiver.',
             'value.required' => 'قيمة الخصم مطلوبة إلا في حالة الإعفاء الكامل.',

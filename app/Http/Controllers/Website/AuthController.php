@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\Website;
 
-use TaqnyatSms;
-use Carbon\Carbon;
-use App\Models\User;
-use App\Models\SmsLog;
-use Illuminate\Http\Request;
-use App\Services\TwilioService;
-use App\Http\Requests\LoginRequest;
-use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Models\SmsLog;
+use App\Models\User;
+use App\Services\TaqnyatSmsService;
+use App\Services\TwilioService;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -98,36 +98,16 @@ class AuthController extends Controller
 
 
 
-    public function sendSmsMessage($body, $recipients, $sender, $smsId, $userId = null , $type = null)
+    public function sendSmsMessage($body, $recipients, $sender, $smsId, $userId = null, $type = null)
     {
-        $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';
-        $taqnyt = new TaqnyatSms($bearer);
-
-        try {
-            $message = $taqnyt->sendMsg($body, $recipients, $sender, $smsId);
-
-            // Log success or failure of SMS sending
-            SmsLog::create([
-                'user_id' => $userId,
-                'phone_number' => $recipients,
-                'message' => $message ? $body : 'SMS sending failed',
-                'sms_id' => $message ? $smsId : null,
-                'type' => $type ,
-                'sent_at' => now(),
-            ]);
-
-            return $message ? true : false;
-        } catch (\Exception $e) {
-            // Log exception as failure
-            SmsLog::create([
-                'user_id' => $userId,
-                'phone_number' => $recipients,
-                'message' => 'SMS Error: ' . $e->getMessage(),
-                'sms_id' => null,
-                'sent_at' => now(),
-            ]);
-            return 'SMS Error: ' . $e->getMessage();
-        }
+        return app(TaqnyatSmsService::class)->sendAndLog(
+            $body,
+            $recipients,
+            $type,
+            $userId,
+            $sender,
+            $smsId
+        );
     }
 
 

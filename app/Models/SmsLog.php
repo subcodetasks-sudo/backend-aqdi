@@ -16,6 +16,7 @@ class SmsLog extends Model
         'message',
         'type',
         'sms_id',
+        'cost',
         'sent_at',
     ];
 
@@ -31,5 +32,6 @@ class SmsLog extends Model
     // Cast sent_at to a datetime object automatically
     protected $casts = [
         'sent_at' => 'datetime',
+        'cost' => 'decimal:4',
     ];
 }

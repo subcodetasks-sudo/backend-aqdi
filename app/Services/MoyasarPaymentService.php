@@ -951,6 +951,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             'contract_uuid' => $contractUuid,
             'tran_currency' => $verified['currency'] ?? $this->currency,
             'payment_method' => $source['type'] ?? 'moyasar',
+            'payment_brand' => $this->resolvePaymentBrand($source),
             'status' => $status,
             'payment_date' => now(),
         ]);
@@ -975,9 +976,25 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             'contract_uuid' => $contractUuid,
             'tran_currency' => $gatewayPayment['currency'] ?? $this->currency,
             'payment_method' => $source['type'] ?? 'moyasar',
+            'payment_brand' => $this->resolvePaymentBrand($source),
             'status' => $status,
             'payment_date' => now(),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $source
+     */
+    private function resolvePaymentBrand(array $source): ?string
+    {
+        $company = $source['company'] ?? $source['brand'] ?? $source['network'] ?? null;
+        if (! is_string($company)) {
+            return null;
+        }
+
+        $brand = strtolower(trim($company));
+
+        return $brand !== '' ? $brand : null;
     }
 
     private function resolvePaymentName(mixed $name, string $contractUuid): string

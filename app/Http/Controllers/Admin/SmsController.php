@@ -6,20 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SendAdminSmsRequest;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
-use App\Models\SmsLog;
 use App\Models\User;
+use App\Services\TaqnyatSmsService;
 use App\Support\SaudiMobile;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use TaqnyatSms;
 
 class SmsController extends Controller
 {
     use Responser;
-
-    private const SMS_BEARER = '5ed5a6f23fb215fa7c1a38ec12f58491';
-    private const SMS_SENDER = 'AqdiCo';
-    private const SMS_ID = '25489';
 
     /**
      * Simple SMS API — accepts mobile + message only (sending not wired yet).
@@ -86,29 +81,21 @@ class SmsController extends Controller
             $message = trim($validated['message']);
             /** @var Employee $sender */
             $sender = $request->user();
-            $taqnyat = new TaqnyatSms(self::SMS_BEARER);
+            $sms = app(TaqnyatSmsService::class);
 
             $results = [];
             $sentCount = 0;
 
             foreach ($targets as $target) {
-                try {
-                    $response = $taqnyat->sendMsg($message, $target['mobile'], self::SMS_SENDER, self::SMS_ID);
-                    $sent = (bool) $response;
-                    $sendError = null;
-                } catch (\Throwable $e) {
-                    $sent = false;
-                    $sendError = $e->getMessage();
-                }
+                $response = $sms->sendAndLog(
+                    $message,
+                    $target['mobile'],
+                    'admin_manual:'.$sender->id.':'.$target['recipient_type'],
+                    $target['user_id']
+                );
 
-                SmsLog::create([
-                    'user_id' => $target['user_id'],
-                    'phone_number' => $target['mobile'],
-                    'message' => $sent ? $message : 'SMS Error: '.($sendError ?? 'send failed'),
-                    'sms_id' => self::SMS_ID,
-                    'type' => 'admin_manual:'.$sender->id.':'.$target['recipient_type'],
-                    'sent_at' => now(),
-                ]);
+                $sent = $response === true;
+                $sendError = is_string($response) ? preg_replace('/^SMS Error:\s*/', '', $response) : ($sent ? null : 'send failed');
 
                 $sentCount += $sent ? 1 : 0;
                 $results[] = [

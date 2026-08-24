@@ -167,6 +167,209 @@ class UserController extends Controller
         );
     }
 
+    /**
+     * Custom discount / waiver on a client contract.
+     * POST /api/admin/users/{id}/discount
+     *
+     * Body: contract_id, type (percentage|fixed|waiver), value, reason
+     */
+    public function applyDiscount(StoreUserDiscountRequest $request, int $id, UserCustomDiscountService $service)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        try {
+            $discount = $service->apply($user, $request->validated(), $request->user()?->id);
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        }
+
+        return $this->apiResponse(
+            new CustomDiscountResource($discount),
+            trans('api.discount_applied_successfully'),
+            201
+        );
+    }
+
+    /**
+     * Client properties with nested units.
+     * GET /api/admin/users/{id}/properties
+     */
+    public function properties(Request $request, int $id)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        $query = RealEstate::query()
+            ->where('user_id', $id)
+            ->with([
+                'propertyType',
+                'propertyUsages',
+                'tenantEntityCity',
+                'tenantEntityRegion',
+                'contracts',
+                'units.unitType',
+                'units.unitUsage',
+                'units.contracts',
+                'units.linkedContracts',
+            ])
+            ->latest();
+
+        if (Schema::hasColumn((new RealEstate)->getTable(), 'is_deleted')) {
+            $query->where(function ($q) {
+                $q->where('is_deleted', 0)->orWhereNull('is_deleted');
+            });
+        }
+
+        $properties = $query->paginate($this->perPageFromRequest($request, 25));
+
+        return $this->paginatedApiResponse(
+            $properties,
+            UserPropertyResource::collection($properties),
+            trans('api.success')
+        );
+    }
+
+    /**
+     * DELETE /api/admin/users/{id}/properties/{propertyId}
+     */
+    public function destroyProperty(int $id, int $propertyId)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        $property = RealEstate::query()
+            ->where('user_id', $id)
+            ->whereKey($propertyId)
+            ->first();
+
+        if (! $property) {
+            return $this->errorMessage(trans('api.real_estate_not_found'), 404);
+        }
+
+        if ($this->propertyHasContracts($property)) {
+            return $this->errorMessage(trans('api.property_has_contracts'), 422);
+        }
+
+        UnitsReal::query()->where('real_estates_units_id', $property->id)->delete();
+        $property->delete();
+
+        return $this->apiResponse([], trans('api.deleted_successfully'));
+    }
+
+    /**
+     * DELETE /api/admin/users/{id}/units/{unitId}
+     */
+    public function destroyUnit(int $id, int $unitId)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        $unit = UnitsReal::query()
+            ->whereKey($unitId)
+            ->where(function ($q) use ($id) {
+                $q->where('user_id', $id)
+                    ->orWhereHas('realEstate', fn ($rq) => $rq->where('user_id', $id));
+            })
+            ->first();
+
+        if (! $unit) {
+            return $this->errorMessage(trans('api.unit_not_found'), 404);
+        }
+
+        if ($this->unitHasContracts($unit)) {
+            return $this->errorMessage(trans('api.unit_has_contracts'), 422);
+        }
+
+        $unit->delete();
+
+        return $this->apiResponse([], trans('api.deleted_successfully'));
+    }
+
+    /**
+     * Download property deed file.
+     * GET /api/admin/users/{id}/properties/{propertyId}/deed
+     */
+    public function downloadDeed(int $id, int $propertyId)
+    {
+        $property = RealEstate::query()
+            ->where('user_id', $id)
+            ->whereKey($propertyId)
+            ->first();
+
+        if (! $property) {
+            return $this->errorMessage(trans('api.real_estate_not_found'), 404);
+        }
+
+        $relative = (string) $property->image_instrument;
+        if ($relative === '') {
+            return $this->errorMessage(trans('api.deed_not_found'), 404);
+        }
+
+        $fullPath = $this->resolvePublicFilePath($relative);
+        if ($fullPath === null) {
+            return redirect()->away(asset('storage/'.ltrim($relative, '/')));
+        }
+
+        $downloadName = 'deed-'.$property->id.'.'.pathinfo($fullPath, PATHINFO_EXTENSION);
+
+        return response()->download($fullPath, $downloadName);
+    }
+
+    private function propertyHasContracts(RealEstate $property): bool
+    {
+        if ($property->contracts()->exists()) {
+            return true;
+        }
+
+        if (Schema::hasTable('contract_units') && ContractUnit::query()->where('real_estate_id', $property->id)->exists()) {
+            return true;
+        }
+
+        return UnitsReal::query()
+            ->where('real_estates_units_id', $property->id)
+            ->where(function ($q) {
+                $q->whereHas('contracts')
+                    ->orWhereHas('linkedContracts');
+            })
+            ->exists();
+    }
+
+    private function unitHasContracts(UnitsReal $unit): bool
+    {
+        if ($unit->contracts()->exists()) {
+            return true;
+        }
+
+        return $unit->linkedContracts()->exists();
+    }
+
+    private function resolvePublicFilePath(string $path): ?string
+    {
+        $path = ltrim(str_replace('\\', '/', $path), '/');
+        $path = preg_replace('#^storage/#', '', $path) ?? $path;
+
+        foreach ([
+            storage_path('app/public/'.$path),
+            public_path('storage/'.$path),
+            public_path($path),
+        ] as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
     public function newcommersUser(Request $request)
     {
         $users = $this->usersDashboardQuery($request)
@@ -227,10 +430,10 @@ class UserController extends Controller
     /**
      * @return \Illuminate\Database\Eloquent\Builder<\App\Models\User>
      */
-    protected function usersDashboardQuery(Request $request)
+    protected function usersDashboardQuery(Request $request, bool $withLists = true)
     {
         $query = $this->usersWithTotalPaidQuery();
-        $this->applyDashboardRelations($query);
+        $this->applyDashboardRelations($query, $withLists);
 
         if ($request->filled('platform')) {
             $platform = User::normalizePlatform((string) $request->input('platform')) ?? User::PLATFORM_WEBSITE;
@@ -255,13 +458,26 @@ class UserController extends Controller
             $this->applyCustomerSearch($query, $request->string('search')->toString());
         }
 
+        $createdAtFilter = $request->query('created_at');
+        if (in_array($createdAtFilter, ['today', 'week', 'month', 'year'], true)) {
+            $now = now();
+            $ranges = [
+                'today' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+                'week' => [$now->copy()->startOfWeek(), $now->copy()->endOfWeek()],
+                'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+                'year' => [$now->copy()->startOfYear(), $now->copy()->endOfYear()],
+            ];
+            [$start, $end] = $ranges[$createdAtFilter];
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
         return $query;
     }
 
     /**
      * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\User>  $query
      */
-    private function applyDashboardRelations($query): void
+    private function applyDashboardRelations($query, bool $withLists = true): void
     {
         $query->withCount([
             'contracts as completed_orders_count' => fn ($q) => $q->notDeleted()->where('is_completed', 1),
@@ -269,7 +485,13 @@ class UserController extends Controller
             'contracts as incomplete_orders_count' => fn ($q) => $q->notDeleted()->where('is_completed', 0),
             'realEstate as real_estate_count',
             'unitReal as units_count',
-        ])->with([
+        ]);
+
+        if (! $withLists) {
+            return;
+        }
+
+        $query->with([
             'realEstate.units',
             'realEstate.propertyType',
             'realEstate.propertyUsages',

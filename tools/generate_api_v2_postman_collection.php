@@ -412,6 +412,15 @@ $folders = [
                 'water_meter' => 1,
             ],
         ]),
+        req('Preview rental doc fee (رسوم إيجار)', 'POST', '/contract/doc-fee', [
+            'body' => [
+                'contract_type' => 'housing',
+                'duration_preset' => 'other',
+                'duration_years' => 1,
+                'duration_months' => 1,
+            ],
+            'description' => 'معاينة رسوم التوثيق بدون حفظ. سكني 249+150/سنة، تجاري 349+500/سنة. أي جزء سنة = سنة. See collection AQDI-Rental-Doc-Fees.',
+        ]),
         req('Step 6 — terms & payment (tenant_role_ids)', 'POST', '/contract/step6', [
             'body' => [
                 'id' => '{{contract_id}}',

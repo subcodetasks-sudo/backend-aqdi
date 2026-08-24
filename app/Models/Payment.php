@@ -8,7 +8,14 @@ use Illuminate\Database\Eloquent\Model;
 class Payment extends Model
 {
     protected $fillable = [
-        'payment_date','contract_uuid','payment_method','tran_currency' ,'name', 'amount', 'payment_date', 'status'
+        'payment_date',
+        'contract_uuid',
+        'payment_method',
+        'payment_brand',
+        'tran_currency',
+        'name',
+        'amount',
+        'status',
     ];
 
     public function contract()

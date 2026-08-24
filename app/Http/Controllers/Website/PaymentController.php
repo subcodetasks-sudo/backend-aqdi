@@ -12,6 +12,7 @@ use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\FirebaseNotificationService;
+use App\Services\TaqnyatSmsService;
 use App\Services\TwilioService;
 use App\Support\MeterFees;
 use Clickpaysa\Laravel_package\Facades\paypage;
@@ -19,7 +20,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
-use TaqnyatSms;
 
 class PaymentController extends Controller
 {
@@ -129,7 +129,7 @@ public function updateCartByIPN(Request $requestData, $uuid)
         $sender = 'AqdiCo';
         $smsId = '25489';
 
-        $this->sendSmsMessage($body, $formattedMobile, $sender, $smsId);
+        $this->sendSmsMessage($body, $formattedMobile, $sender, $smsId, 'website_payment_staff');
 
         $recipients = $contract->user->mobile;
         $body = "تم استلام طلبكم رقم : {$contract->uuid}\n" .
@@ -137,7 +137,7 @@ public function updateCartByIPN(Request $requestData, $uuid)
                 "في حال إتمام العقد ستصلكم رسالة من ايجار للموافقة على العقد،\n" .
                 "فريق عقدي.";
 
-        $this->sendSmsMessage($body, $recipients, $sender, $smsId);
+        $this->sendSmsMessage($body, $recipients, $sender, $smsId, 'website_payment_received', $contract->user_id);
 
     } elseif ($data['payment_result']['response_status'] == "D") {
         
@@ -156,7 +156,7 @@ public function updateCartByIPN(Request $requestData, $uuid)
         $body = "عذراً، تعذر إتمام عملية الدفع الخاصة بطلبكم رقم: {$contract->uuid}. الرجاء المحاولة مرة أخرى أو التواصل معنا لمزيد من الدعم.";
         $sender = 'AqdiCo';
         $smsId = '25489';
-        $this->sendSmsMessage($body, $recipients, $sender, $smsId);
+        $this->sendSmsMessage($body, $recipients, $sender, $smsId, 'website_payment_failed', $contract->user_id);
 
         // Return error response
         return response()->json(['error' => 'Payment failed. Please try again.'], 400);
@@ -175,17 +175,16 @@ public function rating($uuid, $user_id)
     return view('website.Contract.rating', compact('contract', 'user'));
 }
 
-   public function sendSmsMessage($body, $recipients, $sender, $smsId){
+   public function sendSmsMessage($body, $recipients, $sender, $smsId, $type = 'website_payment', $userId = null){
 
-    $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';
-    $taqnyt = new TaqnyatSms($bearer);
-    try {
-        $message = $taqnyt->sendMsg($body, $recipients, $sender, $smsId);
-        return $message ? true : false;
-    } 
-    catch (\Exception $e) {
-        return 'SMS Error: ' . $e->getMessage();
-    }
+    return app(TaqnyatSmsService::class)->sendAndLog(
+        $body,
+        $recipients,
+        $type,
+        $userId,
+        $sender,
+        $smsId
+    );
     }
 
  

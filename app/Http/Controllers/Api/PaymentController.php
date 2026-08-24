@@ -7,8 +7,8 @@ use App\Http\Resources\Api\V2\PaymentMessageResource;
 use App\Http\Traits\Responser;
 use App\Interfaces\PaymentGatewayInterface;
 use App\Models\PaymentMessage;
+use App\Services\TaqnyatSmsService;
 use Illuminate\Http\Request;
-use TaqnyatSms;
 
 class PaymentController extends Controller
 {
@@ -294,16 +294,14 @@ class PaymentController extends Controller
 
     public function sendSmsMessage($body, $recipients, $sender, $smsId)
     {
-        $bearer = '5ed5a6f23fb215fa7c1a38ec12f58491';
-        $taqnyt = new TaqnyatSms($bearer);
-
-        try {
-            $message = $taqnyt->sendMsg($body, $recipients, $sender, $smsId);
-
-            return $message ? true : false;
-        } catch (\Exception $e) {
-            return 'SMS Error: '.$e->getMessage();
-        }
+        return app(TaqnyatSmsService::class)->sendAndLog(
+            $body,
+            $recipients,
+            'api_payment',
+            auth()->id(),
+            $sender,
+            $smsId
+        );
     }
 
     private function formatPhoneNumber($mobile)

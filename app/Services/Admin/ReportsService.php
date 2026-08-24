@@ -11,19 +11,27 @@ use App\Models\RefundableContract;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\Concerns\ResolvesReportPeriod;
+use App\Support\DocFee;
+use App\Support\EjarPlatformFee;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Backing service for the admin Reports page tabs (/admin/reports/*).
  *
- * "Marketing" (source/UTM/ad-spend attribution) and the conversion funnel's
- * site-visit step are intentionally not implemented here — this app does not
- * track order source or web analytics today, so those numbers can't be real.
+ * Marketing (source/UTM/ad-spend) lives in MarketingReportsService and
+ * /api/admin/reports/marketing. First-touch UTM is stored on users/contracts;
+ * platform spend is synced into ad_spend_dailies.
  */
 class ReportsService
 {
     use ResolvesReportPeriod;
+
+    public function __construct(
+        protected EjarPlatformFeeService $ejarFees,
+        protected MoyasarFeeService $moyasarFees,
+        protected MessagingCostService $messagingCosts,
+    ) {}
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
@@ -106,13 +114,14 @@ class ReportsService
         $totals = $this->salesTotals($range, null, null);
         $settings = Setting::query()->first();
 
-        $gatewayFeePercent = (float) ($settings->moyasar_fee_percent ?? 0);
-        $gatewayFee = round($totals['net_revenue'] * $gatewayFeePercent / 100, 2);
+        $ejarFees = $this->ejarFees->totalForPeriod($range);
+        $gatewayFee = $this->moyasarFees->totalForPeriod($range, $settings);
+        $messagingCost = $this->messagingCosts->totalForPeriod($range);
         $operatingExpenses = $this->operatingExpensesTotal($range);
-        $adSpend = (float) ($settings->marketing_budget ?? 0);
-        $salaries = (float) ($settings->monthly_salaries ?? 0);
+        $adSpend = (float) ($settings?->marketing_budget ?? 0);
+        $salaries = (float) ($settings?->monthly_salaries ?? 0);
 
-        $grossProfit = round($totals['net_revenue'] - $gatewayFee, 2);
+        $grossProfit = round($totals['net_revenue'] - $ejarFees - $gatewayFee - $messagingCost, 2);
         $netProfitBeforeSalaries = round($grossProfit - $adSpend - $operatingExpenses, 2);
         $netProfit = $includeSalaries ? round($netProfitBeforeSalaries - $salaries, 2) : $netProfitBeforeSalaries;
 
@@ -120,9 +129,11 @@ class ReportsService
 
         $pnl = [
             ['label' => 'دخل العملاء (المحصّل)', 'value' => $this->moneyValue($totals['total_sales'])],
-            ['label' => 'الاسترجاعات', 'value' => -$this->moneyValue($totals['refunds_total'])],
-            ['label' => 'صافي الإيرادات', 'value' => $this->moneyValue($totals['net_revenue']), 'is_subtotal' => true],
-            ['label' => 'رسوم بوابة الدفع', 'value' => -$this->moneyValue($gatewayFee)],
+            ['label' => 'مبالغ مسترجعة', 'value' => -$this->moneyValue($totals['refunds_total'])],
+            ['label' => 'صافي الإيراد', 'value' => $this->moneyValue($totals['net_revenue']), 'is_subtotal' => true],
+            ['label' => 'رسوم منصة إيجار', 'value' => -$this->moneyValue($ejarFees)],
+            ['label' => 'رسوم بوابة الدفع (موياسر)', 'value' => -$this->moneyValue($gatewayFee)],
+            ['label' => 'تكاليف الرسائل', 'value' => -$this->moneyValue($messagingCost)],
             ['label' => 'إجمالي الربح', 'value' => $this->moneyValue($grossProfit), 'is_subtotal' => true],
             ['label' => 'مصاريف الإعلانات', 'value' => -$this->moneyValue($adSpend)],
             ['label' => 'مصاريف تشغيلية', 'value' => -$this->moneyValue($operatingExpenses)],
@@ -144,9 +155,13 @@ class ReportsService
                     : 0,
                 'profit_per_order' => $paidOrders > 0 ? $this->moneyValue($netProfit / $paidOrders) : 0,
                 'ad_spend' => $this->moneyValue($adSpend),
+                'ejar_platform_fees' => $this->moneyValue($ejarFees),
+                'gateway_fee' => $this->moneyValue($gatewayFee),
+                'messaging_cost' => $this->moneyValue($messagingCost),
                 'salaries_included' => $includeSalaries,
             ],
             'service_revenue' => $this->revenueByTypeAndDuration($range, null)['services'],
+            'service_profitability' => $this->serviceProfitability($settings),
             'pnl' => $pnl,
         ];
     }
@@ -157,9 +172,13 @@ class ReportsService
     public function profitSettings(bool $includeSalaries): array
     {
         $settings = Setting::query()->first() ?? Setting::query()->create([]);
+        $moyasar = $this->moyasarFees->rates($settings);
 
         $payload = [
-            'moyasar_fee_percent' => $settings->moyasar_fee_percent !== null ? (float) $settings->moyasar_fee_percent : null,
+            'moyasar_fee_percent' => $moyasar['credit_percent'],
+            'moyasar_mada_percent' => $moyasar['mada_percent'],
+            'moyasar_credit_percent' => $moyasar['credit_percent'],
+            'moyasar_fixed_fee' => $moyasar['fixed_fee'],
             'operating_budget' => $settings->operating_budget !== null ? (float) $settings->operating_budget : null,
             'marketing_budget' => $settings->marketing_budget !== null ? (float) $settings->marketing_budget : null,
         ];
@@ -179,7 +198,21 @@ class ReportsService
     {
         $settings = Setting::query()->first() ?? Setting::query()->create([]);
 
-        $update = array_intersect_key($data, array_flip(['moyasar_fee_percent', 'operating_budget', 'marketing_budget']));
+        $update = array_intersect_key($data, array_flip([
+            'moyasar_fee_percent',
+            'moyasar_mada_percent',
+            'moyasar_credit_percent',
+            'moyasar_fixed_fee',
+            'operating_budget',
+            'marketing_budget',
+        ]));
+
+        if (array_key_exists('moyasar_credit_percent', $data)) {
+            $update['moyasar_credit_percent'] = $data['moyasar_credit_percent'];
+            $update['moyasar_fee_percent'] = $data['moyasar_credit_percent'];
+        } elseif (array_key_exists('moyasar_fee_percent', $data)) {
+            $update['moyasar_credit_percent'] = $data['moyasar_fee_percent'];
+        }
 
         if ($canEditSalaries && array_key_exists('monthly_salaries', $data)) {
             $update['monthly_salaries'] = $data['monthly_salaries'];
@@ -698,7 +731,11 @@ class ReportsService
     {
         $query = Payment::query()
             ->join('contracts', function ($join) {
-                $join->on(DB::raw('contracts.uuid'), '=', DB::raw('SUBSTRING_INDEX(payments.contract_uuid, \'-\', 1)'));
+                $uuidColumn = DB::connection()->getDriverName() === 'sqlite'
+                    ? 'CAST(contracts.uuid AS TEXT)'
+                    : 'CAST(contracts.uuid AS CHAR)';
+
+                $join->on(DB::raw($uuidColumn), '=', DB::raw($this->paymentContractUuidExpression()));
             })
             ->where('payments.status', 'success')
             ->where('contracts.is_delete', 0);
@@ -789,6 +826,65 @@ class ReportsService
     // ------------------------------------------------------------------
     // Profits helpers
     // ------------------------------------------------------------------
+
+    /**
+     * Unit economics for the four documentation products (list price − Ejar − gateway %).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function serviceProfitability(?Setting $settings): array
+    {
+        $creditPercent = $this->moyasarFees->creditPercent($settings);
+
+        $rows = [
+            [
+                'service' => 'توثيق سكني - سنة أولى',
+                'doc_fee' => DocFee::HOUSING_FIRST_YEAR,
+                'ejar_fee' => EjarPlatformFee::HOUSING_FIRST_YEAR,
+            ],
+            [
+                'service' => 'توثيق تجاري - سنة أولى',
+                'doc_fee' => DocFee::COMMERCIAL_FIRST_YEAR,
+                'ejar_fee' => EjarPlatformFee::COMMERCIAL_FIRST_YEAR,
+            ],
+            [
+                'service' => 'تجاري - سنة إضافية',
+                'doc_fee' => DocFee::COMMERCIAL_EXTRA_YEAR,
+                'ejar_fee' => EjarPlatformFee::COMMERCIAL_EXTRA_YEAR,
+            ],
+            [
+                'service' => 'سكني - سنة إضافية',
+                'doc_fee' => DocFee::HOUSING_EXTRA_YEAR,
+                'ejar_fee' => EjarPlatformFee::HOUSING_EXTRA_YEAR,
+            ],
+        ];
+
+        return array_map(function (array $row) use ($creditPercent) {
+            $gatewayFee = round($row['doc_fee'] * $creditPercent / 100, 2);
+            $profit = round($row['doc_fee'] - $row['ejar_fee'] - $gatewayFee, 2);
+
+            return [
+                'service' => $row['service'],
+                'label' => $row['service'],
+                'revenue' => $this->moneyValue($row['doc_fee']),
+                'ejar_fee' => $this->moneyValue($row['ejar_fee']),
+                'gateway_fee' => $this->moneyValue($gatewayFee),
+                'profit' => $this->moneyValue($profit),
+                'margin_percent' => $row['doc_fee'] > 0
+                    ? (int) round(($profit / $row['doc_fee']) * 100)
+                    : 0,
+            ];
+        }, $rows);
+    }
+
+    private function paymentContractUuidExpression(): string
+    {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return "CASE WHEN INSTR(payments.contract_uuid, '-') > 0 THEN SUBSTR(payments.contract_uuid, 1, INSTR(payments.contract_uuid, '-') - 1) ELSE payments.contract_uuid END";
+        }
+
+        return "SUBSTRING_INDEX(payments.contract_uuid, '-', 1)";
+    }
 
     /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range

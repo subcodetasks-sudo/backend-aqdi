@@ -205,6 +205,39 @@ $folders = [
             ],
             'description' => 'Creates/links multiple units via contract_units. Response includes units[] + units_count.',
         ]),
+        req('Preview doc fee — housing 1y (249)', 'POST', '/contract/doc-fee', [
+            'body' => [
+                'contract_type' => 'housing',
+                'duration_preset' => 'other',
+                'duration_years' => 1,
+                'duration_months' => 0,
+            ],
+            'description' => 'معاينة رسوم التوثيق بدون حفظ. سكني: 249 أول سنة، +150 لكل سنة إضافية. تجاري: 349 / +500. أي جزء من سنة = سنة كاملة.',
+        ]),
+        req('Preview doc fee — housing 1y 1m (399)', 'POST', '/contract/doc-fee', [
+            'body' => [
+                'contract_type' => 'housing',
+                'duration_preset' => 'other',
+                'duration_years' => 1,
+                'duration_months' => 1,
+            ],
+        ]),
+        req('Preview doc fee — commercial 2y (849)', 'POST', '/contract/doc-fee', [
+            'body' => [
+                'contract_type' => 'commercial',
+                'duration_preset' => 'other',
+                'duration_years' => 2,
+                'duration_months' => 0,
+            ],
+        ]),
+        req('Preview doc fee — by contract id', 'POST', '/contract/doc-fee', [
+            'body' => [
+                'id' => '{{contract_id}}',
+                'duration_preset' => 'other',
+                'duration_years' => 1,
+                'duration_months' => 3,
+            ],
+        ]),
         req('Step 6 — terms & payment (tenant_role_ids)', 'POST', '/contract/step6', [
             'body' => [
                 'id' => '{{contract_id}}',
@@ -221,6 +254,25 @@ $folders = [
                 'additional_terms' => false,
             ],
             'description' => 'Preferred: tenant_role_ids array. Legacy single tenant_role_id still accepted.',
+        ]),
+        req('Step 6 — مدة أخرى (رسوم إيجار)', 'POST', '/contract/step6', [
+            'body' => [
+                'id' => '{{contract_id}}',
+                'type_contract_starting_date' => 'hijri',
+                'contract_starting_date_day' => '01',
+                'contract_starting_date_month' => '01',
+                'contract_starting_date_year' => '1447',
+                'duration_preset' => 'other',
+                'duration_years' => 1,
+                'duration_months' => 1,
+                'annual_rent_amount_for_the_unit' => 24000,
+                'payment_type_id' => 1,
+                'conditions' => false,
+                'tenant_roles' => true,
+                'tenant_role_ids' => [1, 2],
+                'additional_terms' => false,
+            ],
+            'description' => 'يحفظ رسوم التوثيق على العقد. الرد يشمل doc_fee و doc_fee_lines.',
         ]),
         req('Step 6 — legacy tenant_role_id', 'POST', '/contract/step6', [
             'body' => [
