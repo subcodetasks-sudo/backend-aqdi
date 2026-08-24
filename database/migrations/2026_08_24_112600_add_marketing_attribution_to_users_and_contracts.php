@@ -7,40 +7,127 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    private array $columns = [
+        'utm_source',
+        'utm_medium',
+        'utm_campaign',
+        'utm_term',
+        'utm_content',
+        'gclid',
+        'fbclid',
+        'ttclid',
+        'twclid',
+        'sccid',
+        'attributed_at',
+    ];
+
     public function up(): void
     {
         if (Schema::hasTable('users')) {
-            Schema::table('users', function (Blueprint $table): void {
-                $this->addVarcharAttributionColumns($table, 'users');
+            $existingColumns = $this->getExistingColumns('users');
+
+            Schema::table('users', function (Blueprint $table) use ($existingColumns): void {
+                if (! in_array('utm_source', $existingColumns)) {
+                    $table->string('utm_source', 64)->nullable()->index();
+                }
+
+                if (! in_array('utm_medium', $existingColumns)) {
+                    $table->string('utm_medium', 64)->nullable();
+                }
+
+                if (! in_array('utm_campaign', $existingColumns)) {
+                    $table->string('utm_campaign', 191)->nullable()->index();
+                }
+
+                if (! in_array('utm_term', $existingColumns)) {
+                    $table->string('utm_term', 191)->nullable()->index();
+                }
+
+                if (! in_array('utm_content', $existingColumns)) {
+                    $table->string('utm_content', 191)->nullable();
+                }
+
+                if (! in_array('gclid', $existingColumns)) {
+                    $table->string('gclid', 191)->nullable();
+                }
+
+                if (! in_array('fbclid', $existingColumns)) {
+                    $table->string('fbclid', 191)->nullable();
+                }
+
+                if (! in_array('ttclid', $existingColumns)) {
+                    $table->string('ttclid', 191)->nullable();
+                }
+
+                if (! in_array('twclid', $existingColumns)) {
+                    $table->string('twclid', 191)->nullable();
+                }
+
+                if (! in_array('sccid', $existingColumns)) {
+                    $table->string('sccid', 191)->nullable();
+                }
+
+                if (! in_array('attributed_at', $existingColumns)) {
+                    $table->timestamp('attributed_at')->nullable();
+                }
             });
         }
 
-        // contracts is already near MySQL's 65,535-byte in-row limit, so VARCHAR
-        // columns fail with error 1118. TEXT is stored off-page.
         if (Schema::hasTable('contracts')) {
-            Schema::table('contracts', function (Blueprint $table): void {
-                $this->addTextAttributionColumns($table, 'contracts');
+            $existingColumns = $this->getExistingColumns('contracts');
+
+            Schema::table('contracts', function (Blueprint $table) use ($existingColumns): void {
+                if (! in_array('utm_source', $existingColumns)) {
+                    $table->text('utm_source')->nullable();
+                }
+
+                if (! in_array('utm_medium', $existingColumns)) {
+                    $table->text('utm_medium')->nullable();
+                }
+
+                if (! in_array('utm_campaign', $existingColumns)) {
+                    $table->text('utm_campaign')->nullable();
+                }
+
+                if (! in_array('utm_term', $existingColumns)) {
+                    $table->text('utm_term')->nullable();
+                }
+
+                if (! in_array('utm_content', $existingColumns)) {
+                    $table->text('utm_content')->nullable();
+                }
+
+                if (! in_array('gclid', $existingColumns)) {
+                    $table->text('gclid')->nullable();
+                }
+
+                if (! in_array('fbclid', $existingColumns)) {
+                    $table->text('fbclid')->nullable();
+                }
+
+                if (! in_array('ttclid', $existingColumns)) {
+                    $table->text('ttclid')->nullable();
+                }
+
+                if (! in_array('twclid', $existingColumns)) {
+                    $table->text('twclid')->nullable();
+                }
+
+                if (! in_array('sccid', $existingColumns)) {
+                    $table->text('sccid')->nullable();
+                }
+
+                if (! in_array('attributed_at', $existingColumns)) {
+                    $table->timestamp('attributed_at')->nullable();
+                }
             });
+
             $this->addMysqlPrefixIndexes('contracts');
         }
     }
 
     public function down(): void
     {
-        $drop = [
-            'utm_source',
-            'utm_medium',
-            'utm_campaign',
-            'utm_term',
-            'utm_content',
-            'gclid',
-            'fbclid',
-            'ttclid',
-            'twclid',
-            'sccid',
-            'attributed_at',
-        ];
-
         foreach (['users', 'contracts'] as $tableName) {
             if (! Schema::hasTable($tableName)) {
                 continue;
@@ -48,93 +135,33 @@ return new class extends Migration
 
             $this->dropMysqlPrefixIndexes($tableName);
 
-            Schema::table($tableName, function (Blueprint $table) use ($drop, $tableName): void {
-                foreach ($drop as $column) {
-                    if (Schema::hasColumn($tableName, $column)) {
-                        $table->dropColumn($column);
-                    }
-                }
+            $existingColumns = $this->getExistingColumns($tableName);
+
+            $columnsToDrop = array_values(
+                array_intersect($this->columns, $existingColumns)
+            );
+
+            if (empty($columnsToDrop)) {
+                continue;
+            }
+
+            Schema::table($tableName, function (Blueprint $table) use ($columnsToDrop): void {
+                $table->dropColumn($columnsToDrop);
             });
         }
     }
 
-    private function addVarcharAttributionColumns(Blueprint $table, string $tableName): void
+    private function getExistingColumns(string $tableName): array
     {
-        if (! Schema::hasColumn($tableName, 'utm_source')) {
-            $table->string('utm_source', 64)->nullable()->index();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_medium')) {
-            $table->string('utm_medium', 64)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_campaign')) {
-            $table->string('utm_campaign', 191)->nullable()->index();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_term')) {
-            $table->string('utm_term', 191)->nullable()->index();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_content')) {
-            $table->string('utm_content', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'gclid')) {
-            $table->string('gclid', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'fbclid')) {
-            $table->string('fbclid', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'ttclid')) {
-            $table->string('ttclid', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'twclid')) {
-            $table->string('twclid', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'sccid')) {
-            $table->string('sccid', 191)->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'attributed_at')) {
-            $table->timestamp('attributed_at')->nullable();
-        }
-    }
-
-    private function addTextAttributionColumns(Blueprint $table, string $tableName): void
-    {
-        if (! Schema::hasColumn($tableName, 'utm_source')) {
-            $table->text('utm_source')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_medium')) {
-            $table->text('utm_medium')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_campaign')) {
-            $table->text('utm_campaign')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_term')) {
-            $table->text('utm_term')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'utm_content')) {
-            $table->text('utm_content')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'gclid')) {
-            $table->text('gclid')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'fbclid')) {
-            $table->text('fbclid')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'ttclid')) {
-            $table->text('ttclid')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'twclid')) {
-            $table->text('twclid')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'sccid')) {
-            $table->text('sccid')->nullable();
-        }
-        if (! Schema::hasColumn($tableName, 'attributed_at')) {
-            $table->timestamp('attributed_at')->nullable();
-        }
+        return array_filter(
+            $this->columns,
+            fn (string $column) => Schema::hasColumn($tableName, $column)
+        );
     }
 
     private function addMysqlPrefixIndexes(string $tableName): void
     {
-        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+        if (DB::getDriverName() !== 'mysql') {
             return;
         }
 
@@ -143,31 +170,53 @@ return new class extends Migration
         $this->addMysqlPrefixIndex($tableName, 'utm_term', 191);
     }
 
-    private function addMysqlPrefixIndex(string $tableName, string $column, int $length): void
-    {
-        $index = $tableName.'_'.$column.'_index';
-        $exists = DB::select('SHOW INDEX FROM `'.$tableName.'` WHERE Key_name = ?', [$index]);
-        if ($exists !== []) {
+    private function addMysqlPrefixIndex(
+        string $tableName,
+        string $column,
+        int $length
+    ): void {
+        if (! Schema::hasColumn($tableName, $column)) {
             return;
         }
 
-        DB::statement("ALTER TABLE `{$tableName}` ADD INDEX `{$index}` (`{$column}`({$length}))");
+        $indexName = "{$tableName}_{$column}_index";
+
+        $exists = DB::select(
+            "SHOW INDEX FROM `{$tableName}` WHERE Key_name = ?",
+            [$indexName]
+        );
+
+        if (! empty($exists)) {
+            return;
+        }
+
+        DB::statement(
+            "ALTER TABLE `{$tableName}`
+             ADD INDEX `{$indexName}` (`{$column}`({$length}))"
+        );
     }
 
     private function dropMysqlPrefixIndexes(string $tableName): void
     {
-        if (Schema::getConnection()->getDriverName() !== 'mysql') {
+        if (DB::getDriverName() !== 'mysql') {
             return;
         }
 
         foreach (['utm_source', 'utm_campaign', 'utm_term'] as $column) {
-            $index = $tableName.'_'.$column.'_index';
-            $exists = DB::select('SHOW INDEX FROM `'.$tableName.'` WHERE Key_name = ?', [$index]);
-            if ($exists === []) {
+            $indexName = "{$tableName}_{$column}_index";
+
+            $exists = DB::select(
+                "SHOW INDEX FROM `{$tableName}` WHERE Key_name = ?",
+                [$indexName]
+            );
+
+            if (empty($exists)) {
                 continue;
             }
 
-            DB::statement("ALTER TABLE `{$tableName}` DROP INDEX `{$index}`");
+            DB::statement(
+                "ALTER TABLE `{$tableName}` DROP INDEX `{$indexName}`"
+            );
         }
     }
 };
