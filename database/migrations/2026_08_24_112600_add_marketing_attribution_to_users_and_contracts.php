@@ -74,54 +74,7 @@ return new class extends Migration
         }
 
         if (Schema::hasTable('contracts')) {
-            $existingColumns = $this->getExistingColumns('contracts');
-
-            Schema::table('contracts', function (Blueprint $table) use ($existingColumns): void {
-                if (! in_array('utm_source', $existingColumns)) {
-                    $table->text('utm_source')->nullable();
-                }
-
-                if (! in_array('utm_medium', $existingColumns)) {
-                    $table->text('utm_medium')->nullable();
-                }
-
-                if (! in_array('utm_campaign', $existingColumns)) {
-                    $table->text('utm_campaign')->nullable();
-                }
-
-                if (! in_array('utm_term', $existingColumns)) {
-                    $table->text('utm_term')->nullable();
-                }
-
-                if (! in_array('utm_content', $existingColumns)) {
-                    $table->text('utm_content')->nullable();
-                }
-
-                if (! in_array('gclid', $existingColumns)) {
-                    $table->text('gclid')->nullable();
-                }
-
-                if (! in_array('fbclid', $existingColumns)) {
-                    $table->text('fbclid')->nullable();
-                }
-
-                if (! in_array('ttclid', $existingColumns)) {
-                    $table->text('ttclid')->nullable();
-                }
-
-                if (! in_array('twclid', $existingColumns)) {
-                    $table->text('twclid')->nullable();
-                }
-
-                if (! in_array('sccid', $existingColumns)) {
-                    $table->text('sccid')->nullable();
-                }
-
-                if (! in_array('attributed_at', $existingColumns)) {
-                    $table->timestamp('attributed_at')->nullable();
-                }
-            });
-
+            $this->addContractTextColumns();
             $this->addMysqlPrefixIndexes('contracts');
         }
     }
@@ -149,6 +102,41 @@ return new class extends Migration
                 $table->dropColumn($columnsToDrop);
             });
         }
+    }
+
+    /**
+     * contracts is already at MySQL's 65,535-byte in-row limit, so VARCHAR fails
+     * (error 1118). TEXT is stored off-page. Use raw SQL so this cannot become VARCHAR.
+     */
+    private function addContractTextColumns(): void
+    {
+        $existingColumns = $this->getExistingColumns('contracts');
+        $definitions = [
+            'utm_source' => 'TEXT NULL',
+            'utm_medium' => 'TEXT NULL',
+            'utm_campaign' => 'TEXT NULL',
+            'utm_term' => 'TEXT NULL',
+            'utm_content' => 'TEXT NULL',
+            'gclid' => 'TEXT NULL',
+            'fbclid' => 'TEXT NULL',
+            'ttclid' => 'TEXT NULL',
+            'twclid' => 'TEXT NULL',
+            'sccid' => 'TEXT NULL',
+            'attributed_at' => 'TIMESTAMP NULL',
+        ];
+
+        $parts = [];
+        foreach ($definitions as $column => $definition) {
+            if (! in_array($column, $existingColumns, true)) {
+                $parts[] = "ADD `{$column}` {$definition}";
+            }
+        }
+
+        if ($parts === []) {
+            return;
+        }
+
+        DB::statement('ALTER TABLE `contracts` '.implode(', ', $parts));
     }
 
     private function getExistingColumns(string $tableName): array
