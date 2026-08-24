@@ -307,9 +307,15 @@ use Illuminate\Support\Facades\Route;
 
     // Users Management
     Route::prefix('users')->name('users.')->controller(UserController::class)->group(function () {
+        Route::get('/export', 'export')->name('export');
         Route::get('/', 'allusers')->name('index');
         Route::get('/new', 'newcommersUser')->name('new');
         Route::get('/contracts-complete', 'usersCompleteContracts')->name('contracts-complete');
+        Route::get('/{id}/properties/{propertyId}/deed', 'downloadDeed')->whereNumber('id')->whereNumber('propertyId')->name('properties.deed');
+        Route::get('/{id}/properties', 'properties')->whereNumber('id')->name('properties.index');
+        Route::delete('/{id}/properties/{propertyId}', 'destroyProperty')->whereNumber('id')->whereNumber('propertyId')->name('properties.destroy');
+        Route::delete('/{id}/units/{unitId}', 'destroyUnit')->whereNumber('id')->whereNumber('unitId')->name('units.destroy');
+        Route::post('/{id}/discount', 'applyDiscount')->whereNumber('id')->name('discount');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::post('/{id}/block', 'block')->whereNumber('id')->name('block');
         Route::post('/{id}/delete', 'deleteUser')->whereNumber('id')->name('delete');

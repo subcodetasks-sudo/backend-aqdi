@@ -24,6 +24,7 @@ class PaymentDataAdminResource extends JsonResource
             'payment_date' => $this->payment_date ? Carbon::parse($this->payment_date)->format('Y-m-d') : null,
             'payment_hour' => $this->payment_date ? Carbon::parse($this->payment_date)->format('H:i') : null,
             'contract_uuid' => $this->contract_uuid,
+            'contract_type' => $contract?->contract_type,
             'payment_method' => $this->payment_method,
             'tran_currency' => $this->tran_currency,
             'name_payment' => $this->name,

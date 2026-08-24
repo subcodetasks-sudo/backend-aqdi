@@ -3,15 +3,25 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreUserDiscountRequest;
 use App\Http\Resources\Admin\V2\Api\AllUserResource;
+use App\Http\Resources\Admin\V2\Api\CustomDiscountResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
+use App\Http\Resources\Admin\V2\Api\UserPropertyResource;
 use App\Http\Resources\Api\V2\UnitResource;
 use App\Http\Resources\RealEstateResource;
 use App\Http\Traits\Responser;
+use App\Models\ContractUnit;
 use App\Models\Payment;
+use App\Models\RealEstate;
 use App\Models\RefundableContract;
+use App\Models\UnitsReal;
 use App\Models\User;
+use App\Services\Admin\UserCustomDiscountService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -57,6 +67,74 @@ class UserController extends Controller
             trans('api.success'),
             ['summary' => $this->customersSummary()]
         );
+    }
+
+    /**
+     * Export customers list using the same filters as GET /api/admin/users.
+     * GET /api/admin/users/export
+     *
+     * Query: search, platform, banned, is_active, created_at, page, per_page
+     * If page is omitted, all matching rows are exported (capped at 10000).
+     */
+    public function export(Request $request): StreamedResponse
+    {
+        $query = $this->usersDashboardQuery($request, false)->latest('users.id');
+
+        if ($request->filled('page')) {
+            $users = $query->paginate($this->perPageFromRequest($request, 25))->getCollection();
+        } else {
+            $users = $query->limit(10000)->get();
+        }
+
+        $filename = 'clients-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($users) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, [
+                'رقم العميل',
+                'الاسم',
+                'البريد',
+                'الجوال',
+                'المنصة',
+                'الحالة',
+                'مكتمل',
+                'مسودة',
+                'غير مكتمل',
+                'العقارات',
+                'الوحدات',
+                'المدفوع',
+                'المسترجع',
+                'الصافي',
+                'تاريخ الانضمام',
+            ]);
+
+            foreach ($users as $user) {
+                $paid = round((float) ($user->total_paid_amount ?? 0), 2);
+                $refunded = round((float) ($user->total_refunded_amount ?? 0), 2);
+                fputcsv($handle, [
+                    $user->customerNumber(),
+                    $user->name,
+                    $user->email,
+                    $user->mobile,
+                    $user->platformLabelAr(),
+                    $user->is_active ? 'نشط' : 'محظور',
+                    (int) ($user->completed_orders_count ?? 0),
+                    (int) ($user->draft_orders_count ?? 0),
+                    (int) ($user->incomplete_orders_count ?? 0),
+                    (int) ($user->real_estate_count ?? 0),
+                    (int) ($user->units_count ?? 0),
+                    $paid,
+                    $refunded,
+                    round($paid - $refunded, 2),
+                    $user->created_at?->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**
