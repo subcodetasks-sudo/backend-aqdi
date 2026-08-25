@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Services\CouponDiscountResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CouponController extends Controller
 {
@@ -38,6 +41,13 @@ class CouponController extends Controller
             }
 
             $user = Auth::user();
+
+            try {
+                app(CouponDiscountResolver::class)->assertCanApply($contract_coupon, $user, $contract);
+            } catch (ValidationException $e) {
+                return redirect()->back()->with('error', app(CouponDiscountResolver::class)->firstErrorMessage($e));
+            }
+
             $usage_limit = $contract_coupon->usage_of_user;
 
             if ($contract_coupon->usage > 0) {

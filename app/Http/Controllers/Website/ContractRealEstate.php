@@ -721,11 +721,8 @@ class ContractRealEstate extends Controller
         
                  $discountedPrice = 0;
                 if ($appliedCoupon) {
-                    if ($appliedCoupon->type_coupon === 'ratio') {
-                        $discountedPrice = $totalContractPrice * ($appliedCoupon->value_coupon / 100);
-                    } elseif ($appliedCoupon->type_coupon === 'value') {
-                        $discountedPrice = $appliedCoupon->value_coupon;
-                    }
+                    $discountedPrice = app(\App\Services\CouponDiscountResolver::class)
+                        ->amount($appliedCoupon, $contract, (float) $totalContractPrice);
                 }
           
                 $totalPriceDetails = $contract->getTotalPriceAttribute();

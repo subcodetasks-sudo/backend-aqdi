@@ -314,6 +314,10 @@ Route::prefix('users')->name('users.')->controller(UserController::class)->group
     Route::delete('/{id}/properties/{propertyId}', 'destroyProperty')->whereNumber('id')->whereNumber('propertyId')->name('properties.destroy');
     Route::delete('/{id}/units/{unitId}', 'destroyUnit')->whereNumber('id')->whereNumber('unitId')->name('units.destroy');
     Route::post('/{id}/discount', 'applyDiscount')->whereNumber('id')->name('discount');
+    Route::get('/{id}/coupons', 'coupons')->whereNumber('id')->name('coupons.index');
+    Route::post('/{id}/coupons', 'storeCoupon')->whereNumber('id')->name('coupons.store');
+    Route::get('/{id}/coupons/{couponId}', 'showCoupon')->whereNumber('id')->whereNumber('couponId')->name('coupons.show');
+    Route::post('/{id}/coupons/{couponId}/deactivate', 'deactivateCoupon')->whereNumber('id')->whereNumber('couponId')->name('coupons.deactivate');
     Route::get('/{id}', 'show')->whereNumber('id')->name('show');
     Route::post('/{id}/block', 'block')->whereNumber('id')->name('block');
     Route::post('/{id}/delete', 'deleteUser')->whereNumber('id')->name('delete');

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Coupon;
 use App\Models\User;
+use App\Services\CouponDiscountResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -31,24 +32,15 @@ class CouponUsage extends Model
 
 public function calculateDiscountedPrice($contract)
 {
-    $discount = 0;
+    $total = $contract->getPriceContractAttribute();
 
-    if ($this->coupon) {
-        if($this->coupon->date_end < now()){
-
-            return $contract->getPriceContractAttribute() ;
-
-        }
-
-        if ($this->coupon->type_coupon === 'ratio') {
-            $discount = ($this->coupon->value_coupon / 100) * $contract->getPriceContractAttribute();
-        } elseif ($this->coupon->type_coupon === 'value') {
-            $discount = $this->coupon->value_coupon;
-        }
+    if ($this->coupon && $this->coupon->date_end < now()) {
+        return $total;
     }
-       
-   
-    return $contract->getPriceContractAttribute() - $discount;
+
+    $discount = app(CouponDiscountResolver::class)->amount($this->coupon, $contract, (float) $total);
+
+    return max(0, $total - $discount);
 }
 
 

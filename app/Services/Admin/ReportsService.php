@@ -227,12 +227,11 @@ class ReportsService
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
      * @return array<string, mixed>
      */
-    public function customers(array $filter): array
+    public function customers(array $filter, ?string $contractType, ?int $employeeId): array
     {
         $range = $filter['range'];
 
-        $periodContracts = Contract::query()->notDeleted()->reachedAdminOrderStep();
-        $this->applyDateRange($periodContracts, 'created_at', $range);
+        $periodContracts = $this->ordersBaseQuery($range, $contractType, $employeeId);
 
         $customerIds = (clone $periodContracts)->pluck('user_id')->filter()->unique();
         $total = $customerIds->count();
@@ -256,7 +255,7 @@ class ReportsService
         $incompleteCustomers = (clone $periodContracts)->where('is_completed', 0)->pluck('user_id')->filter()->unique()->count();
         $totalContracts = (clone $periodContracts)->count();
 
-        $topCustomers = $this->topCustomers($range);
+        $topCustomers = $this->topCustomers($range, $contractType, $employeeId);
 
         return [
             'kpis' => [
@@ -905,10 +904,9 @@ class ReportsService
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      * @return list<array<string, mixed>>
      */
-    private function topCustomers(?array $range, int $limit = 20): array
+    private function topCustomers(?array $range, ?string $contractType = null, ?int $employeeId = null, int $limit = 20): array
     {
-        $contractsQuery = Contract::query()->notDeleted()->reachedAdminOrderStep();
-        $this->applyDateRange($contractsQuery, 'created_at', $range);
+        $contractsQuery = $this->ordersBaseQuery($range, $contractType, $employeeId);
 
         $userIds = (clone $contractsQuery)->pluck('user_id')->filter()->unique();
         if ($userIds->isEmpty()) {

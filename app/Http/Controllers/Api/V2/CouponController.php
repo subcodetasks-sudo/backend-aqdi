@@ -6,9 +6,11 @@ use App\Http\Traits\Responser;
 use App\Models\Contract;
 use App\Models\Coupon;
 use App\Models\CouponUsage;
+use App\Services\CouponDiscountResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class CouponController extends \App\Http\Controllers\Api\CouponController
 {
@@ -34,6 +36,13 @@ class CouponController extends \App\Http\Controllers\Api\CouponController
             }
 
             $user = Auth::user();
+
+            try {
+                app(CouponDiscountResolver::class)->assertCanApply($coupon, $user, $contract);
+            } catch (ValidationException $e) {
+                return $this->errorMessage(app(CouponDiscountResolver::class)->firstErrorMessage($e), 200);
+            }
+
             $usageLimit = $coupon->usage_of_user;
 
             if ($coupon->usage <= 0) {
@@ -58,10 +67,7 @@ class CouponController extends \App\Http\Controllers\Api\CouponController
             }
 
             $totalBefore = (float) $contract->getPriceContractAttribute();
-            $discount = $coupon->type_coupon === 'ratio'
-                ? ($totalBefore * (float) $coupon->value_coupon / 100)
-                : (float) $coupon->value_coupon;
-            $discount = min($discount, $totalBefore);
+            $discount = app(CouponDiscountResolver::class)->amount($coupon, $contract, $totalBefore);
             $totalAfter = $totalBefore - $discount;
 
             $coupon->decrement('usage');

@@ -139,4 +139,15 @@ return [
     'ad_spend_imported' => 'تم استيراد صرف الإعلانات بنجاح',
     'ad_spend_synced' => 'اكتملت مزامنة صرف الإعلانات',
 
+    'user_coupon_created_successfully' => 'تم حفظ الخصم وإصدار الرمز السري بنجاح',
+    'user_coupon_not_found' => 'كوبون العميل غير موجود',
+    'user_coupon_deactivated_successfully' => 'تم إيقاف كوبون العميل',
+    'user_coupon_not_for_user' => 'هذا الكوبون غير مخصص لحسابك',
+    'user_coupon_wrong_contract_type' => 'هذا الكوبون لا ينطبق على نوع العقد',
+    'user_coupon_expired' => 'الكوبون منتهي أو غير فعّال',
+    'user_coupon_code_taken' => 'الرمز السري مستخدم مسبقاً',
+    'user_coupon_login_title' => 'خصم خاص',
+    'user_coupon_default_message' => 'تهانينا! حصلت على خصم خاص على رسوم السنة الأولى.',
+    'user_coupon_ack_success' => 'تم تأكيد الإشعار',
+
 ];

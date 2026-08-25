@@ -9,6 +9,7 @@ use App\Http\Traits\Responser;
 use App\Models\Offer;
 use App\Models\SmsLog;
 use App\Models\User;
+use App\Services\Admin\UserCouponService;
 use App\Services\TaqnyatSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -95,6 +96,7 @@ class AuthController extends Controller
             $user->refresh();
             $result['user'] = new UserResource($user);
             $result['token'] = $user->createToken('user_token')->plainTextToken;
+            $this->appendLoginCouponNotification($result, $user);
 
             return $this->apiResponse($result, trans('api.success'));
         } catch (\Exception $e) {
@@ -174,6 +176,7 @@ class AuthController extends Controller
                 'user' => new UserResource($user),
                 'token' => $user->createToken('user_token')->plainTextToken,
             ];
+            $this->appendLoginCouponNotification($result, $user);
 
             return $this->apiResponse($result, trans('api.login_success'));
         }
@@ -552,5 +555,15 @@ class AuthController extends Controller
         $data['pagination'] = count($notifications) ? $this->paginate($notifications) : null;
 
         return $this->apiResponse($data, trans('api.success'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    private function appendLoginCouponNotification(array &$result, User $user): void
+    {
+        $notifications = app(UserCouponService::class)->pendingLoginNotifications($user);
+        $result['login_notification'] = $notifications[0] ?? null;
+        $result['login_notifications'] = $notifications;
     }
 }

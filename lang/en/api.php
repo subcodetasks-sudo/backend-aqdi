@@ -141,4 +141,15 @@ return [
     'ad_spend_imported' => 'Ad spend imported successfully',
     'ad_spend_synced' => 'Ad spend sync finished',
 
+    'user_coupon_created_successfully' => 'Discount saved and secret coupon code created',
+    'user_coupon_not_found' => 'Customer coupon was not found',
+    'user_coupon_deactivated_successfully' => 'Customer coupon deactivated',
+    'user_coupon_not_for_user' => 'This coupon is not assigned to your account',
+    'user_coupon_wrong_contract_type' => 'This coupon does not apply to this contract type',
+    'user_coupon_expired' => 'Coupon is expired or inactive',
+    'user_coupon_code_taken' => 'Secret code is already in use',
+    'user_coupon_login_title' => 'Special discount',
+    'user_coupon_default_message' => 'Congratulations! You received a special discount on first-year fees.',
+    'user_coupon_ack_success' => 'Notification acknowledged',
+
 ];

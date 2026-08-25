@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Models\SmsLog;
 use App\Models\User;
+use App\Services\Admin\UserCouponService;
 use App\Services\TaqnyatSmsService;
 use App\Services\TwilioService;
 use Carbon\Carbon;
@@ -315,11 +316,23 @@ class AuthController extends Controller
 
         // Proceed to login
         if (Auth::attempt(['mobile' => $formattedMobile, 'password' => $request->password], $request->has('remember'))) {
-            return redirect()->intended('/')->with('success', trans('website.successLogin'));
+            return $this->redirectAfterWebsiteLogin($user);
         }
 
         Auth::login($user);
-        return redirect()->intended('/')->with('success', trans('website.successLogin'));
+        return $this->redirectAfterWebsiteLogin($user);
+    }
+
+    private function redirectAfterWebsiteLogin(User $user)
+    {
+        $redirect = redirect()->intended('/')->with('success', trans('website.successLogin'));
+        $notification = app(UserCouponService::class)->loginNotificationPayload($user);
+
+        if ($notification) {
+            $redirect->with('login_discount_notification', $notification);
+        }
+
+        return $redirect;
     }
 
 

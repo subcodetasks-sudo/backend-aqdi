@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Coupon extends Model
 {
@@ -35,6 +36,11 @@ class Coupon extends Model
     public function usages()
     {
         return $this->hasMany(CouponUsage::class, 'coupon_id');
+    }
+
+    public function userCoupon(): HasOne
+    {
+        return $this->hasOne(UserCoupon::class);
     }
 
     public function isValidNow(): bool

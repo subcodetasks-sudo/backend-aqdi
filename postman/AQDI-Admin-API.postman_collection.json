@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "2d018cee-ac5f-4354-8bfc-856bf91e6e05",
+        "_postman_id": "b674e3b7-0e0e-46b3-8186-e78cb162a340",
         "name": "AQDI Admin API",
         "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login, copy data.token to employee_token",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -1237,13 +1237,56 @@
                     "response": []
                 },
                 {
-                    "name": "Profits report",
+                    "name": "Profits report — all periods (project-wide)",
                     "request": {
                         "method": "GET",
                         "header": [
                             {
                                 "key": "Accept",
                                 "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/profits?period=all",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "profits"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "all"
+                                }
+                            ]
+                        },
+                        "description": "P&L for the whole project (not a single contract). Returns pnl[], kpis, service_revenue, service_profitability. Ejar + Moyasar + SMS costs are aggregated across all paid contracts\/payments\/sms_logs in the period."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Profits report — last 30 days",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
                                 "type": "text"
                             }
                         ],
@@ -1265,6 +1308,200 @@
                                 }
                             ]
                         }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Customers report — all periods (project-wide)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/customers?period=all",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "all"
+                                }
+                            ]
+                        },
+                        "description": "Customers tab for the whole project. KPIs: total, new, returning, avg_contracts_per_customer, incomplete. Chart: segments (new vs returning). Table: top_customers (name, mobile, contracts_count, paid_count, total_spending). Optional query: contract_type=housing|commercial, employee_id."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Customers report — last 30 days",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/customers?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Customers report — housing",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/customers?period=all&contract_type=housing",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "customers"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "all"
+                                },
+                                {
+                                    "key": "contract_type",
+                                    "value": "housing"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Profit settings — show",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/profit-settings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "profit-settings"
+                            ]
+                        },
+                        "description": "Moyasar mada\/credit percents + fixed fee, marketing_budget, operating_budget. monthly_salaries only if employee_salaries.view."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Profit settings — update",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/profit-settings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "profit-settings"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"moyasar_mada_percent\": 1.75,\n    \"moyasar_credit_percent\": 2.5,\n    \"moyasar_fixed_fee\": 1,\n    \"moyasar_fee_percent\": 2.5,\n    \"marketing_budget\": 6500,\n    \"operating_budget\": null,\n    \"monthly_salaries\": 13000\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide."
                     },
                     "response": []
                 },
@@ -2302,6 +2539,11 @@
                                 "type": "text"
                             },
                             {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
                                 "key": "Content-Type",
                                 "value": "application\/json",
                                 "type": "text"
@@ -2330,6 +2572,166 @@
                             }
                         },
                         "description": "type: percentage | fixed | waiver. value required unless waiver. Applies to an unpaid contract of this user and creates a coupon usage so payment totals update."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Assign custom coupon to user",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/users\/{{user_id}}\/coupons",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "coupons"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"type\": \"percentage\",\n    \"value\": 10,\n    \"applies_to\": \"all\",\n    \"expires_at\": \"2026-12-31\",\n    \"reason\": \"عميل مميز\",\n    \"notify_on_login\": true,\n    \"notification_message\": \"تهانينا! حصلت على خصم خاص على رسوم السنة الأولى.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "User-scoped secret coupon on first-year fees. type: percentage|fixed. applies_to: all|housing|commercial. Returns secret_code. Shown as login_notification on next client login."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List user custom coupons",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/users\/{{user_id}}\/coupons",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "coupons"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show user custom coupon",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/users\/{{user_id}}\/coupons\/{{user_coupon_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "coupons",
+                                "{{user_coupon_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Deactivate user custom coupon",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/users\/{{user_id}}\/coupons\/{{user_coupon_id}}\/deactivate",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "users",
+                                "{{user_id}}",
+                                "coupons",
+                                "{{user_coupon_id}}",
+                                "deactivate"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "[]",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 },

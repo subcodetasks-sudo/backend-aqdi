@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\GeneralController;
 use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\TenantRoleController;
+use App\Http\Controllers\Api\UserCouponController;
 use App\Http\Controllers\Api\V2\ContentPageController as V2ContentPageController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\SettingContractController as V2SettingContractController;
@@ -97,6 +98,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/fcm', 'updateFCMToken');
         Route::get('/notifications', 'notifications');
         Route::post('/user/deactivate', 'deactivateUser');
+    });
+
+    Route::controller(UserCouponController::class)->group(function () {
+        Route::get('/coupons/mine', 'mine');
+        Route::post('/coupons/login-notification/ack', 'acknowledge');
     });
 
     Route::controller(V2SavedRealEstateController::class)->group(function () {

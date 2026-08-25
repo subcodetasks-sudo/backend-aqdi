@@ -1106,9 +1106,7 @@ class MoyasarPaymentService extends BasePaymentService implements PaymentGateway
             return 0.0;
         }
 
-        return (float) ($coupon->type_coupon === 'ratio'
-            ? ($totalContractPrice * $coupon->value_coupon / 100)
-            : $coupon->value_coupon);
+        return app(CouponDiscountResolver::class)->amount($coupon, $contract, $totalContractPrice);
     }
 
     private function contractCanBePaid(Contract $contract): bool

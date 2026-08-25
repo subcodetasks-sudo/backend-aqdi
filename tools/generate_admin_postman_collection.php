@@ -210,7 +210,45 @@ $folders = [
     'Reports' => [
         req('Orders report', 'GET', '/reports/orders', ['query' => ['period' => 'last_30_days']]),
         req('Sales report', 'GET', '/reports/sales', ['query' => ['period' => 'last_30_days']]),
-        req('Profits report', 'GET', '/reports/profits', ['query' => ['period' => 'last_30_days']]),
+        req('Profits report — all periods (project-wide)', 'GET', '/reports/profits', [
+            'bearer' => true,
+            'query' => ['period' => 'all'],
+            'description' => 'P&L for the whole project (not a single contract). Returns pnl[], kpis, service_revenue, service_profitability. Ejar + Moyasar + SMS costs are aggregated across all paid contracts/payments/sms_logs in the period.',
+        ]),
+        req('Profits report — last 30 days', 'GET', '/reports/profits', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+        ]),
+        req('Customers report — all periods (project-wide)', 'GET', '/reports/customers', [
+            'bearer' => true,
+            'query' => ['period' => 'all'],
+            'description' => 'Customers tab for the whole project. KPIs: total, new, returning, avg_contracts_per_customer, incomplete. Chart: segments (new vs returning). Table: top_customers (name, mobile, contracts_count, paid_count, total_spending). Optional query: contract_type=housing|commercial, employee_id.',
+        ]),
+        req('Customers report — last 30 days', 'GET', '/reports/customers', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+        ]),
+        req('Customers report — housing', 'GET', '/reports/customers', [
+            'bearer' => true,
+            'query' => ['period' => 'all', 'contract_type' => 'housing'],
+        ]),
+        req('Profit settings — show', 'GET', '/reports/profit-settings', [
+            'bearer' => true,
+            'description' => 'Moyasar mada/credit percents + fixed fee, marketing_budget, operating_budget. monthly_salaries only if employee_salaries.view.',
+        ]),
+        req('Profit settings — update', 'PUT', '/reports/profit-settings', [
+            'bearer' => true,
+            'body' => [
+                'moyasar_mada_percent' => 1.75,
+                'moyasar_credit_percent' => 2.5,
+                'moyasar_fixed_fee' => 1,
+                'moyasar_fee_percent' => 2.5,
+                'marketing_budget' => 6500,
+                'operating_budget' => null,
+                'monthly_salaries' => 13000,
+            ],
+            'description' => 'moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide.',
+        ]),
         req('Marketing dashboard', 'GET', '/reports/marketing', ['query' => ['period' => 'last_30_days']]),
         req('Marketing UTM template', 'GET', '/reports/marketing/utm-template'),
         req('Import ad spend', 'POST', '/reports/marketing/spend', [
@@ -299,6 +337,7 @@ $folders = [
             'description' => 'Blocked with 422 if the unit is linked to contracts.',
         ]),
         req('Apply custom discount / waiver', 'POST', '/users/{{user_id}}/discount', [
+            'bearer' => true,
             'body' => [
                 'contract_id' => '{{contract_id}}',
                 'type' => 'percentage',
@@ -306,6 +345,25 @@ $folders = [
                 'reason' => 'خصم مخصص من الإدارة',
             ],
             'description' => 'type: percentage | fixed | waiver. value required unless waiver. Applies to an unpaid contract of this user and creates a coupon usage so payment totals update.',
+        ]),
+        req('Assign custom coupon to user', 'POST', '/users/{{user_id}}/coupons', [
+            'bearer' => true,
+            'body' => [
+                'type' => 'percentage',
+                'value' => 10,
+                'applies_to' => 'all',
+                'expires_at' => '2026-12-31',
+                'reason' => 'عميل مميز',
+                'notify_on_login' => true,
+                'notification_message' => 'تهانينا! حصلت على خصم خاص على رسوم السنة الأولى.',
+            ],
+            'description' => 'User-scoped secret coupon on first-year fees. type: percentage|fixed. applies_to: all|housing|commercial. Returns secret_code. Shown as login_notification on next client login.',
+        ]),
+        req('List user custom coupons', 'GET', '/users/{{user_id}}/coupons', ['bearer' => true]),
+        req('Show user custom coupon', 'GET', '/users/{{user_id}}/coupons/{{user_coupon_id}}', ['bearer' => true]),
+        req('Deactivate user custom coupon', 'POST', '/users/{{user_id}}/coupons/{{user_coupon_id}}/deactivate', [
+            'bearer' => true,
+            'body' => [],
         ]),
         req('New users today', 'GET', '/users/new', ['query' => ['per_page' => 20]]),
         req('Users with completed contracts', 'GET', '/users/contracts-complete'),

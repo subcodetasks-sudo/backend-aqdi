@@ -117,7 +117,11 @@ class ReportController extends Controller
 
             return $this->apiResponse(array_merge(
                 $this->periodMeta($filter),
-                $this->reports->customers($filter)
+                $this->reports->customers(
+                    $filter,
+                    $this->contractType($request),
+                    $this->employeeId($request)
+                )
             ), trans('api.success'));
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);

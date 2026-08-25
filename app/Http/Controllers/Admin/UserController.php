@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreUserCouponRequest;
 use App\Http\Requests\Admin\StoreUserDiscountRequest;
 use App\Http\Resources\Admin\V2\Api\AllUserResource;
 use App\Http\Resources\Admin\V2\Api\CustomDiscountResource;
+use App\Http\Resources\Admin\V2\Api\UserCouponResource;
 use App\Http\Resources\Admin\V2\Api\OrderResource;
 use App\Http\Resources\Admin\V2\Api\UserPropertyResource;
 use App\Http\Resources\Api\V2\UnitResource;
@@ -17,6 +19,8 @@ use App\Models\RealEstate;
 use App\Models\RefundableContract;
 use App\Models\UnitsReal;
 use App\Models\User;
+use App\Models\UserCoupon;
+use App\Services\Admin\UserCouponService;
 use App\Services\Admin\UserCustomDiscountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -190,6 +194,88 @@ class UserController extends Controller
             new CustomDiscountResource($discount),
             trans('api.discount_applied_successfully'),
             201
+        );
+    }
+
+    /**
+     * Assign a secret coupon to a client (first-year fees).
+     * POST /api/admin/users/{id}/coupons
+     *
+     * Body: type (percentage|fixed), value, applies_to (all|housing|commercial),
+     * expires_at, reason, notify_on_login, notification_message, secret_code
+     */
+    public function storeCoupon(StoreUserCouponRequest $request, int $id, UserCouponService $service)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        try {
+            $coupon = $service->create($user, $request->validated(), $request->user()?->id);
+        } catch (ValidationException $e) {
+            return $this->errorResponse($e->errors(), 422);
+        }
+
+        return $this->apiResponse(
+            new UserCouponResource($coupon),
+            trans('api.user_coupon_created_successfully'),
+            201
+        );
+    }
+
+    /**
+     * GET /api/admin/users/{id}/coupons
+     */
+    public function coupons(int $id, UserCouponService $service)
+    {
+        $user = User::query()->find($id);
+        if (! $user) {
+            return $this->errorMessage(trans('api.user_not_found'), 404);
+        }
+
+        return $this->apiResponse(
+            UserCouponResource::collection($service->listForUser($user)),
+            trans('api.success')
+        );
+    }
+
+    /**
+     * GET /api/admin/users/{id}/coupons/{couponId}
+     */
+    public function showCoupon(int $id, int $couponId)
+    {
+        $coupon = UserCoupon::query()
+            ->with('coupon')
+            ->where('user_id', $id)
+            ->whereKey($couponId)
+            ->first();
+
+        if (! $coupon) {
+            return $this->errorMessage(trans('api.user_coupon_not_found'), 404);
+        }
+
+        return $this->apiResponse(new UserCouponResource($coupon), trans('api.success'));
+    }
+
+    /**
+     * POST /api/admin/users/{id}/coupons/{couponId}/deactivate
+     */
+    public function deactivateCoupon(int $id, int $couponId, UserCouponService $service)
+    {
+        $coupon = UserCoupon::query()
+            ->with('coupon')
+            ->where('user_id', $id)
+            ->whereKey($couponId)
+            ->first();
+
+        if (! $coupon) {
+            return $this->errorMessage(trans('api.user_coupon_not_found'), 404);
+        }
+
+        return $this->apiResponse(
+            new UserCouponResource($service->deactivate($coupon)),
+            trans('api.user_coupon_deactivated_successfully')
         );
     }
 

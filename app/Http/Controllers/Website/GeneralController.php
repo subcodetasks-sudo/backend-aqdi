@@ -303,11 +303,8 @@ class GeneralController extends Controller
     
              $discountedPrice = 0;
             if ($appliedCoupon) {
-                if ($appliedCoupon->type_coupon === 'ratio') {
-                    $discountedPrice = $totalContractPrice * ($appliedCoupon->value_coupon / 100);
-                } elseif ($appliedCoupon->type_coupon === 'value') {
-                    $discountedPrice = $appliedCoupon->value_coupon;
-                }
+                $discountedPrice = app(\App\Services\CouponDiscountResolver::class)
+                    ->amount($appliedCoupon, $contract, (float) $totalContractPrice);
             }
             
             $Pricing = ServicesPricing::where('contract_type', $contract_type)->get();

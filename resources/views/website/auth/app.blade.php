@@ -170,6 +170,19 @@
 
         @yield('content')
 
+        @if (session('login_discount_notification'))
+            <div id="discountLoginModal" class="modal" style="display:flex;">
+                <div class="modal-content">
+                    <h2 class="modal-message">{{ session('login_discount_notification')['title'] ?? 'خصم خاص' }}</h2>
+                    <p>{{ session('login_discount_notification')['message'] }}</p>
+                    @if (!empty(session('login_discount_notification')['code_coupon']))
+                        <p>رمز الخصم: <strong>{{ session('login_discount_notification')['code_coupon'] }}</strong></p>
+                    @endif
+                    <button type="button" class="modal-btn" onclick="document.getElementById('discountLoginModal').style.display='none'">حسناً</button>
+                </div>
+            </div>
+        @endif
+
         <footer class="site-footer">
             <div class="footer-content">
                 <div class="footer-logo-section">

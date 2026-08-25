@@ -236,7 +236,7 @@ $folders = [
                 'password' => 'password123',
                 'fcm_token' => 'optional-fcm-token',
             ],
-            'description' => 'On success, saves `token` to collection variables (test script).',
+            'description' => 'On success, saves `token`. If the user has a pending custom coupon, data.login_notification contains the login popup (message + secret code).',
             'event' => $loginTestScript,
         ]),
         req('Signup', 'POST', '/auth/signup', [
@@ -563,6 +563,13 @@ $folders = [
     ],
 
     '13 — Coupon' => [
+        req('My pending custom coupons', 'GET', '/coupons/mine', [
+            'description' => 'Pending user-assigned coupons (first-year fees) plus login_notification payload.',
+        ]),
+        req('Acknowledge login discount notification', 'POST', '/coupons/login-notification/ack', [
+            'body' => ['user_coupon_id' => '{{user_coupon_id}}'],
+            'description' => 'Marks the login popup as seen. Omit user_coupon_id to ack all.',
+        ]),
         req('Apply coupon', 'POST', '/Coupon/{{contract_uuid}}', [
             'body' => ['code_coupon' => 'DISCOUNT10'],
         ]),
