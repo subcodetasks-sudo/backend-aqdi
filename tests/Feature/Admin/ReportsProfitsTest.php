@@ -128,6 +128,92 @@ class ReportsProfitsTest extends TestCase
         $this->assertSame(6.23, $housingFirst['gateway_fee']);
         $this->assertSame(117.77, $housingFirst['profit']);
         $this->assertSame(47, $housingFirst['margin_percent']);
+
+        $housingUnit = collect($result['unit_economics'])->firstWhere('service', 'توثيق سكني - سنة أولى');
+        $this->assertNotNull($housingUnit);
+        $this->assertSame(249, $housingUnit['customer_pays']);
+        $this->assertSame(125, $housingUnit['ejar_fee']);
+        $this->assertSame(7.23, $housingUnit['moyasar_fee']);
+        $this->assertSame(116.77, $housingUnit['margin']);
+        $this->assertFalse($housingUnit['low_margin']);
+
+        $housingExtra = collect($result['unit_economics'])->firstWhere('service', 'سكني - سنة إضافية');
+        $this->assertTrue($housingExtra['low_margin']);
+        $this->assertSame(14, $housingExtra['margin_percent']);
+
+        $meterRow = collect($result['unit_economics'])->firstWhere('service', 'نقل العداد');
+        $this->assertNotNull($meterRow);
+        $this->assertSame(0, $meterRow['customer_pays']);
+        $this->assertSame(0, $meterRow['moyasar_fee']);
+    }
+
+    public function test_one_day_period_prorates_fixed_monthly_costs_and_exposes_finance_kpis(): void
+    {
+        Setting::query()->create([
+            'moyasar_mada_percent' => 1.75,
+            'moyasar_credit_percent' => 2.50,
+            'moyasar_fixed_fee' => 1.00,
+            'marketing_budget' => 15000,
+            'operating_budget' => 10000,
+            'monthly_salaries' => 30000,
+            'meter_transfer_fee' => 10,
+        ]);
+
+        DB::table('contracts')->insert([
+            'uuid' => 222222,
+            'contract_type' => 'housing',
+            'is_delete' => 0,
+            'step' => 6,
+            'is_completed' => 1,
+            'total_months' => 12,
+            'electricity_meter_ownership' => 'tenant',
+            'water_meter_ownership' => 'tenant',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        Payment::query()->create([
+            'name' => 'today paid',
+            'amount' => 2743,
+            'payment_date' => now()->toDateString(),
+            'contract_uuid' => '222222',
+            'tran_currency' => 'SAR',
+            'payment_method' => 'creditcard',
+            'payment_brand' => 'visa',
+            'status' => 'success',
+        ]);
+
+        $today = now();
+        $result = app(ReportsService::class)->profits([
+            'key' => 'today',
+            'label_ar' => 'اليوم',
+            'range' => [$today->copy()->startOfDay(), $today->copy()->endOfDay()],
+            'date_from' => $today->toDateString(),
+            'date_to' => $today->toDateString(),
+        ], true);
+
+        $this->assertSame(1, $result['kpis']['proration_days']);
+        $this->assertSame(30, $result['kpis']['proration_month_days']);
+        $this->assertSame(500, $result['kpis']['ad_spend']);
+        $this->assertSame(333.33, collect($result['pnl'])->firstWhere('label', 'مصاريف تشغيلية')['value'] * -1);
+        $this->assertSame(-1000, collect($result['pnl'])->firstWhere('label', 'الرواتب')['value']);
+
+        $this->assertSame(1, $result['kpis']['paid_contracts_count']);
+        $this->assertSame(2, $result['collected_breakdown']['meter_units']);
+        $this->assertSame(20, $result['collected_breakdown']['meter_transfers']);
+        $this->assertSame(2723, $result['collected_breakdown']['documentation']);
+        $this->assertSame(1, $result['source_summary']['items'][0]['orders_count']);
+        $this->assertSame(2, collect($result['source_summary']['items'])->firstWhere('key', 'meter_transfers')['units_count']);
+
+        $contribution = 2743 - 125 - round(2743 * 0.025 + 1, 2);
+        $this->assertSame(round($contribution, 2), $result['kpis']['operating_profit_per_contract']);
+        $this->assertSame(500, $result['kpis']['cac']);
+        $this->assertGreaterThan(0, $result['kpis']['monthly_break_even_contracts']);
+
+        $meterRow = collect($result['unit_economics'])->firstWhere('service', 'نقل العداد');
+        $this->assertSame(10, $meterRow['customer_pays']);
+        $this->assertSame(100, $meterRow['margin_percent']);
+        $this->assertFalse($meterRow['low_margin']);
     }
 
     public function test_profit_settings_expose_moyasar_rate_fields_and_alias_credit_percent(): void
@@ -139,17 +225,21 @@ class ReportsProfitsTest extends TestCase
         $this->assertSame(2.5, $defaults['moyasar_credit_percent']);
         $this->assertSame(2.5, $defaults['moyasar_fee_percent']);
         $this->assertSame(1.0, $defaults['moyasar_fixed_fee']);
+        $this->assertSame(30, $defaults['proration_month_days']);
+        $this->assertSame(0.0, $defaults['meter_transfer_fee']);
 
         $updated = $service->updateProfitSettings([
             'moyasar_mada_percent' => 1.80,
             'moyasar_fee_percent' => 2.75,
             'moyasar_fixed_fee' => 1.00,
+            'meter_transfer_fee' => 10,
         ], false);
 
         $this->assertSame(1.8, $updated['moyasar_mada_percent']);
         $this->assertSame(2.75, $updated['moyasar_credit_percent']);
         $this->assertSame(2.75, $updated['moyasar_fee_percent']);
         $this->assertSame(1.0, $updated['moyasar_fixed_fee']);
+        $this->assertSame(10.0, $updated['meter_transfer_fee']);
     }
 
     private function createMinimalSchema(): void
@@ -163,6 +253,7 @@ class ReportsProfitsTest extends TestCase
             $table->decimal('marketing_budget', 12, 2)->nullable();
             $table->decimal('monthly_salaries', 12, 2)->nullable();
             $table->decimal('operating_budget', 12, 2)->nullable();
+            $table->decimal('meter_transfer_fee', 10, 2)->nullable();
             $table->timestamps();
         });
 
@@ -186,6 +277,8 @@ class ReportsProfitsTest extends TestCase
             $table->unsignedTinyInteger('duration_years')->nullable();
             $table->unsignedTinyInteger('duration_months')->nullable();
             $table->unsignedSmallInteger('total_months')->nullable();
+            $table->string('electricity_meter_ownership')->nullable();
+            $table->string('water_meter_ownership')->nullable();
             $table->timestamps();
         });
 

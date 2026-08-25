@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "b674e3b7-0e0e-46b3-8186-e78cb162a340",
+        "_postman_id": "d41dced8-3041-401e-a234-ffbcf43f5c86",
         "name": "AQDI Admin API",
         "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login, copy data.token to employee_token",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -1270,7 +1270,7 @@
                                 }
                             ]
                         },
-                        "description": "P&L for the whole project (not a single contract). Returns pnl[], kpis, service_revenue, service_profitability. Ejar + Moyasar + SMS costs are aggregated across all paid contracts\/payments\/sms_logs in the period."
+                        "description": "P&L for the whole project. Returns pnl[], kpis (incl. operating_profit_per_contract, monthly_break_even_contracts, cac, proration_days), collected_breakdown, unit_economics, source_summary, service_profitability. Fixed monthly costs (salaries, operating_budget, marketing_budget) are prorated by period days \/ 30."
                     },
                     "response": []
                 },
@@ -1428,6 +1428,172 @@
                     "response": []
                 },
                 {
+                    "name": "Performance report — all periods (project-wide)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/performance?period=all",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "performance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "all"
+                                }
+                            ]
+                        },
+                        "description": "Performance tab (لوحة الأداء) in one response. kpis (total_count, documented_count, working_count, canceled_count, refunded_count, revenue), conversion_funnel[] with from_previous_pct, conversion_leakage, conversion_rates[], daily_orders[], orders_by_status[] (non-zero only), by_contract_type[], by_employee[], operational_metrics (receive queue + 15-minute SLA), revenue_by_payment_method[], pnl[], unit_economics[], financial_summary[], by_document_type[] (grouped by instrument_type), correction_errors[] (always empty — no correction entity yet), refund_requests_by_status[], refund_requests_total. Optional query: contract_type=housing|commercial, employee_id. Salary lines in pnl[] only with employee_salaries.view."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Performance report — last 30 days",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/performance?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "performance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Performance report — housing, single employee",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/performance?period=last_30_days&contract_type=housing&employee_id=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "performance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                },
+                                {
+                                    "key": "contract_type",
+                                    "value": "housing"
+                                },
+                                {
+                                    "key": "employee_id",
+                                    "value": "1"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Performance report — custom range",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/reports\/performance?period=custom&date_from=2026-08-01&date_to=2026-08-25",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "reports",
+                                "performance"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "custom"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-25"
+                                }
+                            ]
+                        },
+                        "description": "date_from and date_to must be sent together (YYYY-MM-DD), otherwise 422."
+                    },
+                    "response": []
+                },
+                {
                     "name": "Profit settings — show",
                     "request": {
                         "method": "GET",
@@ -1455,7 +1621,7 @@
                                 "profit-settings"
                             ]
                         },
-                        "description": "Moyasar mada\/credit percents + fixed fee, marketing_budget, operating_budget. monthly_salaries only if employee_salaries.view."
+                        "description": "Moyasar mada\/credit percents + fixed fee, marketing_budget, operating_budget, meter_transfer_fee. monthly_salaries only if employee_salaries.view. Fixed costs prorate by period days \/ proration_month_days (30)."
                     },
                     "response": []
                 },
@@ -1494,14 +1660,14 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"moyasar_mada_percent\": 1.75,\n    \"moyasar_credit_percent\": 2.5,\n    \"moyasar_fixed_fee\": 1,\n    \"moyasar_fee_percent\": 2.5,\n    \"marketing_budget\": 6500,\n    \"operating_budget\": null,\n    \"monthly_salaries\": 13000\n}",
+                            "raw": "{\n    \"moyasar_mada_percent\": 1.75,\n    \"moyasar_credit_percent\": 2.5,\n    \"moyasar_fixed_fee\": 1,\n    \"moyasar_fee_percent\": 2.5,\n    \"marketing_budget\": 6500,\n    \"operating_budget\": null,\n    \"monthly_salaries\": 13000,\n    \"meter_transfer_fee\": 10\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
                                 }
                             }
                         },
-                        "description": "moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide."
+                        "description": "moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide. meter_transfer_fee is the catalog نقل العداد price."
                     },
                     "response": []
                 },

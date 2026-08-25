@@ -213,7 +213,7 @@ $folders = [
         req('Profits report — all periods (project-wide)', 'GET', '/reports/profits', [
             'bearer' => true,
             'query' => ['period' => 'all'],
-            'description' => 'P&L for the whole project (not a single contract). Returns pnl[], kpis, service_revenue, service_profitability. Ejar + Moyasar + SMS costs are aggregated across all paid contracts/payments/sms_logs in the period.',
+            'description' => 'P&L for the whole project. Returns pnl[], kpis (incl. operating_profit_per_contract, monthly_break_even_contracts, cac, proration_days), collected_breakdown, unit_economics, source_summary, service_profitability. Fixed monthly costs (salaries, operating_budget, marketing_budget) are prorated by period days / 30.',
         ]),
         req('Profits report — last 30 days', 'GET', '/reports/profits', [
             'bearer' => true,
@@ -232,9 +232,27 @@ $folders = [
             'bearer' => true,
             'query' => ['period' => 'all', 'contract_type' => 'housing'],
         ]),
+        req('Performance report — all periods (project-wide)', 'GET', '/reports/performance', [
+            'bearer' => true,
+            'query' => ['period' => 'all'],
+            'description' => 'Performance tab (لوحة الأداء) in one response. kpis (total_count, documented_count, working_count, canceled_count, refunded_count, revenue), conversion_funnel[] with from_previous_pct, conversion_leakage, conversion_rates[], daily_orders[], orders_by_status[] (non-zero only), by_contract_type[], by_employee[], operational_metrics (receive queue + 15-minute SLA), revenue_by_payment_method[], pnl[], unit_economics[], financial_summary[], by_document_type[] (grouped by instrument_type), correction_errors[] (always empty — no correction entity yet), refund_requests_by_status[], refund_requests_total. Optional query: contract_type=housing|commercial, employee_id. Salary lines in pnl[] only with employee_salaries.view.',
+        ]),
+        req('Performance report — last 30 days', 'GET', '/reports/performance', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+        ]),
+        req('Performance report — housing, single employee', 'GET', '/reports/performance', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days', 'contract_type' => 'housing', 'employee_id' => 1],
+        ]),
+        req('Performance report — custom range', 'GET', '/reports/performance', [
+            'bearer' => true,
+            'query' => ['period' => 'custom', 'date_from' => '2026-08-01', 'date_to' => '2026-08-25'],
+            'description' => 'date_from and date_to must be sent together (YYYY-MM-DD), otherwise 422.',
+        ]),
         req('Profit settings — show', 'GET', '/reports/profit-settings', [
             'bearer' => true,
-            'description' => 'Moyasar mada/credit percents + fixed fee, marketing_budget, operating_budget. monthly_salaries only if employee_salaries.view.',
+            'description' => 'Moyasar mada/credit percents + fixed fee, marketing_budget, operating_budget, meter_transfer_fee. monthly_salaries only if employee_salaries.view. Fixed costs prorate by period days / proration_month_days (30).',
         ]),
         req('Profit settings — update', 'PUT', '/reports/profit-settings', [
             'bearer' => true,
@@ -246,8 +264,9 @@ $folders = [
                 'marketing_budget' => 6500,
                 'operating_budget' => null,
                 'monthly_salaries' => 13000,
+                'meter_transfer_fee' => 10,
             ],
-            'description' => 'moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide.',
+            'description' => 'moyasar_fee_percent is an alias for moyasar_credit_percent. monthly_salaries requires employee_salaries.edit. Advertising (marketing_budget) is project-wide. meter_transfer_fee is the catalog نقل العداد price.',
         ]),
         req('Marketing dashboard', 'GET', '/reports/marketing', ['query' => ['period' => 'last_30_days']]),
         req('Marketing UTM template', 'GET', '/reports/marketing/utm-template'),

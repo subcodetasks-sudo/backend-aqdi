@@ -97,6 +97,7 @@ class ReportController extends Controller
                 'monthly_salaries' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'operating_budget' => ['sometimes', 'nullable', 'numeric', 'min:0'],
                 'marketing_budget' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+                'meter_transfer_fee' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             ]);
 
             return $this->apiResponse(
@@ -137,7 +138,12 @@ class ReportController extends Controller
 
             return $this->apiResponse(array_merge(
                 $this->periodMeta($filter),
-                $this->reports->performance($filter)
+                $this->reports->performance(
+                    $filter,
+                    $this->contractType($request),
+                    $this->employeeId($request),
+                    $this->canSeeSalaries($request)
+                )
             ), trans('api.success'));
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);

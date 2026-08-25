@@ -15,6 +15,7 @@ use App\Support\DocFee;
 use App\Support\EjarPlatformFee;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Backing service for the admin Reports page tabs (/admin/reports/*).
@@ -32,6 +33,18 @@ class ReportsService
         protected MoyasarFeeService $moyasarFees,
         protected MessagingCostService $messagingCosts,
     ) {}
+
+    public const PRORATION_MONTH_DAYS = 30;
+
+    public const LOW_MARGIN_PERCENT = 20;
+
+    /**
+     * Receive-queue SLA shown on the performance tab ("نسبة الالتزام خلال 15 دقيقة").
+     * Distinct from config('employee_kpis.receive_sla_minutes'), which scores individual employees.
+     */
+    public const RECEIVE_SLA_MINUTES = 15;
+
+    public const RECEIVE_LATE_MINUTES = 30;
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
@@ -111,58 +124,62 @@ class ReportsService
     public function profits(array $filter, bool $includeSalaries): array
     {
         $range = $filter['range'];
-        $totals = $this->salesTotals($range, null, null);
-        $settings = Setting::query()->first();
+        $pnl = $this->buildPnl($range, null, null, $includeSalaries);
+        $figures = $pnl['figures'];
+        $totals = $figures['sales_totals'];
+        $settings = $figures['settings'];
 
-        $ejarFees = $this->ejarFees->totalForPeriod($range);
-        $gatewayFee = $this->moyasarFees->totalForPeriod($range, $settings);
-        $messagingCost = $this->messagingCosts->totalForPeriod($range);
-        $operatingExpenses = $this->operatingExpensesTotal($range);
-        $adSpend = (float) ($settings?->marketing_budget ?? 0);
-        $salaries = (float) ($settings?->monthly_salaries ?? 0);
+        $paidCount = $figures['paid_count'];
+        $netRevenue = (float) $totals['net_revenue'];
+        $meterCollected = $this->moneyValue(min($figures['meter_units'] * $figures['meter_fee'], $netRevenue));
+        $documentationCollected = $this->moneyValue(max(0, $netRevenue - $meterCollected));
 
-        $grossProfit = round($totals['net_revenue'] - $ejarFees - $gatewayFee - $messagingCost, 2);
-        $netProfitBeforeSalaries = round($grossProfit - $adSpend - $operatingExpenses, 2);
-        $netProfit = $includeSalaries ? round($netProfitBeforeSalaries - $salaries, 2) : $netProfitBeforeSalaries;
-
-        $paidOrders = $this->ordersBaseQuery($range, null, null)->where('is_completed', 1)->count();
-
-        $pnl = [
-            ['label' => 'دخل العملاء (المحصّل)', 'value' => $this->moneyValue($totals['total_sales'])],
-            ['label' => 'مبالغ مسترجعة', 'value' => -$this->moneyValue($totals['refunds_total'])],
-            ['label' => 'صافي الإيراد', 'value' => $this->moneyValue($totals['net_revenue']), 'is_subtotal' => true],
-            ['label' => 'رسوم منصة إيجار', 'value' => -$this->moneyValue($ejarFees)],
-            ['label' => 'رسوم بوابة الدفع (موياسر)', 'value' => -$this->moneyValue($gatewayFee)],
-            ['label' => 'تكاليف الرسائل', 'value' => -$this->moneyValue($messagingCost)],
-            ['label' => 'إجمالي الربح', 'value' => $this->moneyValue($grossProfit), 'is_subtotal' => true],
-            ['label' => 'مصاريف الإعلانات', 'value' => -$this->moneyValue($adSpend)],
-            ['label' => 'مصاريف تشغيلية', 'value' => -$this->moneyValue($operatingExpenses)],
-        ];
-
-        if ($includeSalaries) {
-            $pnl[] = ['label' => 'الرواتب', 'value' => -$this->moneyValue($salaries)];
-        }
-
-        $pnl[] = ['label' => 'صافي الربح', 'value' => $this->moneyValue($netProfit), 'is_total' => true];
+        $operatingProfit = round($netRevenue - $figures['ejar_fees'] - $figures['gateway_fee'], 2);
+        $operatingProfitPerContract = $paidCount > 0 ? $this->moneyValue($operatingProfit / $paidCount) : 0;
+        $monthlyFixed = $figures['monthly_ads'] + $figures['monthly_opex']
+            + ($includeSalaries ? $figures['monthly_salaries'] : 0);
+        $breakEven = $operatingProfitPerContract > 0
+            ? (int) ceil($monthlyFixed / $operatingProfitPerContract)
+            : 0;
+        $cac = $paidCount > 0 ? $this->moneyValue($figures['ad_spend'] / $paidCount) : 0;
 
         return [
             'kpis' => [
                 'customer_income' => $this->moneyValue($totals['total_sales']),
-                'gross_profit' => $this->moneyValue($grossProfit),
-                'net_profit' => $this->moneyValue($netProfit),
+                'gross_profit' => $this->moneyValue($figures['gross_profit']),
+                'net_profit' => $this->moneyValue($figures['net_profit']),
                 'margin_percent' => $totals['total_sales'] > 0
-                    ? (int) round(($netProfit / $totals['total_sales']) * 100)
+                    ? (int) round(($figures['net_profit'] / $totals['total_sales']) * 100)
                     : 0,
-                'profit_per_order' => $paidOrders > 0 ? $this->moneyValue($netProfit / $paidOrders) : 0,
-                'ad_spend' => $this->moneyValue($adSpend),
-                'ejar_platform_fees' => $this->moneyValue($ejarFees),
-                'gateway_fee' => $this->moneyValue($gatewayFee),
-                'messaging_cost' => $this->moneyValue($messagingCost),
+                'profit_per_order' => $paidCount > 0 ? $this->moneyValue($figures['net_profit'] / $paidCount) : 0,
+                'ad_spend' => $this->moneyValue($figures['ad_spend']),
+                'ejar_platform_fees' => $this->moneyValue($figures['ejar_fees']),
+                'gateway_fee' => $this->moneyValue($figures['gateway_fee']),
+                'messaging_cost' => $this->moneyValue($figures['messaging_cost']),
                 'salaries_included' => $includeSalaries,
+                'paid_contracts_count' => $paidCount,
+                'operating_profit_per_contract' => $operatingProfitPerContract,
+                'monthly_break_even_contracts' => $breakEven,
+                'cac' => $cac,
+                'proration_days' => $figures['proration_days'],
+                'proration_month_days' => self::PRORATION_MONTH_DAYS,
+            ],
+            'collected_breakdown' => [
+                'documentation' => $documentationCollected,
+                'meter_transfers' => $meterCollected,
+                'contracts_count' => $paidCount,
+                'meter_units' => $figures['meter_units'],
             ],
             'service_revenue' => $this->revenueByTypeAndDuration($range, null)['services'],
             'service_profitability' => $this->serviceProfitability($settings),
-            'pnl' => $pnl,
+            'unit_economics' => $this->catalogUnitEconomics($settings),
+            'source_summary' => $this->sourceSummary(
+                $figures['paid_contracts'],
+                $totals,
+                $figures['meter_units'],
+                $figures['meter_fee']
+            ),
+            'pnl' => $pnl['lines'],
         ];
     }
 
@@ -181,6 +198,8 @@ class ReportsService
             'moyasar_fixed_fee' => $moyasar['fixed_fee'],
             'operating_budget' => $settings->operating_budget !== null ? (float) $settings->operating_budget : null,
             'marketing_budget' => $settings->marketing_budget !== null ? (float) $settings->marketing_budget : null,
+            'meter_transfer_fee' => $this->meterTransferFee($settings),
+            'proration_month_days' => self::PRORATION_MONTH_DAYS,
         ];
 
         if ($includeSalaries) {
@@ -205,6 +224,7 @@ class ReportsService
             'moyasar_fixed_fee',
             'operating_budget',
             'marketing_budget',
+            'meter_transfer_fee',
         ]));
 
         if (array_key_exists('moyasar_credit_percent', $data)) {
@@ -216,6 +236,10 @@ class ReportsService
 
         if ($canEditSalaries && array_key_exists('monthly_salaries', $data)) {
             $update['monthly_salaries'] = $data['monthly_salaries'];
+        }
+
+        if (array_key_exists('meter_transfer_fee', $update) && ! Schema::hasColumn('settings', 'meter_transfer_fee')) {
+            unset($update['meter_transfer_fee']);
         }
 
         $settings->update($update);
@@ -277,46 +301,114 @@ class ReportsService
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
      * @return array<string, mixed>
      */
-    public function performance(array $filter): array
-    {
+    public function performance(
+        array $filter,
+        ?string $contractType = null,
+        ?int $employeeId = null,
+        bool $includeSalaries = false
+    ): array {
         $range = $filter['range'];
-        $base = $this->ordersBaseQuery($range, null, null);
+        $base = $this->ordersBaseQuery($range, $contractType, $employeeId);
         $doneIds = $this->doneStatusIds();
         $notOpenIds = $this->notOpenStatusIds();
 
+        $startedCount = $this->startedOrdersQuery($range, $contractType, $employeeId)->count();
         $totalCount = (clone $base)->count();
         $paidCount = (clone $base)->where('is_completed', 1)->count();
-        $completedCount = $doneIds === [] ? 0 : (clone $base)->whereIn('contract_status_id', $doneIds)->count();
+        $documentedCount = $doneIds === [] ? 0 : (clone $base)->whereIn('contract_status_id', $doneIds)->count();
+        $draftCount = $this->reachedDraftCount($range, $contractType, $employeeId, $doneIds);
+        $receivedCount = (clone $base)->whereHas('receivedContract')->count();
         $refundedCount = $this->refundedCount($range);
-        $canceledCount = $this->canceledContractsQuery($range, null, null)->count();
+        $canceledCount = $this->canceledContractsQuery($range, $contractType, $employeeId)->count();
         $activeCount = (clone $base)
             ->when($notOpenIds !== [], fn ($q) => $q->where(function ($sq) use ($notOpenIds) {
                 $sq->whereNull('contract_status_id')->orWhereNotIn('contract_status_id', $notOpenIds);
             }))
             ->count();
 
-        $revenue = $this->salesTotals($range, null, null)['total_sales'];
+        $revenue = $this->salesTotals($range, $contractType, $employeeId)['total_sales'];
         $delayed = $this->delayedOpenContractsCount($range);
 
+        $funnel = $this->conversionFunnel([
+            'بداية طلب' => $startedCount,
+            'طلب مكتمل البيانات' => $totalCount,
+            'مسودة عقد' => $draftCount,
+            'مدفوع' => $paidCount,
+            'موثّق' => $documentedCount,
+        ]);
+
+        $leakageCount = max(0, $startedCount - $paidCount);
+        $pnl = $this->buildPnl($range, $contractType, $employeeId, $includeSalaries);
+        $figures = $pnl['figures'];
+
         return [
+            'period_label' => $filter['label_ar'] ?? null,
             'kpis' => [
-                'revenue' => $this->moneyValue($revenue),
-                'refunded_count' => $refundedCount,
-                'delayed_count' => $delayed,
-                'canceled_count' => $canceledCount,
-                'active_count' => $activeCount,
                 'total_count' => $totalCount,
+                'total' => $totalCount,
+                'documented_count' => $documentedCount,
+                'working_count' => $activeCount,
+                'active_count' => $activeCount,
+                'canceled_count' => $canceledCount,
+                'refunded_count' => $refundedCount,
+                'revenue' => $this->moneyValue($revenue),
+                'paid' => $paidCount,
+                'delayed_count' => $delayed,
             ],
-            'conversion_funnel' => [
-                ['step' => 'order_started', 'label' => 'بدء الطلب', 'value' => $totalCount],
-                ['step' => 'paid', 'label' => 'دفع', 'value' => $paidCount],
-                ['step' => 'completed', 'label' => 'إتمام', 'value' => $completedCount],
+            'conversion_funnel' => $funnel,
+            'conversion_leakage' => [
+                'count' => $leakageCount,
+                'percent' => $this->percentOf($leakageCount, $startedCount),
             ],
-            'daily_orders' => $this->dailyOrders($range),
-            'orders_by_status' => $this->statusBreakdown($range, null, null),
-            'revenue_by_payment_method' => $this->revenueByPaymentMethod($range),
-            'operational_metrics' => $this->operationalMetrics($range, $totalCount, $delayed),
-            'unit_economics' => $this->revenueByTypeAndDuration($range, null)['unit_economics'],
+            'conversion_rates' => [
+                [
+                    'label' => 'نسبة عدم الإكمال (تسرّب)',
+                    'value' => $this->percentOf($leakageCount, $startedCount),
+                    'tone' => 'gold',
+                ],
+                [
+                    'label' => 'تحويل المسودة إلى دفع',
+                    'value' => $this->percentOf($paidCount, $draftCount),
+                    'tone' => 'green',
+                ],
+                [
+                    'label' => 'نسبة استلام الطلبات',
+                    'value' => $this->percentOf($receivedCount, $totalCount),
+                    'tone' => null,
+                ],
+                [
+                    'label' => 'نسبة التوثيق',
+                    'value' => $this->percentOf($documentedCount, $totalCount),
+                    'tone' => 'green',
+                ],
+                [
+                    'label' => 'نسبة الإلغاء',
+                    'value' => $this->percentOf($canceledCount, $totalCount + $canceledCount),
+                    'tone' => 'red',
+                ],
+                [
+                    'label' => 'نسبة الاسترجاع',
+                    'value' => $this->percentOf($refundedCount, $paidCount),
+                    'tone' => 'red',
+                ],
+            ],
+            'daily_orders' => $this->dailyOrders($range, $contractType, $employeeId),
+            'orders_by_status' => array_values(array_filter(
+                $this->statusBreakdown($range, $contractType, $employeeId),
+                fn (array $row) => $row['value'] > 0
+            )),
+            'by_contract_type' => $this->performanceByContractType($range, $contractType, $employeeId),
+            'by_employee' => $this->performanceByEmployee($range, $contractType, $employeeId),
+            'operational_metrics' => $this->operationalMetrics($range, $contractType, $employeeId, $totalCount, $delayed),
+            'revenue_by_payment_method' => $this->revenueByPaymentMethod($range, $contractType, $employeeId),
+            'pnl' => $pnl['lines'],
+            'unit_economics' => $this->catalogUnitEconomics($figures['settings']),
+            'unit_economics_note' => 'الأرقام محسوبة من أسعار الخدمات الحالية ورسوم منصة إيجار ونسب موياسر في إعدادات الأرباح.',
+            'financial_summary' => $this->financialSummary($figures),
+            'by_document_type' => $this->performanceByDocumentType($range, $contractType, $employeeId),
+            'correction_errors' => [],
+            'refund_requests_by_status' => $this->refundRequestsByStatus($range),
+            'refund_requests_total' => $this->moneyValue($this->refundsAmount($range)),
         ];
     }
 
@@ -329,7 +421,18 @@ class ReportsService
      */
     private function ordersBaseQuery(?array $range, ?string $contractType, ?int $employeeId)
     {
-        $query = Contract::query()->notDeleted()->reachedAdminOrderStep();
+        return $this->startedOrdersQuery($range, $contractType, $employeeId)->reachedAdminOrderStep();
+    }
+
+    /**
+     * Every order the customer began, including the early steps that never reach the
+     * admin queue — the top of the conversion funnel.
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    private function startedOrdersQuery(?array $range, ?string $contractType, ?int $employeeId)
+    {
+        $query = Contract::query()->notDeleted();
         $this->applyDateRange($query, 'created_at', $range);
 
         if ($contractType !== null) {
@@ -533,6 +636,43 @@ class ReportsService
     // ------------------------------------------------------------------
 
     /**
+     * Successful payments joined to their contract, so revenue can be grouped by any
+     * contract column. Payments carry the contract uuid with an optional "-suffix".
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    private function paidContractsJoinQuery(?array $range, ?string $contractType = null, ?int $employeeId = null)
+    {
+        $query = Payment::query()
+            ->join('contracts', function ($join) {
+                $uuidColumn = DB::connection()->getDriverName() === 'sqlite'
+                    ? 'CAST(contracts.uuid AS TEXT)'
+                    : 'CAST(contracts.uuid AS CHAR)';
+
+                $join->on(DB::raw($uuidColumn), '=', DB::raw($this->paymentContractUuidExpression()));
+            })
+            ->where('payments.status', 'success')
+            ->where('contracts.is_delete', 0);
+
+        $this->applyPaymentDateRange($query, $range);
+
+        if ($contractType !== null) {
+            $query->where('contracts.contract_type', $contractType);
+        }
+
+        if ($employeeId !== null) {
+            $query->whereExists(function ($sub) use ($employeeId) {
+                $sub->selectRaw('1')
+                    ->from('received_contracts')
+                    ->whereColumn('received_contracts.contract_id', 'contracts.id')
+                    ->where('received_contracts.employee_id', $employeeId);
+            });
+        }
+
+        return $query;
+    }
+
+    /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      * @return array{total_sales: float, payments_count: int, discounts_total: float, discounted_orders_count: int, refunds_total: float, net_revenue: float}
      */
@@ -728,31 +868,7 @@ class ReportsService
      */
     private function revenueByTypeAndDuration(?array $range, ?int $employeeId, ?string $contractType = null): array
     {
-        $query = Payment::query()
-            ->join('contracts', function ($join) {
-                $uuidColumn = DB::connection()->getDriverName() === 'sqlite'
-                    ? 'CAST(contracts.uuid AS TEXT)'
-                    : 'CAST(contracts.uuid AS CHAR)';
-
-                $join->on(DB::raw($uuidColumn), '=', DB::raw($this->paymentContractUuidExpression()));
-            })
-            ->where('payments.status', 'success')
-            ->where('contracts.is_delete', 0);
-
-        $this->applyPaymentDateRange($query, $range);
-
-        if ($contractType !== null) {
-            $query->where('contracts.contract_type', $contractType);
-        }
-
-        if ($employeeId !== null) {
-            $query->whereExists(function ($sub) use ($employeeId) {
-                $sub->selectRaw('1')
-                    ->from('received_contracts')
-                    ->whereColumn('received_contracts.contract_id', 'contracts.id')
-                    ->where('received_contracts.employee_id', $employeeId);
-            });
-        }
+        $query = $this->paidContractsJoinQuery($range, $contractType, $employeeId);
 
         $byType = (clone $query)
             ->groupBy('contracts.contract_type')
@@ -827,6 +943,144 @@ class ReportsService
     // ------------------------------------------------------------------
 
     /**
+     * Profit & loss lines plus the intermediate figures both the profits and
+     * performance tabs report, so the two never drift apart.
+     *
+     * Revenue and variable costs honour the contract-type/employee filters;
+     * the monthly fixed budgets (ads, opex, salaries) are company-wide and
+     * only prorated over the period length.
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return array{lines: list<array<string, mixed>>, figures: array<string, mixed>}
+     */
+    private function buildPnl(?array $range, ?string $contractType, ?int $employeeId, bool $includeSalaries): array
+    {
+        $totals = $this->salesTotals($range, $contractType, $employeeId);
+        $settings = Setting::query()->first();
+        $costs = $this->periodCosts($range, $contractType, $employeeId, $settings);
+
+        $prorationDays = $this->prorationDays($range);
+        $monthlyAds = (float) ($settings?->marketing_budget ?? 0);
+        $monthlyOpex = (float) ($settings?->operating_budget ?? 0);
+        $monthlySalaries = (float) ($settings?->monthly_salaries ?? 0);
+        $adSpend = $this->prorateMonthly($monthlyAds, $prorationDays);
+        $operatingExpenses = $this->prorateMonthly($monthlyOpex, $prorationDays);
+        $salaries = $this->prorateMonthly($monthlySalaries, $prorationDays);
+
+        $grossProfit = round(
+            $totals['net_revenue'] - $costs['ejar'] - $costs['gateway'] - $costs['messaging'],
+            2
+        );
+        $netProfitBeforeSalaries = round($grossProfit - $adSpend - $operatingExpenses, 2);
+        $netProfit = $includeSalaries ? round($netProfitBeforeSalaries - $salaries, 2) : $netProfitBeforeSalaries;
+
+        $lines = [
+            ['label' => 'دخل العملاء (المحصّل)', 'value' => $this->moneyValue($totals['total_sales'])],
+            ['label' => 'مبالغ مسترجعة', 'value' => -$this->moneyValue($totals['refunds_total'])],
+            ['label' => 'صافي الإيراد', 'value' => $this->moneyValue($totals['net_revenue']), 'is_subtotal' => true],
+            ['label' => 'رسوم منصة إيجار', 'value' => -$this->moneyValue($costs['ejar'])],
+            ['label' => 'رسوم بوابة الدفع (موياسر)', 'value' => -$this->moneyValue($costs['gateway'])],
+            ['label' => 'تكاليف الرسائل', 'value' => -$this->moneyValue($costs['messaging'])],
+            ['label' => 'إجمالي الربح', 'value' => $this->moneyValue($grossProfit), 'is_subtotal' => true],
+            ['label' => 'مصاريف الإعلانات', 'value' => -$this->moneyValue($adSpend)],
+            ['label' => 'مصاريف تشغيلية', 'value' => -$this->moneyValue($operatingExpenses)],
+        ];
+
+        if ($includeSalaries) {
+            $lines[] = ['label' => 'الرواتب', 'value' => -$this->moneyValue($salaries)];
+        }
+
+        $lines[] = [
+            'label' => 'صافي الربح',
+            'value' => $this->moneyValue($netProfit),
+            'is_total' => true,
+            'tone' => $netProfit >= 0 ? 'green' : 'red',
+        ];
+
+        return [
+            'lines' => $lines,
+            'figures' => [
+                'sales_totals' => $totals,
+                'settings' => $settings,
+                'paid_contracts' => $costs['paid_contracts'],
+                'paid_count' => $costs['paid_contracts']->count(),
+                'meter_units' => $this->meterTransferUnits($costs['paid_contracts']),
+                'meter_fee' => $this->meterTransferFee($settings),
+                'ejar_fees' => $costs['ejar'],
+                'gateway_fee' => $costs['gateway'],
+                'messaging_cost' => $costs['messaging'],
+                'gross_profit' => $grossProfit,
+                'net_profit' => $netProfit,
+                'net_profit_before_salaries' => $netProfitBeforeSalaries,
+                'ad_spend' => $adSpend,
+                'operating_expenses' => $operatingExpenses,
+                'salaries' => $salaries,
+                'monthly_ads' => $monthlyAds,
+                'monthly_opex' => $monthlyOpex,
+                'monthly_salaries' => $monthlySalaries,
+                'proration_days' => $prorationDays,
+            ],
+        ];
+    }
+
+    /**
+     * Variable costs for a period: Ejar platform fees, payment-gateway fees and messaging.
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return array{paid_contracts: \Illuminate\Support\Collection<int, Contract>, ejar: float, gateway: float, messaging: float}
+     */
+    private function periodCosts(?array $range, ?string $contractType, ?int $employeeId, ?Setting $settings): array
+    {
+        $paidContracts = $this->ejarFees->paidContracts($range);
+
+        if ($contractType !== null) {
+            $paidContracts = $paidContracts
+                ->filter(fn (Contract $contract) => $contract->contract_type === $contractType)
+                ->values();
+        }
+
+        if ($employeeId !== null) {
+            $employeeContractIds = DB::table('received_contracts')
+                ->where('employee_id', $employeeId)
+                ->pluck('contract_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            $paidContracts = $paidContracts
+                ->filter(fn (Contract $contract) => in_array((int) $contract->id, $employeeContractIds, true))
+                ->values();
+        }
+
+        $ejar = $paidContracts->isEmpty()
+            ? 0.0
+            : round((float) $paidContracts->sum(fn (Contract $contract) => EjarPlatformFee::forContract($contract)), 2);
+
+        $paymentsQuery = Payment::query()->successful();
+        $this->applyPaymentDateRange($paymentsQuery, $range);
+
+        if ($contractType !== null || $employeeId !== null) {
+            $paymentsQuery->whereIn('contract_uuid', $this->filteredContractUuids($range, $contractType, $employeeId));
+        }
+
+        $gateway = 0.0;
+        foreach ($paymentsQuery->get(['amount', 'payment_method', 'payment_brand']) as $payment) {
+            $gateway += $this->moyasarFees->feeFor(
+                (float) $payment->amount,
+                $payment->payment_method,
+                $payment->payment_brand,
+                $settings
+            );
+        }
+
+        return [
+            'paid_contracts' => $paidContracts,
+            'ejar' => $ejar,
+            'gateway' => round($gateway, 2),
+            'messaging' => $this->messagingCosts->totalForPeriod($range),
+        ];
+    }
+
+    /**
      * Unit economics for the four documentation products (list price − Ejar − gateway %).
      *
      * @return list<array<string, mixed>>
@@ -874,6 +1128,194 @@ class ReportsService
                     : 0,
             ];
         }, $rows);
+    }
+
+    /**
+     * Catalog unit economics (list price − Ejar − Moyasar percent + fixed).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function catalogUnitEconomics(?Setting $settings): array
+    {
+        $rates = $this->moyasarFees->rates($settings);
+        $meterFee = $this->meterTransferFee($settings);
+
+        $rows = [
+            [
+                'service' => 'توثيق سكني - سنة أولى',
+                'customer_pays' => DocFee::HOUSING_FIRST_YEAR,
+                'ejar_fee' => EjarPlatformFee::HOUSING_FIRST_YEAR,
+                'charge_gateway' => true,
+            ],
+            [
+                'service' => 'توثيق تجاري - سنة أولى',
+                'customer_pays' => DocFee::COMMERCIAL_FIRST_YEAR,
+                'ejar_fee' => EjarPlatformFee::COMMERCIAL_FIRST_YEAR,
+                'charge_gateway' => true,
+            ],
+            [
+                'service' => 'تجاري - سنة إضافية',
+                'customer_pays' => DocFee::COMMERCIAL_EXTRA_YEAR,
+                'ejar_fee' => EjarPlatformFee::COMMERCIAL_EXTRA_YEAR,
+                'charge_gateway' => true,
+            ],
+            [
+                'service' => 'سكني - سنة إضافية',
+                'customer_pays' => DocFee::HOUSING_EXTRA_YEAR,
+                'ejar_fee' => EjarPlatformFee::HOUSING_EXTRA_YEAR,
+                'charge_gateway' => true,
+            ],
+            [
+                'service' => 'نقل العداد',
+                'customer_pays' => $meterFee,
+                'ejar_fee' => 0.0,
+                'charge_gateway' => false,
+            ],
+        ];
+
+        return array_map(function (array $row) use ($rates) {
+            $pays = (float) $row['customer_pays'];
+            $ejar = (float) $row['ejar_fee'];
+            $moyasar = $row['charge_gateway']
+                ? round(($pays * $rates['credit_percent'] / 100) + $rates['fixed_fee'], 2)
+                : 0.0;
+            $margin = round($pays - $ejar - $moyasar, 2);
+            $percent = $pays > 0 ? (int) round(($margin / $pays) * 100) : 0;
+
+            return [
+                'service' => $row['service'],
+                'label' => $row['service'],
+                'customer_pays' => $this->moneyValue($pays),
+                'ejar_fee' => $this->moneyValue($ejar),
+                'moyasar_fee' => $this->moneyValue($moyasar),
+                'margin' => $this->moneyValue($margin),
+                'margin_percent' => $percent,
+                'low_margin' => $percent < self::LOW_MARGIN_PERCENT,
+                'highlight' => $percent < self::LOW_MARGIN_PERCENT,
+            ];
+        }, $rows);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Contract>  $paidContracts
+     * @param  array{total_sales: float, refunds_total: float, net_revenue: float}  $totals
+     * @return array<string, mixed>
+     */
+    private function sourceSummary($paidContracts, array $totals, int $meterUnits, float $meterFee): array
+    {
+        $housingFirst = 0;
+        $commercialFirst = 0;
+        $extraHousingYears = 0;
+        $extraCommercialYears = 0;
+
+        foreach ($paidContracts as $contract) {
+            $years = DocFee::billableYears(EjarPlatformFee::resolveTotalMonths($contract));
+            $isCommercial = $contract->contract_type === 'commercial';
+            if ($years >= 1) {
+                if ($isCommercial) {
+                    $commercialFirst++;
+                    $extraCommercialYears += $years - 1;
+                } else {
+                    $housingFirst++;
+                    $extraHousingYears += $years - 1;
+                }
+            }
+        }
+
+        $items = [
+            [
+                'key' => 'housing_first_year',
+                'label' => 'توثيق سكني - سنة أولى',
+                'orders_count' => $housingFirst,
+                'revenue' => $this->moneyValue($housingFirst * DocFee::HOUSING_FIRST_YEAR),
+            ],
+            [
+                'key' => 'commercial_first_year',
+                'label' => 'توثيق تجاري - سنة أولى',
+                'orders_count' => $commercialFirst,
+                'revenue' => $this->moneyValue($commercialFirst * DocFee::COMMERCIAL_FIRST_YEAR),
+            ],
+            [
+                'key' => 'extra_years',
+                'label' => 'سنوات إضافية',
+                'orders_count' => $extraHousingYears + $extraCommercialYears,
+                'revenue' => $this->moneyValue(
+                    ($extraHousingYears * DocFee::HOUSING_EXTRA_YEAR)
+                    + ($extraCommercialYears * DocFee::COMMERCIAL_EXTRA_YEAR)
+                ),
+            ],
+            [
+                'key' => 'meter_transfers',
+                'label' => 'نقل العداد',
+                'orders_count' => $meterUnits,
+                'units_count' => $meterUnits,
+                'revenue' => $this->moneyValue($meterUnits * $meterFee),
+            ],
+        ];
+
+        return [
+            'items' => $items,
+            'refunds' => $this->moneyValue((float) $totals['refunds_total']),
+            'refund_rate_percent' => $totals['total_sales'] > 0
+                ? (int) round(($totals['refunds_total'] / $totals['total_sales']) * 100)
+                : 0,
+            'net_revenue' => $this->moneyValue((float) $totals['net_revenue']),
+        ];
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    private function prorationDays(?array $range): int
+    {
+        if ($range !== null) {
+            return max(1, $range[0]->copy()->startOfDay()->diffInDays($range[1]->copy()->startOfDay()) + 1);
+        }
+
+        $first = Payment::query()->successful()->min('payment_date');
+        if ($first === null) {
+            return 1;
+        }
+
+        return max(1, Carbon::parse($first)->startOfDay()->diffInDays(now()->startOfDay()) + 1);
+    }
+
+    private function prorateMonthly(float $monthly, int $days): float
+    {
+        return round($monthly * $days / self::PRORATION_MONTH_DAYS, 2);
+    }
+
+    private function meterTransferFee(?Setting $settings): float
+    {
+        if ($settings === null || ! Schema::hasColumn('settings', 'meter_transfer_fee')) {
+            return 0.0;
+        }
+
+        return $settings->meter_transfer_fee !== null ? (float) $settings->meter_transfer_fee : 0.0;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Contract>  $paidContracts
+     */
+    private function meterTransferUnits($paidContracts): int
+    {
+        $hasElectricity = Schema::hasColumn('contracts', 'electricity_meter_ownership');
+        $hasWater = Schema::hasColumn('contracts', 'water_meter_ownership');
+        if (! $hasElectricity && ! $hasWater) {
+            return 0;
+        }
+
+        $units = 0;
+        foreach ($paidContracts as $contract) {
+            if ($hasElectricity && $contract->electricity_meter_ownership === 'tenant') {
+                $units++;
+            }
+            if ($hasWater && $contract->water_meter_ownership === 'tenant') {
+                $units++;
+            }
+        }
+
+        return $units;
     }
 
     private function paymentContractUuidExpression(): string
@@ -990,41 +1432,186 @@ class ReportsService
     }
 
     /**
+     * Contracts that reached the draft stage. Paid and documented orders necessarily
+     * passed through it, so the funnel never widens further down.
+     *
      * @param  array{0: Carbon, 1: Carbon}|null  $range
-     * @return list<array{date: string, value: int}>
+     * @param  list<int>  $doneIds
      */
-    private function dailyOrders(?array $range): array
+    private function reachedDraftCount(?array $range, ?string $contractType, ?int $employeeId, array $doneIds): int
     {
-        if ($range === null) {
-            return [];
+        $hasDraftNumber = Schema::hasColumn('contracts', 'ejar_contract_draft_number');
+
+        return $this->ordersBaseQuery($range, $contractType, $employeeId)
+            ->where(function ($query) use ($hasDraftNumber, $doneIds) {
+                $query->where('is_draft', true)->orWhere('is_completed', 1);
+
+                if ($hasDraftNumber) {
+                    $query->orWhereNotNull('ejar_contract_draft_number');
+                }
+
+                if ($doneIds !== []) {
+                    $query->orWhereIn('contract_status_id', $doneIds);
+                }
+            })
+            ->count();
+    }
+
+    /**
+     * @param  array<string, int>  $stages  Ordered label => count, top of the funnel first.
+     * @return list<array{label: string, value: int, from_previous_pct: int|null}>
+     */
+    private function conversionFunnel(array $stages): array
+    {
+        $rows = [];
+        $previous = null;
+
+        foreach ($stages as $label => $value) {
+            $rows[] = [
+                'label' => $label,
+                'value' => $value,
+                'from_previous_pct' => $previous === null ? null : $this->percentOf($value, $previous),
+            ];
+            $previous = $value;
         }
 
-        $byDate = $this->ordersBaseQuery($range, null, null)
+        return $rows;
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<array{date: string, label: string, value: int}>
+     */
+    private function dailyOrders(?array $range, ?string $contractType = null, ?int $employeeId = null): array
+    {
+        // "كل الفترات" has no bounds; show the trailing month so the chart still renders.
+        $range ??= [now()->copy()->subDays(29)->startOfDay(), now()->copy()->endOfDay()];
+
+        $byDate = $this->ordersBaseQuery($range, $contractType, $employeeId)
             ->selectRaw('DATE(created_at) as d, COUNT(*) as aggregate')
             ->groupBy('d')
             ->pluck('aggregate', 'd');
 
-        $days = [];
         $cursor = $range[0]->copy()->startOfDay();
         $end = $range[1]->copy()->startOfDay();
+        $useWeekdayLabels = $cursor->diffInDays($end) <= 7;
 
+        $days = [];
         while ($cursor->lte($end)) {
             $key = $cursor->toDateString();
-            $days[] = ['date' => $key, 'value' => (int) ($byDate[$key] ?? 0)];
+            $days[] = [
+                'date' => $key,
+                'label' => $useWeekdayLabels ? $this->arabicWeekday($cursor) : $cursor->format('j/n'),
+                'value' => (int) ($byDate[$key] ?? 0),
+            ];
             $cursor->addDay();
         }
 
         return $days;
     }
 
+    private function arabicWeekday(Carbon $date): string
+    {
+        return [
+            0 => 'الأحد',
+            1 => 'الاثنين',
+            2 => 'الثلاثاء',
+            3 => 'الأربعاء',
+            4 => 'الخميس',
+            5 => 'الجمعة',
+            6 => 'السبت',
+        ][$date->dayOfWeek] ?? $date->format('j/n');
+    }
+
     /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
-     * @return list<array{method: string, label: string, value: float}>
+     * @return list<array{label: string, value: int, revenue: float|int}>
      */
-    private function revenueByPaymentMethod(?array $range): array
+    private function performanceByContractType(?array $range, ?string $contractType, ?int $employeeId): array
+    {
+        $counts = $this->ordersBaseQuery($range, $contractType, $employeeId)
+            ->groupBy('contract_type')
+            ->selectRaw('contract_type, COUNT(*) as aggregate')
+            ->pluck('aggregate', 'contract_type');
+
+        $revenue = $this->paidContractsJoinQuery($range, $contractType, $employeeId)
+            ->groupBy('contracts.contract_type')
+            ->selectRaw('contracts.contract_type, SUM(payments.amount) as aggregate')
+            ->pluck('aggregate', 'contract_type');
+
+        return collect(Contract::CONTRACT_TYPES)
+            ->when($contractType !== null, fn ($types) => $types->filter(fn (string $type) => $type === $contractType))
+            ->map(fn (string $type) => [
+                'label' => Contract::contractTypeLabel($type),
+                'value' => (int) ($counts[$type] ?? 0),
+                'revenue' => $this->moneyValue((float) ($revenue[$type] ?? 0)),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<array{employee_id: int, label: string, value: int}>
+     */
+    private function performanceByEmployee(?array $range, ?string $contractType, ?int $employeeId): array
+    {
+        $rows = $this->ordersByEmployee($range, $contractType);
+
+        if ($employeeId === null) {
+            return $rows;
+        }
+
+        return array_values(array_filter($rows, fn (array $row) => $row['employee_id'] === $employeeId));
+    }
+
+    /**
+     * Orders grouped by the deed/instrument kind the customer documented.
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<array{label: string, value: int, revenue: float|int}>
+     */
+    private function performanceByDocumentType(?array $range, ?string $contractType, ?int $employeeId): array
+    {
+        if (! Schema::hasColumn('contracts', 'instrument_type')) {
+            return [];
+        }
+
+        $counts = $this->ordersBaseQuery($range, $contractType, $employeeId)
+            ->whereNotNull('instrument_type')
+            ->groupBy('instrument_type')
+            ->selectRaw('instrument_type, COUNT(*) as aggregate')
+            ->orderByDesc('aggregate')
+            ->pluck('aggregate', 'instrument_type');
+
+        $revenue = $this->paidContractsJoinQuery($range, $contractType, $employeeId)
+            ->whereNotNull('contracts.instrument_type')
+            ->groupBy('contracts.instrument_type')
+            ->selectRaw('contracts.instrument_type, SUM(payments.amount) as aggregate')
+            ->pluck('aggregate', 'instrument_type');
+
+        return $counts
+            ->map(fn ($count, $type) => [
+                'label' => Contract::instrumentTypeLabel((string) $type, 'ar'),
+                'value' => (int) $count,
+                'revenue' => $this->moneyValue((float) ($revenue[$type] ?? 0)),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<array{method: string, label: string, value: float|int}>
+     */
+    private function revenueByPaymentMethod(?array $range, ?string $contractType = null, ?int $employeeId = null): array
     {
         $query = Payment::query()->successful();
         $this->applyPaymentDateRange($query, $range);
+
+        if ($contractType !== null || $employeeId !== null) {
+            $query->whereIn('contract_uuid', $this->filteredContractUuids($range, $contractType, $employeeId));
+        }
 
         return $query
             ->groupBy('payment_method')
@@ -1033,18 +1620,97 @@ class ReportsService
             ->get()
             ->map(fn ($row) => [
                 'method' => (string) $row->payment_method,
-                'label' => (string) $row->payment_method,
+                'label' => $this->paymentMethodLabel((string) $row->payment_method),
                 'value' => $this->moneyValue((float) $row->aggregate),
             ])
             ->all();
+    }
+
+    private function paymentMethodLabel(string $method): string
+    {
+        return match (strtolower(trim($method))) {
+            'mada', 'mada_card' => 'مدى',
+            'creditcard', 'credit_card', 'card' => 'بطاقة ائتمان',
+            'applepay', 'apple_pay' => 'Apple Pay',
+            'stcpay', 'stc_pay' => 'STC Pay',
+            'moyasar' => 'موياسر',
+            '' => 'غير محدد',
+            default => $method,
+        };
+    }
+
+    /**
+     * Revenue per product line, mirroring the profits tab's source summary.
+     *
+     * @param  array<string, mixed>  $figures
+     * @return list<array<string, mixed>>
+     */
+    private function financialSummary(array $figures): array
+    {
+        $summary = $this->sourceSummary(
+            $figures['paid_contracts'],
+            $figures['sales_totals'],
+            $figures['meter_units'],
+            $figures['meter_fee']
+        );
+
+        $rows = array_map(fn (array $item) => [
+            'label' => $item['label'],
+            'value' => $item['revenue'],
+        ], $summary['items']);
+
+        $rows[] = [
+            'label' => 'الإجمالي',
+            'value' => $summary['net_revenue'],
+            'is_total' => true,
+        ];
+
+        return $rows;
+    }
+
+    /**
+     * Refund requests bucketed by the stage their boolean flags represent
+     * (there is no rejected state — declined requests are not recorded).
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<array{label: string, value: int}>
+     */
+    private function refundRequestsByStatus(?array $range): array
+    {
+        $query = RefundableContract::query();
+        $this->applyDateRange($query, 'created_at', $range);
+
+        $hasRefundedFlag = Schema::hasColumn('refundable_contracts', 'is_refunded');
+
+        $pending = (clone $query)->where('admin_confirmed', false)->count();
+        $refunded = $hasRefundedFlag
+            ? (clone $query)->where('is_refunded', true)->count()
+            : (clone $query)->where('admin_confirmed', true)->count();
+        $approved = (clone $query)->where('admin_confirmed', true)->count() - ($hasRefundedFlag ? $refunded : 0);
+
+        return [
+            ['label' => 'قيد المراجعة', 'value' => $pending],
+            ['label' => 'موافق عليه', 'value' => max(0, $approved)],
+            ['label' => 'منفّذ', 'value' => $refunded],
+        ];
+    }
+
+    private function percentOf(int|float $value, int|float $total): int
+    {
+        return $total > 0 ? (int) round(($value / $total) * 100) : 0;
     }
 
     /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      * @return array<string, mixed>
      */
-    private function operationalMetrics(?array $range, int $totalOrders, int $delayedCount): array
-    {
+    private function operationalMetrics(
+        ?array $range,
+        ?string $contractType,
+        ?int $employeeId,
+        int $totalOrders,
+        int $delayedCount
+    ): array {
         $query = DB::table('received_contracts')
             ->join('contracts', 'contracts.id', '=', 'received_contracts.contract_id')
             ->where('contracts.is_delete', 0)
@@ -1056,34 +1722,94 @@ class ReportsService
 
         $this->applyDateRange($query, 'received_contracts.created_at', $range);
 
-        $rows = $query->get();
-        $slaSeconds = (int) config('employee_kpis.receive_sla_minutes', 5) * 60;
+        if ($contractType !== null) {
+            $query->where('contracts.contract_type', $contractType);
+        }
+
+        if ($employeeId !== null) {
+            $query->where('received_contracts.employee_id', $employeeId);
+        }
+
+        $slaSeconds = self::RECEIVE_SLA_MINUTES * 60;
+        $lateSeconds = self::RECEIVE_LATE_MINUTES * 60;
 
         $seconds = [];
         $slaMet = 0;
-        foreach ($rows as $row) {
+        $lateOverSla = 0;
+        $lateOverLimit = 0;
+
+        foreach ($query->get() as $row) {
             $receivedAt = $row->received_at
                 ? Carbon::parse($row->received_at)
                 : ($row->date_of_received ? Carbon::parse($row->date_of_received)->startOfDay() : null);
             if ($receivedAt === null || $row->contract_created_at === null) {
                 continue;
             }
+
             $diff = Carbon::parse($row->contract_created_at)->diffInSeconds($receivedAt);
             $seconds[] = $diff;
+
             if ($diff <= $slaSeconds) {
                 $slaMet++;
+            } else {
+                $lateOverSla++;
+            }
+
+            if ($diff > $lateSeconds) {
+                $lateOverLimit++;
             }
         }
 
-        $total = count($seconds);
+        $received = count($seconds);
+        $avgWait = $received > 0 ? (int) round(array_sum($seconds) / $received) : 0;
+        $slaPercent = $received > 0 ? (int) round(($slaMet / $received) * 100) : 100;
+
+        $waiting = $this->waitingQueueSeconds($range, $contractType, $employeeId);
 
         return [
             'total_orders' => $totalOrders,
-            'avg_receive_seconds' => $total > 0 ? (int) round(array_sum($seconds) / $total) : null,
-            'longest_wait_seconds' => $total > 0 ? (int) max($seconds) : null,
-            'sla_percent' => $total > 0 ? (int) round(($slaMet / $total) * 100) : 100,
+            'waiting_count' => count($waiting),
+            'pending_count' => count($waiting),
+            'avg_wait_seconds' => $avgWait,
+            'avg_receive_seconds' => $avgWait,
+            'longest_wait_seconds' => $waiting === [] ? 0 : (int) max($waiting),
+            'max_wait_seconds' => $waiting === [] ? 0 : (int) max($waiting),
+            'longest_receive_seconds' => $received > 0 ? (int) max($seconds) : 0,
+            'late_over_15m' => $lateOverSla,
+            'late_over_15_count' => $lateOverSla,
+            'late_over_30m' => $lateOverLimit,
+            'late_over_30_count' => $lateOverLimit,
+            'sla_percent' => $slaPercent,
+            'sla_15m_percent' => $slaPercent,
+            'unclaim_count' => 0,
+            'unreceive_count' => 0,
             'delayed_over_24h_count' => $delayedCount,
+            'sla_minutes' => self::RECEIVE_SLA_MINUTES,
         ];
+    }
+
+    /**
+     * Seconds each still-unreceived order has been waiting in the queue.
+     *
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return list<int>
+     */
+    private function waitingQueueSeconds(?array $range, ?string $contractType, ?int $employeeId): array
+    {
+        if ($employeeId !== null) {
+            // The queue is unassigned by definition, so an employee filter empties it.
+            return [];
+        }
+
+        $now = now();
+
+        return $this->ordersBaseQuery($range, $contractType, null)
+            ->whereDoesntHave('receivedContract')
+            ->pluck('created_at')
+            ->filter()
+            ->map(fn ($createdAt) => Carbon::parse($createdAt)->diffInSeconds($now))
+            ->values()
+            ->all();
     }
 
     // ------------------------------------------------------------------
