@@ -53,8 +53,8 @@ class SeoCrawlController extends Controller
                 'max_pages' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:2000'],
             ]);
 
-            $run = $this->crawls->createRun($validated['url'] ?? null);
             $maxPages = isset($validated['max_pages']) ? (int) $validated['max_pages'] : null;
+            $run = $this->crawls->createRun($validated['url'] ?? null, $maxPages);
 
             RunSeoCrawlJob::dispatch($run->id, $maxPages)->afterResponse();
 

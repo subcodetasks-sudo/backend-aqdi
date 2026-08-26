@@ -25,7 +25,7 @@ class EmployeeRefreshTokenTest extends TestCase
             'database.default' => 'sqlite',
             'database.connections.sqlite.database' => ':memory:',
             'app.url' => 'http://localhost',
-            'admin_auth.access_token_ttl_seconds' => 15,
+            'admin_auth.access_token_ttl_seconds' => 12 * 60 * 60,
             'admin_auth.refresh_token_ttl_seconds' => 8 * 60 * 60,
             'admin_auth.remembered_refresh_token_ttl_seconds' => 30 * 24 * 60 * 60,
         ]);
@@ -46,7 +46,7 @@ class EmployeeRefreshTokenTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_login_issues_short_lived_access_and_remembered_refresh_tokens(): void
+    public function test_login_issues_twelve_hour_access_and_remembered_refresh_tokens(): void
     {
         $this->createEmployee();
 
@@ -56,7 +56,7 @@ class EmployeeRefreshTokenTest extends TestCase
             'remember_me' => true,
         ])->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.token_expires_in', 15);
+            ->assertJsonPath('data.token_expires_in', 12 * 60 * 60);
 
         $this->assertNotEmpty($response->json('data.token'));
         $this->assertNotEmpty($response->json('data.refresh_token'));
@@ -68,7 +68,7 @@ class EmployeeRefreshTokenTest extends TestCase
 
         $this->assertNotNull($accessToken->expires_at);
         $this->assertEqualsWithDelta(
-            now()->addSeconds(15)->timestamp,
+            now()->addHours(12)->timestamp,
             \Carbon\Carbon::parse($accessToken->expires_at)->timestamp,
             2
         );
@@ -106,7 +106,7 @@ class EmployeeRefreshTokenTest extends TestCase
         $refreshed = $this->postJson(route('employees.refresh-token', absolute: false), [
             'refresh_token' => $oldRefreshToken,
         ])->assertOk()
-            ->assertJsonPath('data.token_expires_in', 15);
+            ->assertJsonPath('data.token_expires_in', 12 * 60 * 60);
 
         $this->assertNotSame($oldRefreshToken, $refreshed->json('data.refresh_token'));
         $this->assertNotEmpty($refreshed->json('data.token'));

@@ -29,7 +29,7 @@ class SeoCrawlCommand extends Command
         $maxPages = $this->option('max-pages');
         $maxPages = is_numeric($maxPages) ? (int) $maxPages : null;
 
-        $run = $service->createRun($url);
+        $run = $service->createRun($url, $maxPages);
         $this->info('Starting crawl of '.$run->base_url.' (run #'.$run->id.')');
 
         try {

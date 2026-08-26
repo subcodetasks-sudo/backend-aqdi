@@ -318,7 +318,7 @@ $folders = [
     'SEO crawl' => [
         req('Dashboard (latest scan)', 'GET', '/seo-crawl', [
             'bearer' => true,
-            'description' => 'Summary cards + category grid. Poll after POST /seo-crawl/run until status is completed or stopped.',
+            'description' => 'Summary cards + category grid + data.progress (current/max/percent/current_url). Poll after POST /seo-crawl/run until status is completed, stopped, or failed.',
         ]),
         req('Dashboard by run_id', 'GET', '/seo-crawl', [
             'bearer' => true,

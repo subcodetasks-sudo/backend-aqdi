@@ -267,7 +267,10 @@ class SeoCrawlTest extends TestCase
 
         $this->postJson('/api/admin/seo-crawl/run')
             ->assertStatus(202)
-            ->assertJsonPath('data.status', 'queued');
+            ->assertJsonPath('data.status', 'queued')
+            ->assertJsonPath('data.progress.is_running', true)
+            ->assertJsonPath('data.progress.percent', 0)
+            ->assertJsonPath('data.progress.current', 0);
 
         Queue::assertPushed(RunSeoCrawlJob::class);
     }
@@ -380,7 +383,49 @@ class SeoCrawlTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'never_run')
             ->assertJsonPath('data.summary.indexed_pages.count', 0)
-            ->assertJsonPath('data.realtime.path', 'seo_crawl/status');
+            ->assertJsonPath('data.realtime.path', 'seo_crawl/status')
+            ->assertJsonPath('data.progress.current', 0)
+            ->assertJsonPath('data.progress.percent', 0)
+            ->assertJsonPath('data.progress.is_running', false)
+            ->assertJsonPath('data.progress.current_url', null);
+    }
+
+    public function test_dashboard_includes_live_crawl_progress(): void
+    {
+        $this->actingEmployee();
+        $this->fakeAqdiSite();
+
+        $service = app(SeoCrawlService::class);
+        $run = $service->createRun('https://aqdi.sa', 50);
+
+        $queued = $this->getJson('/api/admin/seo-crawl')->assertOk()->json('data');
+        $this->assertSame('queued', $queued['status']);
+        $this->assertSame(0, $queued['progress']['current']);
+        $this->assertSame(50, $queued['progress']['max']);
+        $this->assertSame(0, $queued['progress']['percent']);
+        $this->assertTrue($queued['progress']['is_running']);
+        $this->assertNull($queued['progress']['current_url']);
+
+        $snapshots = [];
+        $service->execute($run->id, 50, function () use ($service, &$snapshots) {
+            $snapshots[] = $service->dashboard();
+        });
+
+        $live = collect($snapshots)->first(fn (array $row) => ($row['progress']['current'] ?? 0) > 0);
+        $this->assertNotNull($live);
+        $this->assertSame('running', $live['status']);
+        $this->assertTrue($live['progress']['is_running']);
+        $this->assertNotNull($live['progress']['current_url']);
+        $this->assertSame($live['progress']['current'], $live['pages_crawled']);
+        $this->assertGreaterThanOrEqual(0, $live['progress']['percent']);
+        $this->assertLessThan(100, $live['progress']['percent']);
+
+        $done = $this->getJson('/api/admin/seo-crawl')->assertOk()->json('data');
+        $this->assertSame('completed', $done['status']);
+        $this->assertSame(100, $done['progress']['percent']);
+        $this->assertFalse($done['progress']['is_running']);
+        $this->assertNull($done['progress']['current_url']);
+        $this->assertGreaterThan(0, $done['progress']['current']);
     }
 
     private function fakeAqdiSite(): void
