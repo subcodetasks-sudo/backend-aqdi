@@ -103,33 +103,40 @@ class SeoCrawlTables
     }
 
     /**
-     * Upgrade already-created VARCHAR columns without adding another migration file
-     * for each column fix.
+     * Upgrade already-created VARCHAR columns to TEXT.
      */
-    private static function widenExistingColumns(): void
+    public static function widenExistingColumns(): void
     {
         if (Schema::getConnection()->getDriverName() !== 'mysql') {
             return;
         }
 
-        if (Schema::hasTable('seo_crawl_pages') && Schema::hasColumn('seo_crawl_pages', 'path')) {
-            DB::statement('ALTER TABLE seo_crawl_pages MODIFY path TEXT NOT NULL');
-        }
+        self::widenColumnIfVarchar('seo_crawl_pages', 'path', nullable: false);
+        self::widenColumnIfVarchar('seo_crawl_issues', 'path', nullable: false);
+        self::widenColumnIfVarchar('seo_crawl_issues', 'message_ar', nullable: false);
+        self::widenColumnIfVarchar('seo_crawl_issues', 'message_en', nullable: false);
+    }
 
-        if (! Schema::hasTable('seo_crawl_issues')) {
+    private static function widenColumnIfVarchar(string $table, string $column, bool $nullable): void
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
             return;
         }
 
-        if (Schema::hasColumn('seo_crawl_issues', 'path')) {
-            DB::statement('ALTER TABLE seo_crawl_issues MODIFY path TEXT NOT NULL');
+        $row = DB::selectOne(
+            'SELECT DATA_TYPE AS data_type
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?
+               AND COLUMN_NAME = ?',
+            [$table, $column]
+        );
+
+        if (! $row || ! in_array(strtolower((string) $row->data_type), ['varchar', 'char'], true)) {
+            return;
         }
 
-        if (Schema::hasColumn('seo_crawl_issues', 'message_ar')) {
-            DB::statement('ALTER TABLE seo_crawl_issues MODIFY message_ar TEXT NOT NULL');
-        }
-
-        if (Schema::hasColumn('seo_crawl_issues', 'message_en')) {
-            DB::statement('ALTER TABLE seo_crawl_issues MODIFY message_en TEXT NOT NULL');
-        }
+        $nullSql = $nullable ? 'NULL' : 'NOT NULL';
+        DB::statement("ALTER TABLE {$table} MODIFY {$column} TEXT {$nullSql}");
     }
 }

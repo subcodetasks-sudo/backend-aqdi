@@ -5,6 +5,7 @@ namespace App\Services\Seo;
 use App\Models\SeoCrawlIssue;
 use App\Models\SeoCrawlPage;
 use App\Models\SeoCrawlRun;
+use App\Support\Migrations\SeoCrawlTables;
 use App\Support\SeoCrawlIssueType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
@@ -82,6 +83,8 @@ class SeoCrawlService
 
     public function execute(int $runId, ?int $maxPages = null, ?callable $onProgress = null): SeoCrawlRun
     {
+        SeoCrawlTables::widenExistingColumns();
+
         $run = SeoCrawlRun::query()->findOrFail($runId);
 
         if ($this->isStopRequested($runId) || $run->status === SeoCrawlRun::STATUS_STOPPED) {
