@@ -20,10 +20,23 @@ return [
     'allowed_hosts' => [
         'aqdi.sa',
         'www.aqdi.sa',
+        'blogs.aqdi.sa',
+    ],
+
+    /** Additional public sites/subdomains included in every crawl. */
+    'seed_urls' => [
+        'https://blogs.aqdi.sa',
+    ],
+
+    /** Collapse only true aliases; preserve distinct subdomains such as blogs.aqdi.sa. */
+    'canonical_hosts' => [
+        'www.aqdi.sa' => 'aqdi.sa',
     ],
 
     'exclude_path_regex' => [
         '#^/(login|signup|logout|forget_password|new_password|reset_password|send_code|verification|resend-verification)(/|$)#i',
+        '#^/(mycontract(?:test)?|real-estate)(/|$)#i',
+        '#^/(?:new|step[123]|end|show|edit|delete)/realestate(/|$)#i',
         '#^/contract(/|$)#i',
         '#^/(work-paper|financial_statements)/#i',
         '#^/pricing/[A-Za-z0-9\-]+#i',

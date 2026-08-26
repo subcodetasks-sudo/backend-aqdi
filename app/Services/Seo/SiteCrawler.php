@@ -61,9 +61,26 @@ class SiteCrawler
             $queue[] = $normalized;
         };
 
-        $enqueue($baseUrl);
-        foreach ($this->urlsFromSitemap($this->origin) as $loc) {
-            $enqueue($loc);
+        $seedUrls = array_values(array_unique([
+            $baseUrl,
+            ...(array) config('seo_crawl.seed_urls', []),
+        ]));
+
+        $origins = [];
+        foreach ($seedUrls as $seedUrl) {
+            if (! is_string($seedUrl) || trim($seedUrl) === '') {
+                continue;
+            }
+
+            $seedUrl = $this->normalizeUrl($seedUrl);
+            $enqueue($seedUrl);
+            $origins[] = $this->origin($seedUrl);
+        }
+
+        foreach (array_unique($origins) as $origin) {
+            foreach ($this->urlsFromSitemap($origin) as $loc) {
+                $enqueue($loc);
+            }
         }
 
         $this->abortIfStopped([], $shouldStop);
@@ -285,7 +302,8 @@ class SiteCrawler
             return null;
         }
 
-        $rewriteHost = $this->baseHost !== '' ? $this->baseHost : $host;
+        $canonicalHosts = (array) config('seo_crawl.canonical_hosts', []);
+        $rewriteHost = strtolower((string) ($canonicalHosts[$host] ?? $host));
         $scheme = strtolower($parts['scheme']) === 'http' ? 'https' : strtolower($parts['scheme']);
         if ($scheme !== 'https' && $scheme !== 'http') {
             return null;
@@ -335,12 +353,21 @@ class SiteCrawler
 
     public function displayPath(string $url): string
     {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         $path = parse_url($url, PHP_URL_PATH);
+        $isSubdomain = $host !== ''
+            && $this->baseHost !== ''
+            && $host !== $this->baseHost
+            && $host !== 'www.'.$this->baseHost;
+
         if (! is_string($path) || $path === '' || $path === '/') {
-            return '/';
+            return $isSubdomain ? $host.'/' : '/';
         }
 
         $path = ltrim($path, '/');
+        if ($isSubdomain) {
+            $path = $host.'/'.$path;
+        }
 
         return str_ends_with($path, '/') ? $path : $path.'/';
     }

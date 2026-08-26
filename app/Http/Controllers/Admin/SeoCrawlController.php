@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Admin\V2\Api\SeoCrawlIssueDetailResource;
 use App\Http\Resources\Admin\V2\Api\SeoCrawlIssueResource;
 use App\Http\Traits\Responser;
 use App\Jobs\RunSeoCrawlJob;
+use App\Models\SeoCrawlIssue;
 use App\Models\SeoCrawlRun;
 use App\Services\Seo\SeoCrawlService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -120,6 +122,18 @@ class SeoCrawlController extends Controller
             );
         } catch (ModelNotFoundException $e) {
             return $this->errorMessage(trans('api.seo_crawl_not_found'), 404);
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    public function issue(SeoCrawlIssue $issue)
+    {
+        try {
+            return $this->apiResponse(
+                new SeoCrawlIssueDetailResource($issue->load('page')),
+                trans('api.success')
+            );
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }

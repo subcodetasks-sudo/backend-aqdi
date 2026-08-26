@@ -3,11 +3,28 @@
 namespace App\Services\Admin;
 
 use App\Http\Resources\Admin\V2\Api\Reports\CustomersReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\CustomersKpisResource;
 use App\Http\Resources\Admin\V2\Api\Reports\OrdersReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\OrdersKpisResource;
+use App\Http\Resources\Admin\V2\Api\Reports\PerformanceConversionLeakageResource;
+use App\Http\Resources\Admin\V2\Api\Reports\PerformanceKpisResource;
 use App\Http\Resources\Admin\V2\Api\Reports\PerformanceReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ProfitsKpisResource;
 use App\Http\Resources\Admin\V2\Api\Reports\ProfitsReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportCollectedBreakdownResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportEmployeeStatResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportLabeledValueResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportOperationalMetricsResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportPaymentMethodResource;
 use App\Http\Resources\Admin\V2\Api\Reports\ReportProfitSettingsResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportServiceProfitabilityResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportServiceRevenueResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportSourceSummaryResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportTopCustomerResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportUnitEconomicsResource;
+use App\Http\Resources\Admin\V2\Api\Reports\SalesKpisResource;
 use App\Http\Resources\Admin\V2\Api\Reports\SalesReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\SalesSummaryResource;
 use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\CouponUsage;
@@ -69,7 +86,7 @@ class ReportsService
         $canceled = $this->canceledContractsQuery($range, $contractType, $employeeId)->count();
 
         return new OrdersReportResource([
-            'kpis' => [
+            'kpis' => new OrdersKpisResource([
                 'total' => $total,
                 'new' => $new,
                 'paid' => $paid,
@@ -78,10 +95,16 @@ class ReportsService
                 'canceled' => $canceled,
                 'returned' => $returned,
                 'avg_completion_minutes' => $this->avgCompletionMinutes($range, $contractType, $employeeId),
-            ],
-            'by_employee' => $this->ordersByEmployee($range, $contractType),
-            'by_contract_type' => $this->ordersByContractType($range, $employeeId),
-            'by_stage' => $this->statusBreakdown($range, $contractType, $employeeId),
+            ]),
+            'by_employee' => ReportEmployeeStatResource::collection(
+                $this->ordersByEmployee($range, $contractType)
+            ),
+            'by_contract_type' => ReportLabeledValueResource::collection(
+                $this->ordersByContractType($range, $employeeId)
+            ),
+            'by_stage' => ReportLabeledValueResource::collection(
+                $this->statusBreakdown($range, $contractType, $employeeId)
+            ),
         ]);
     }
 
@@ -95,7 +118,7 @@ class ReportsService
         $revenueBreakdown = $this->revenueByTypeAndDuration($range, $employeeId, $contractType);
 
         return new SalesReportResource([
-            'kpis' => [
+            'kpis' => new SalesKpisResource([
                 'total_sales' => $totals['total_sales'],
                 'payments_count' => $totals['payments_count'],
                 'avg_order_value' => $totals['payments_count'] > 0
@@ -104,12 +127,18 @@ class ReportsService
                 'discounts_used' => $totals['discounts_total'],
                 'refunds' => $totals['refunds_total'],
                 'net_revenue' => $totals['net_revenue'],
-            ],
-            'by_period' => $this->salesByQuickPeriod(),
-            'daily' => $this->salesDaily($range, $contractType, $employeeId),
-            'revenue_by_contract_type' => $revenueBreakdown['by_type'],
-            'revenue_by_duration' => $revenueBreakdown['by_duration'],
-            'summary' => [
+            ]),
+            'by_period' => ReportLabeledValueResource::collection($this->salesByQuickPeriod()),
+            'daily' => ReportLabeledValueResource::collection(
+                $this->salesDaily($range, $contractType, $employeeId)
+            ),
+            'revenue_by_contract_type' => ReportLabeledValueResource::collection(
+                $revenueBreakdown['by_type']
+            ),
+            'revenue_by_duration' => ReportLabeledValueResource::collection(
+                $revenueBreakdown['by_duration']
+            ),
+            'summary' => new SalesSummaryResource([
                 'discounts_granted' => $totals['discounts_total'],
                 'discounted_orders_count' => $totals['discounted_orders_count'],
                 'refunds_total' => $totals['refunds_total'],
@@ -117,7 +146,7 @@ class ReportsService
                     ? (int) round(($totals['refunds_total'] / $totals['total_sales']) * 100)
                     : 0,
                 'net_revenue_after_refunds' => $totals['net_revenue'],
-            ],
+            ]),
         ]);
     }
 
@@ -147,7 +176,7 @@ class ReportsService
         $cac = $paidCount > 0 ? $this->moneyValue($figures['ad_spend'] / $paidCount) : 0;
 
         return new ProfitsReportResource([
-            'kpis' => [
+            'kpis' => new ProfitsKpisResource([
                 'customer_income' => $this->moneyValue($totals['total_sales']),
                 'gross_profit' => $this->moneyValue($figures['gross_profit']),
                 'net_profit' => $this->moneyValue($figures['net_profit']),
@@ -166,47 +195,45 @@ class ReportsService
                 'cac' => $cac,
                 'proration_days' => $figures['proration_days'],
                 'proration_month_days' => self::PRORATION_MONTH_DAYS,
-            ],
-            'collected_breakdown' => [
+            ]),
+            'collected_breakdown' => new ReportCollectedBreakdownResource([
                 'documentation' => $documentationCollected,
                 'meter_transfers' => $meterCollected,
                 'contracts_count' => $paidCount,
                 'meter_units' => $figures['meter_units'],
-            ],
-            'service_revenue' => $this->revenueByTypeAndDuration($range, null)['services'],
-            'service_profitability' => $this->serviceProfitability($settings),
-            'unit_economics' => $this->catalogUnitEconomics($settings),
-            'source_summary' => $this->sourceSummary(
-                $figures['paid_contracts'],
-                $totals,
-                $figures['meter_units'],
-                $figures['meter_fee']
+            ]),
+            'service_revenue' => ReportServiceRevenueResource::collection(
+                $this->revenueByTypeAndDuration($range, null)['services']
             ),
-            'pnl' => $pnl['lines'],
+            'service_profitability' => ReportServiceProfitabilityResource::collection(
+                $this->serviceProfitability($settings)
+            ),
+            'unit_economics' => ReportUnitEconomicsResource::collection(
+                $this->catalogUnitEconomics($settings)
+            ),
+            'source_summary' => new ReportSourceSummaryResource(
+                $this->sourceSummary(
+                    $figures['paid_contracts'],
+                    $totals,
+                    $figures['meter_units'],
+                    $figures['meter_fee']
+                )
+            ),
+            'pnl' => ReportLabeledValueResource::collection($pnl['lines']),
         ]);
     }
 
     public function profitSettings(bool $includeSalaries): ReportProfitSettingsResource
     {
         $settings = Setting::query()->first() ?? Setting::query()->create([]);
-        $moyasar = $this->moyasarFees->rates($settings);
 
-        $payload = [
-            'moyasar_fee_percent' => $moyasar['credit_percent'],
-            'moyasar_mada_percent' => $moyasar['mada_percent'],
-            'moyasar_credit_percent' => $moyasar['credit_percent'],
-            'moyasar_fixed_fee' => $moyasar['fixed_fee'],
-            'operating_budget' => $settings->operating_budget !== null ? (float) $settings->operating_budget : null,
-            'marketing_budget' => $settings->marketing_budget !== null ? (float) $settings->marketing_budget : null,
+        return new ReportProfitSettingsResource([
+            'settings' => $settings,
+            'moyasar' => $this->moyasarFees->rates($settings),
             'meter_transfer_fee' => $this->meterTransferFee($settings),
+            'include_salaries' => $includeSalaries,
             'proration_month_days' => self::PRORATION_MONTH_DAYS,
-        ];
-
-        if ($includeSalaries) {
-            $payload['monthly_salaries'] = $settings->monthly_salaries !== null ? (float) $settings->monthly_salaries : null;
-        }
-
-        return new ReportProfitSettingsResource($payload);
+        ]);
     }
 
     /**
@@ -280,18 +307,18 @@ class ReportsService
         $topCustomers = $this->topCustomers($range, $contractType, $employeeId);
 
         return new CustomersReportResource([
-            'kpis' => [
+            'kpis' => new CustomersKpisResource([
                 'total' => $total,
                 'new' => $newCustomers,
                 'returning' => max(0, $total - $newCustomers),
                 'avg_contracts_per_customer' => $total > 0 ? round($totalContracts / $total, 1) : 0,
                 'incomplete' => $incompleteCustomers,
-            ],
-            'segments' => [
+            ]),
+            'segments' => ReportLabeledValueResource::collection([
                 ['label' => 'عملاء جدد', 'value' => $newCustomers],
                 ['label' => 'عملاء عائدون', 'value' => max(0, $total - $newCustomers)],
-            ],
-            'top_customers' => $topCustomers,
+            ]),
+            'top_customers' => ReportTopCustomerResource::collection($topCustomers),
         ]);
     }
 
@@ -340,7 +367,7 @@ class ReportsService
 
         return new PerformanceReportResource([
             'period_label' => $filter['label_ar'] ?? null,
-            'kpis' => [
+            'kpis' => new PerformanceKpisResource([
                 'total_count' => $totalCount,
                 'total' => $totalCount,
                 'documented_count' => $documentedCount,
@@ -351,13 +378,13 @@ class ReportsService
                 'revenue' => $this->moneyValue($revenue),
                 'paid' => $paidCount,
                 'delayed_count' => $delayed,
-            ],
-            'conversion_funnel' => $funnel,
-            'conversion_leakage' => [
+            ]),
+            'conversion_funnel' => ReportLabeledValueResource::collection($funnel),
+            'conversion_leakage' => new PerformanceConversionLeakageResource([
                 'count' => $leakageCount,
                 'percent' => $this->percentOf($leakageCount, $startedCount),
-            ],
-            'conversion_rates' => [
+            ]),
+            'conversion_rates' => ReportLabeledValueResource::collection([
                 [
                     'label' => 'نسبة عدم الإكمال (تسرّب)',
                     'value' => $this->percentOf($leakageCount, $startedCount),
@@ -388,23 +415,43 @@ class ReportsService
                     'value' => $this->percentOf($refundedCount, $paidCount),
                     'tone' => 'red',
                 ],
-            ],
-            'daily_orders' => $this->dailyOrders($range, $contractType, $employeeId),
-            'orders_by_status' => array_values(array_filter(
-                $this->statusBreakdown($range, $contractType, $employeeId),
-                fn (array $row) => $row['value'] > 0
-            )),
-            'by_contract_type' => $this->performanceByContractType($range, $contractType, $employeeId),
-            'by_employee' => $this->performanceByEmployee($range, $contractType, $employeeId),
-            'operational_metrics' => $this->operationalMetrics($range, $contractType, $employeeId, $totalCount, $delayed),
-            'revenue_by_payment_method' => $this->revenueByPaymentMethod($range, $contractType, $employeeId),
-            'pnl' => $pnl['lines'],
-            'unit_economics' => $this->catalogUnitEconomics($figures['settings']),
+            ]),
+            'daily_orders' => ReportLabeledValueResource::collection(
+                $this->dailyOrders($range, $contractType, $employeeId)
+            ),
+            'orders_by_status' => ReportLabeledValueResource::collection(
+                array_values(array_filter(
+                    $this->statusBreakdown($range, $contractType, $employeeId),
+                    fn (array $row) => $row['value'] > 0
+                ))
+            ),
+            'by_contract_type' => ReportLabeledValueResource::collection(
+                $this->performanceByContractType($range, $contractType, $employeeId)
+            ),
+            'by_employee' => ReportEmployeeStatResource::collection(
+                $this->performanceByEmployee($range, $contractType, $employeeId)
+            ),
+            'operational_metrics' => new ReportOperationalMetricsResource(
+                $this->operationalMetrics($range, $contractType, $employeeId, $totalCount, $delayed)
+            ),
+            'revenue_by_payment_method' => ReportPaymentMethodResource::collection(
+                $this->revenueByPaymentMethod($range, $contractType, $employeeId)
+            ),
+            'pnl' => ReportLabeledValueResource::collection($pnl['lines']),
+            'unit_economics' => ReportUnitEconomicsResource::collection(
+                $this->catalogUnitEconomics($figures['settings'])
+            ),
             'unit_economics_note' => 'الأرقام محسوبة من أسعار الخدمات الحالية ورسوم منصة إيجار ونسب موياسر في إعدادات الأرباح.',
-            'financial_summary' => $this->financialSummary($figures),
-            'by_document_type' => $this->performanceByDocumentType($range, $contractType, $employeeId),
-            'correction_errors' => [],
-            'refund_requests_by_status' => $this->refundRequestsByStatus($range),
+            'financial_summary' => ReportLabeledValueResource::collection(
+                $this->financialSummary($figures)
+            ),
+            'by_document_type' => ReportLabeledValueResource::collection(
+                $this->performanceByDocumentType($range, $contractType, $employeeId)
+            ),
+            'correction_errors' => ReportLabeledValueResource::collection([]),
+            'refund_requests_by_status' => ReportLabeledValueResource::collection(
+                $this->refundRequestsByStatus($range)
+            ),
             'refund_requests_total' => $this->moneyValue($this->refundsAmount($range)),
         ]);
     }

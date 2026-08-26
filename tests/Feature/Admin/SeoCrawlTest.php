@@ -34,6 +34,7 @@ class SeoCrawlTest extends TestCase
             'seo_crawl.slow_page_ms' => 3000,
             'seo_crawl.weak_inbound_links' => 1,
             'seo_crawl.max_pages' => 50,
+            'seo_crawl.seed_urls' => [],
         ]);
 
         DB::purge('sqlite');
@@ -103,6 +104,102 @@ class SeoCrawlTest extends TestCase
         $this->assertArrayHasKey('page', $issues['items'][0]);
         $this->assertArrayHasKey('problem', $issues['items'][0]);
         $this->assertArrayHasKey('severity', $issues['items'][0]);
+
+        $this->getJson('/api/admin/seo-crawl/issues/'.$issues['items'][0]['id'])
+            ->assertOk()
+            ->assertJsonPath('data.id', $issues['items'][0]['id'])
+            ->assertJsonPath('data.run_id', $run->id)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'page',
+                    'problem',
+                    'type',
+                    'severity',
+                    'details',
+                    'run_id',
+                    'page_details' => [
+                        'url',
+                        'status_code',
+                        'load_time_ms',
+                        'title',
+                        'meta_description',
+                        'is_indexable',
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_crawl_includes_blogs_subdomain_and_excludes_private_website_pages(): void
+    {
+        config([
+            'seo_crawl.seed_urls' => ['https://blogs.aqdi.sa'],
+            'seo_crawl.allowed_hosts' => ['aqdi.sa', 'www.aqdi.sa', 'blogs.aqdi.sa'],
+            'seo_crawl.canonical_hosts' => ['www.aqdi.sa' => 'aqdi.sa'],
+        ]);
+
+        Http::preventStrayRequests();
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            $url = rtrim($request->url(), '/');
+
+            if ($url === 'https://aqdi.sa/sitemap.xml') {
+                return Http::response('', 404);
+            }
+
+            if ($url === 'https://blogs.aqdi.sa/sitemap.xml') {
+                return Http::response(
+                    '<?xml version="1.0"?><urlset><loc>https://blogs.aqdi.sa/article-one</loc></urlset>',
+                    200,
+                    ['Content-Type' => 'application/xml']
+                );
+            }
+
+            if ($url === 'https://aqdi.sa') {
+                return Http::response(
+                    '<html><head><title>Home</title></head><body><h1>Home</h1>'.
+                    '<a href="/myContract">private contracts</a>'.
+                    '<a href="/real-estate">private real estate</a>'.
+                    '<a href="https://blogs.aqdi.sa/">blog</a></body></html>',
+                    200,
+                    ['Content-Type' => 'text/html']
+                );
+            }
+
+            if ($url === 'https://blogs.aqdi.sa') {
+                return Http::response(
+                    '<html><head><title>Blog</title></head><body><h1>Blog</h1>'.
+                    '<a href="https://blogs.aqdi.sa/article-one">article</a></body></html>',
+                    200,
+                    ['Content-Type' => 'text/html']
+                );
+            }
+
+            if ($url === 'https://blogs.aqdi.sa/article-one') {
+                return Http::response(
+                    '<html><head><title>Article</title></head><body><h1>Article</h1></body></html>',
+                    200,
+                    ['Content-Type' => 'text/html']
+                );
+            }
+
+            return Http::response('', 404);
+        });
+
+        $service = app(SeoCrawlService::class);
+        $run = $service->execute($service->createRun('https://aqdi.sa')->id, 20);
+
+        $this->assertSame(SeoCrawlRun::STATUS_COMPLETED, $run->status);
+        $this->assertDatabaseHas('seo_crawl_pages', [
+            'seo_crawl_run_id' => $run->id,
+            'url' => 'https://blogs.aqdi.sa/article-one',
+            'path' => 'blogs.aqdi.sa/article-one/',
+        ]);
+        $this->assertDatabaseMissing('seo_crawl_pages', ['url' => 'https://aqdi.sa/myContract']);
+        $this->assertDatabaseMissing('seo_crawl_pages', ['url' => 'https://aqdi.sa/real-estate']);
+        Http::assertNotSent(
+            fn (\Illuminate\Http\Client\Request $request) => str_contains($request->url(), '/myContract')
+                || str_contains($request->url(), '/real-estate')
+        );
     }
 
     public function test_start_scan_queues_a_job(): void

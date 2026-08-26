@@ -237,6 +237,7 @@ Route::prefix('seo-crawl')->name('seo-crawl.')
         Route::post('/run', 'run')->middleware('permission:seo_crawl.create')->name('run');
         Route::post('/stop', 'stop')->middleware('permission:seo_crawl.create')->name('stop');
         Route::get('/issues', 'issues')->middleware('permission:seo_crawl.view')->name('issues');
+        Route::get('/issues/{issue}', 'issue')->middleware('permission:seo_crawl.view')->name('issues.show');
     });
 
 Route::get('/seo-google/callback', [GoogleSeoController::class, 'callback'])->name('seo-google.callback');

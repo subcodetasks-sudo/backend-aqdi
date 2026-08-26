@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Admin\V2\Api\Reports;
 
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 abstract class ReportJsonResource extends JsonResource
 {
@@ -62,5 +63,31 @@ abstract class ReportJsonResource extends JsonResource
         }
 
         return (new $resource($item))->resolve();
+    }
+
+    /**
+     * @param  class-string<JsonResource>  $resource
+     * @return array<string, mixed>|null
+     */
+    protected function resolveItem(mixed $item, string $resource): ?array
+    {
+        if ($item instanceof JsonResource) {
+            return $item->resolve();
+        }
+
+        return $this->itemResolve($resource, $item);
+    }
+
+    /**
+     * @param  class-string<JsonResource>  $resource
+     * @return list<array<string, mixed>>
+     */
+    protected function resolveList(mixed $items, string $resource): array
+    {
+        if ($items instanceof ResourceCollection) {
+            return $items->resolve();
+        }
+
+        return $this->collectResolve($resource, $items);
     }
 }
