@@ -6,6 +6,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -78,6 +79,11 @@ class Employee extends Authenticatable
     public function authHistory()
     {
         return $this->hasMany(AuthHistory::class);
+    }
+
+    public function refreshTokens(): HasMany
+    {
+        return $this->hasMany(EmployeeRefreshToken::class);
     }
 
     /**

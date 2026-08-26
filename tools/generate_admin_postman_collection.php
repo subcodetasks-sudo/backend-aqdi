@@ -114,9 +114,14 @@ function req(string $name, string $method, string $path, array $opts = []): arra
                     'exec' => [
                         'const json = pm.response.json();',
                         'const token = json?.data?.token ?? json?.token;',
+                        'const refreshToken = json?.data?.refresh_token;',
                         'if (token) {',
                         '  pm.collectionVariables.set("employee_token", token);',
                         '  pm.environment.set("employee_token", token);',
+                        '}',
+                        'if (refreshToken) {',
+                        '  pm.collectionVariables.set("employee_refresh_token", refreshToken);',
+                        '  pm.environment.set("employee_refresh_token", refreshToken);',
                         '}',
                     ],
                     'type' => 'text/javascript',
@@ -134,8 +139,16 @@ $folders = [
             'body' => [
                 'email' => 'admin@example.com',
                 'password' => 'password',
+                'remember_me' => true,
             ],
-            'description' => 'Auto-saves token to employee_token on success.',
+            'description' => 'Auto-saves access and refresh tokens on success.',
+            'save_token' => true,
+        ]),
+        req('Refresh employee token', 'POST', '/employees/refresh-token', [
+            'body' => [
+                'refresh_token' => '{{employee_refresh_token}}',
+            ],
+            'description' => 'Rotates and auto-saves the new access and refresh tokens.',
             'save_token' => true,
         ]),
         req('App content overview', 'GET', '/app-content/overview'),
@@ -178,7 +191,12 @@ $folders = [
         req('Block employee', 'POST', '/employees/{{employee_id}}/block', ['bearer' => true]),
         req('Unblock employee', 'POST', '/employees/{{employee_id}}/unblock', ['bearer' => true]),
         req('Delete employee', 'POST', '/employees/{{employee_id}}/delete', ['bearer' => true]),
-        req('Logout', 'POST', '/employees/logout', ['bearer' => true]),
+        req('Logout', 'POST', '/employees/logout', [
+            'bearer' => true,
+            'body' => [
+                'refresh_token' => '{{employee_refresh_token}}',
+            ],
+        ]),
     ],
     'Analytics — dashboard' => [
         req('Analytics', 'GET', '/analytics'),
@@ -716,6 +734,7 @@ $environmentId = uuid4();
 $collectionVars = [
     ['key' => 'baseUrl', 'value' => 'http://localhost:8000', 'type' => 'default'],
     ['key' => 'employee_token', 'value' => '', 'type' => 'secret'],
+    ['key' => 'employee_refresh_token', 'value' => '', 'type' => 'secret'],
     ['key' => 'employee_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'contract_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'comment_id', 'value' => '1', 'type' => 'default'],
@@ -735,7 +754,7 @@ $collection = [
     'info' => [
         '_postman_id' => $collectionId,
         'name' => 'AQDI Admin API',
-        'description' => "Complete Admin API under /api/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login, copy data.token to employee_token",
+        'description' => "Complete Admin API under /api/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically",
         'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
         '_exporter_id' => 'aqdi-blade',
     ],

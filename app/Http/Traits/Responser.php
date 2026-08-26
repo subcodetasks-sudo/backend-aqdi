@@ -29,7 +29,7 @@ trait Responser
 
         return $this->jsonResponse([
             'message' => $msg,
-            'code' => $code,
+            'code' => $http === 403 ? 'forbidden' : $code,
             'success' => false,
         ], $http);
     }

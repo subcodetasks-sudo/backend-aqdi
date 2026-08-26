@@ -15,6 +15,7 @@ use App\Http\Resources\Admin\V2\Api\SalaryResource;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
 use App\Models\Role;
+use App\Services\Admin\EmployeeTokenService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -62,7 +63,7 @@ class EmployeeController extends Controller
         return $data;
     }
 
-  public function login_check(Request $request)
+  public function login_check(Request $request, EmployeeTokenService $tokenService)
 {
     try {
 
@@ -70,6 +71,9 @@ class EmployeeController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
             'fcm_token' => ['nullable', 'string'],
+            'remember' => ['sometimes', 'boolean'],
+            'remember_me' => ['sometimes', 'boolean'],
+            'rememberMe' => ['sometimes', 'boolean'],
         ]);
 
         $employee = Employee::with('roleRelation')
@@ -86,6 +90,7 @@ class EmployeeController extends Controller
         if (!$employee->is_active) {
             return response()->json([
                 'message' => trans('api.employee_inactive'),
+                'code' => 'forbidden',
                 'success' => false,
             ], Response::HTTP_FORBIDDEN);
         }
@@ -93,6 +98,7 @@ class EmployeeController extends Controller
         if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
             return response()->json([
                 'message' => trans('api.employee_account_blocked'),
+                'code' => 'forbidden',
                 'success' => false,
             ], Response::HTTP_FORBIDDEN);
         }
@@ -103,8 +109,13 @@ class EmployeeController extends Controller
         }
 
         $employee->tokens()->delete();
+        $employee->refreshTokens()->delete();
 
-        $token = $employee->createToken('admin-employee')->plainTextToken;
+        $remembered = (bool) ($validated['remember_me']
+            ?? $validated['rememberMe']
+            ?? $validated['remember']
+            ?? false);
+        $tokens = $tokenService->issueTokenPair($employee, $remembered);
 
         return response()->json([
             'message' => trans('api.login_success'),
@@ -142,7 +153,9 @@ class EmployeeController extends Controller
                 'twitter' => $employee->twitter,
                 'fcm_token' => $employee->fcm_token,
 
-                'token' => $token,
+                'token' => $tokens['token'],
+                'refresh_token' => $tokens['refresh_token'],
+                'token_expires_in' => $tokens['token_expires_in'],
                 'token_type' => 'Bearer',
             ],
         ], Response::HTTP_OK);
@@ -164,9 +177,40 @@ class EmployeeController extends Controller
     }
 }
 
-    public function logout(Request $request)
+    public function refreshToken(Request $request, EmployeeTokenService $tokenService)
     {
         try {
+            $refreshToken = $request->input('refresh_token');
+
+            if (! is_string($refreshToken) || $refreshToken === '') {
+                return $this->errorMessage(trans('api.unauthorized'), 401);
+            }
+
+            $tokens = $tokenService->rotate($refreshToken);
+
+            if (! $tokens) {
+                return $this->errorMessage(trans('api.unauthorized'), 401);
+            }
+
+            return $this->apiResponse($tokens, trans('api.success'));
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    public function logout(Request $request, EmployeeTokenService $tokenService)
+    {
+        try {
+            $employee = $request->user();
+
+            if ($employee instanceof Employee) {
+                $refreshToken = $request->input('refresh_token');
+                $tokenService->revoke(
+                    $employee,
+                    is_string($refreshToken) ? $refreshToken : null
+                );
+            }
+
             $request->user()?->currentAccessToken()?->delete();
 
             return $this->successMessage(trans('api.logout_success'));

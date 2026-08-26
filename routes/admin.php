@@ -73,6 +73,7 @@ use Illuminate\Support\Facades\Route;
 
      Route::prefix('employees')->name('employees.')->controller(EmployeeController::class)->group(function () {
     Route::post('/login', 'login_check')->name('login');
+    Route::post('/refresh-token', 'refreshToken')->name('refresh-token');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', 'index')->name('index');
@@ -113,18 +114,26 @@ Route::prefix('notifications')->name('notifications.')->controller(NotificationC
     });
 
 // Analytics & Dashboard
-Route::controller(HomeAdminController::class)->group(function () {
+Route::controller(HomeAdminController::class)
+    ->middleware(['auth:sanctum', 'permission:analytics.view'])
+    ->group(function () {
     Route::get('/analytics', 'analysis')->name('analytics');
     Route::get('/analytics/all', 'analysis')->name('analytics.all');
     Route::get('/dashboard-analytics', 'analysis')->name('dashboard-analytics');
 });
 
-Route::prefix('analytics/locations')->name('analytics.locations.')->controller(LocationAnalyticsController::class)->group(function () {
+Route::prefix('analytics/locations')->name('analytics.locations.')
+    ->controller(LocationAnalyticsController::class)
+    ->middleware(['auth:sanctum', 'permission:analytics.view'])
+    ->group(function () {
     Route::get('/cities', 'cities')->name('cities');
     Route::get('/', 'index')->name('index');
 });
 
-Route::prefix('analytics')->name('analytics.')->controller(UserDashboardAnalyticsController::class)->group(function () {
+Route::prefix('analytics')->name('analytics.')
+    ->controller(UserDashboardAnalyticsController::class)
+    ->middleware(['auth:sanctum', 'permission:analytics.view'])
+    ->group(function () {
     Route::get('/user-activity-rate', 'userActivityRate')->name('user-activity-rate');
     Route::get('/top-customers/completed-orders', 'topCustomersCompletedOrders')->name('top-customers.completed-orders');
     Route::get('/top-customers/incomplete-orders', 'topCustomersIncompleteOrders')->name('top-customers.incomplete-orders');
@@ -135,7 +144,10 @@ Route::prefix('analytics')->name('analytics.')->controller(UserDashboardAnalytic
 });
 
 // Alias: analytics-clients (same handlers, clients-rich response)
-Route::prefix('analytics/clients')->name('analytics.clients.')->controller(UserDashboardAnalyticsController::class)->group(function () {
+Route::prefix('analytics/clients')->name('analytics.clients.')
+    ->controller(UserDashboardAnalyticsController::class)
+    ->middleware(['auth:sanctum', 'permission:analytics.view'])
+    ->group(function () {
     Route::get('/completed-orders', 'topCustomersCompletedOrders')->name('completed-orders');
     Route::get('/incomplete-orders', 'topCustomersIncompleteOrders')->name('incomplete-orders');
     Route::get('/orders', 'topCustomersOrders')->name('orders');
@@ -155,14 +167,17 @@ Route::prefix('analytics/refunds')->name('analytics.refunds.')
     ->controller(RefundableContractController::class)
     ->middleware('auth:sanctum')
     ->group(function () {
-        Route::get('/contracts', 'index')->name('contracts.index');
+        Route::get('/contracts', 'index')->middleware('permission:analytics.view')->name('contracts.index');
         // Body-based confirm (avoids hosting WAF 403 on POST .../contracts/{uuid})
-        Route::post('/contracts/confirm', 'confirm')->name('contracts.confirm');
-        Route::get('/contracts/{uuid}', 'show')->name('contracts.show');
-        Route::match(['post', 'put', 'patch'], '/contracts/{uuid}', 'update')->name('contracts.update');
+        Route::post('/contracts/confirm', 'confirm')->middleware('permission:analytics.edit')->name('contracts.confirm');
+        Route::get('/contracts/{uuid}', 'show')->middleware('permission:analytics.view')->name('contracts.show');
+        Route::match(['post', 'put', 'patch'], '/contracts/{uuid}', 'update')->middleware('permission:analytics.edit')->name('contracts.update');
     });
 
-Route::prefix('analytics/employees')->name('analytics.employees.')->controller(EmployeeDashboardAnalyticsController::class)->group(function () {
+Route::prefix('analytics/employees')->name('analytics.employees.')
+    ->controller(EmployeeDashboardAnalyticsController::class)
+    ->middleware(['auth:sanctum', 'permission:analytics.view'])
+    ->group(function () {
     Route::get('/most-received-orders', 'mostReceivedOrders')->name('most-received-orders');
     Route::get('/most-returns', 'mostReturns')->name('most-returns');
     Route::get('/most-documented-orders', 'mostDocumentedOrders')->name('most-documented-orders');
