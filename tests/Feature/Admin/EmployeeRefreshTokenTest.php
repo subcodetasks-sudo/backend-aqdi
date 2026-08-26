@@ -2,7 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Http\Resources\Admin\V2\Api\RoleDetailResource;
 use App\Models\Employee;
+use App\Models\Permission;
+use App\Models\Role;
+use App\Services\Admin\RolePermissionResolver;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -35,7 +39,7 @@ class EmployeeRefreshTokenTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['employee_refresh_tokens', 'personal_access_tokens', 'employees', 'roles'] as $table) {
+        foreach (['role_permissions', 'permissions', 'employee_refresh_tokens', 'personal_access_tokens', 'employees', 'roles'] as $table) {
             Schema::dropIfExists($table);
         }
 
@@ -104,6 +108,98 @@ class EmployeeRefreshTokenTest extends TestCase
         ])->assertUnauthorized();
     }
 
+    public function test_login_and_refresh_return_the_same_effective_role_permissions(): void
+    {
+        $role = $this->createRole('operator');
+        $permission = $this->createPermission('all_requests', 'view');
+        $role->permissions()->attach($permission);
+        $this->createEmployee($role);
+
+        $login = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.role_id', $role->id)
+            ->assertJsonPath('data.role', 'operator')
+            ->assertJsonPath('data.is_system_admin', false)
+            ->assertJsonPath('data.permissions.0', 'all_requests.view')
+            ->assertJsonPath('data.permission_names.0', 'all_requests.view')
+            ->assertJsonPath('data.permission_matrix.all_requests.0', 'view');
+
+        $refresh = $this->postJson(route('employees.refresh-token', absolute: false), [
+            'refresh_token' => $login->json('data.refresh_token'),
+        ])->assertOk()
+            ->assertJsonPath('data.role_id', $role->id)
+            ->assertJsonPath('data.role', 'operator')
+            ->assertJsonPath('data.is_system_admin', false);
+
+        $this->assertSame($login->json('data.permissions'), $refresh->json('data.permissions'));
+        $this->assertSame($login->json('data.permission_names'), $refresh->json('data.permission_names'));
+        $this->assertSame($login->json('data.permission_matrix'), $refresh->json('data.permission_matrix'));
+    }
+
+    public function test_full_access_admin_receives_the_complete_configured_matrix(): void
+    {
+        $role = $this->createRole('admin');
+        $this->createEmployee($role);
+
+        $response = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.is_system_admin', true);
+
+        $expectedCount = count(config('permissions.sections')) * count(config('permissions.actions'));
+
+        $this->assertCount($expectedCount, $response->json('data.permission_names'));
+        $this->assertSame(
+            array_keys(config('permissions.actions')),
+            $response->json('data.permission_matrix.analytics')
+        );
+        $this->assertSame(
+            array_keys(config('permissions.actions')),
+            $response->json('data.permission_matrix.seo_crawl')
+        );
+    }
+
+    public function test_role_detail_keeps_permission_objects_and_ids_and_adds_effective_contracts(): void
+    {
+        $role = $this->createRole('operator');
+        $permission = $this->createPermission('employees', 'edit');
+        $role->permissions()->attach($permission);
+        $role->load('permissions');
+
+        $payload = (new RoleDetailResource($role))->resolve(app(\Illuminate\Http\Request::class));
+
+        $this->assertSame([$permission->id], $payload['permission_ids']);
+        $this->assertSame('employees.edit', $payload['permissions'][0]['name']);
+        $this->assertSame(['employees.edit'], $payload['permission_names']);
+        $this->assertSame(['edit'], $payload['permission_matrix']['employees']);
+        $this->assertFalse($payload['is_full_access']);
+    }
+
+    public function test_catalog_sync_is_idempotent_and_preserves_existing_admin_grants(): void
+    {
+        $role = $this->createRole('admin');
+        $legacyPermission = Permission::query()->create([
+            'name' => 'legacy_module.view',
+            'section' => 'legacy_module',
+            'section_en' => 'Legacy Module',
+            'action' => 'view',
+            'action_label_ar' => 'عرض',
+            'action_label_en' => 'View',
+            'is_active' => true,
+        ]);
+        $role->permissions()->attach($legacyPermission);
+        $resolver = app(RolePermissionResolver::class);
+        $configuredCount = count(config('permissions.sections')) * count(config('permissions.actions'));
+
+        $this->assertSame($configuredCount, $resolver->grantAllPermissionsToFullAccessRoles());
+        $this->assertSame(0, $resolver->grantAllPermissionsToFullAccessRoles());
+        $this->assertSame($configuredCount + 1, $role->permissions()->count());
+        $this->assertTrue($role->permissions()->whereKey($legacyPermission->id)->exists());
+    }
+
     public function test_logout_revokes_the_submitted_refresh_token(): void
     {
         $this->createEmployee();
@@ -146,12 +242,37 @@ class EmployeeRefreshTokenTest extends TestCase
             ]);
     }
 
-    private function createEmployee(): Employee
+    private function createEmployee(?Role $role = null): Employee
     {
         return Employee::query()->create([
+            'role_id' => $role?->id,
+            'role' => $role?->name,
             'name' => 'Test Employee',
             'email' => 'employee@example.com',
             'password' => Hash::make('password'),
+            'is_active' => true,
+        ]);
+    }
+
+    private function createRole(string $name): Role
+    {
+        return Role::query()->create([
+            'name' => $name,
+            'title_ar' => $name,
+            'title_en' => $name,
+            'is_active' => true,
+        ]);
+    }
+
+    private function createPermission(string $section, string $action): Permission
+    {
+        return Permission::query()->create([
+            'name' => "{$section}.{$action}",
+            'section' => $section,
+            'section_en' => $section,
+            'action' => $action,
+            'action_label_ar' => $action,
+            'action_label_en' => $action,
             'is_active' => true,
         ]);
     }
@@ -163,6 +284,8 @@ class EmployeeRefreshTokenTest extends TestCase
             $table->string('name');
             $table->string('title_ar')->nullable();
             $table->string('title_en')->nullable();
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
 
@@ -208,6 +331,27 @@ class EmployeeRefreshTokenTest extends TestCase
             $table->boolean('remembered')->default(false);
             $table->timestamp('expires_at');
             $table->timestamp('revoked_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('permissions', function (Blueprint $table) {
+            $table->id();
+            $table->string('name')->unique();
+            $table->string('section');
+            $table->string('section_en')->nullable();
+            $table->string('action');
+            $table->string('action_label_ar');
+            $table->string('action_label_en')->nullable();
+            $table->text('description')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('role_permissions', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('role_id');
+            $table->foreignId('permission_id');
+            $table->unique(['role_id', 'permission_id']);
             $table->timestamps();
         });
     }

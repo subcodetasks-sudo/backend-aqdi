@@ -1,8 +1,8 @@
 {
     "info": {
-        "_postman_id": "ab2c07a4-7eeb-4513-b6dc-b56138a59889",
+        "_postman_id": "d972bbdb-ec5a-4e2e-921c-260a4c635e88",
         "name": "AQDI Admin API",
-        "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically",
+        "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically\n4. Login and refresh responses include the employee role and effective permissions matrix\n5. Protected requests require both authentication and the matching section.action permission",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
         "_exporter_id": "aqdi-blade"
     },
@@ -47,7 +47,7 @@
                                 }
                             }
                         },
-                        "description": "Auto-saves access and refresh tokens on success."
+                        "description": "Auto-saves access and refresh tokens. The response also returns role_id, role, role_title, is_system_admin, permissions, and permission_matrix."
                     },
                     "response": [],
                     "event": [
@@ -109,7 +109,7 @@
                                 }
                             }
                         },
-                        "description": "Rotates and auto-saves the new access and refresh tokens."
+                        "description": "Rotates and auto-saves the new tokens. The response refreshes the employee role and effective permissions snapshot."
                     },
                     "response": [],
                     "event": [
@@ -5385,7 +5385,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"name\": \"manager\",\n    \"title_ar\": \"مدير\",\n    \"title_en\": \"Manager\",\n    \"is_active\": true\n}",
+                            "raw": "{\n    \"name\": \"manager\",\n    \"title_ar\": \"مدير\",\n    \"title_en\": \"Manager\",\n    \"is_active\": true,\n    \"permission_matrix\": {\n        \"all_requests\": [\n            \"view\",\n            \"edit\"\n        ],\n        \"employees\": [\n            \"view\"\n        ]\n    }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"
@@ -5492,7 +5492,7 @@
                         },
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n    \"permission_ids\": [\n        1,\n        2,\n        3\n    ]\n}",
+                            "raw": "{\n    \"permission_matrix\": {\n        \"all_requests\": [\n            \"view\",\n            \"edit\"\n        ],\n        \"employees\": [\n            \"view\"\n        ],\n        \"roles\": [\n            \"view\"\n        ]\n    }\n}",
                             "options": {
                                 "raw": {
                                     "language": "json"

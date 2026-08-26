@@ -2,22 +2,19 @@
 
 namespace App\Models;
 
-use Filament\Models\Contracts\FilamentUser;
+use App\Services\Admin\RolePermissionResolver;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Filament\Panel;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Spatie\Permission\Traits\HasRoles;
- 
-class Employee extends Authenticatable 
+
+class Employee extends Authenticatable
 {
-    use HasFactory, Notifiable, HasApiTokens; 
- 
-  
-    protected $guarded=['employee'];
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $guarded = ['employee'];
+
     protected $fillable = [
         'name',
         'base_salary',
@@ -38,7 +35,7 @@ class Employee extends Authenticatable
         'role_id',
         'reason_of_block',
         'fcm_token',
-    
+
     ];
 
     protected $hidden = ['password'];
@@ -59,7 +56,6 @@ class Employee extends Authenticatable
     {
         return $this->hasMany(NotesEmployee::class);
     }
-   
 
     public function receivedContract()
     {
@@ -151,17 +147,21 @@ class Employee extends Authenticatable
     {
         $this->loadMissing('roleRelation');
 
-        $names = array_map('strtolower', (array) config('permissions.full_access_roles', ['admin']));
-        $roleName = strtolower((string) $this->resolvedRoleName());
-        if ($roleName !== '' && in_array($roleName, $names, true)) {
+        if ($this->roleRelation?->isFullAccess()) {
             return true;
         }
 
-        $titleEn = strtolower((string) ($this->roleRelation?->title_en ?? ''));
-        $titleAr = (string) ($this->roleRelation?->title_ar ?? '');
+        $names = array_map('strtolower', (array) config('permissions.full_access_roles', ['admin']));
+        $roleName = strtolower((string) $this->resolvedRoleName());
 
-        return str_contains($titleEn, 'super admin')
-            || $titleEn === 'system admin'
-            || $titleAr === 'مدير النظام';
+        return $roleName !== '' && in_array($roleName, $names, true);
+    }
+
+    /**
+     * @return array{names: array<int, string>, matrix: array<string, array<int, string>>}
+     */
+    public function effectivePermissions(): array
+    {
+        return app(RolePermissionResolver::class)->effectivePermissionsFor($this);
     }
 }

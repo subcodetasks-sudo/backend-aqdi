@@ -141,14 +141,14 @@ $folders = [
                 'password' => 'password',
                 'remember_me' => true,
             ],
-            'description' => 'Auto-saves access and refresh tokens on success.',
+            'description' => 'Auto-saves access and refresh tokens. The response also returns role_id, role, role_title, is_system_admin, permissions, and permission_matrix.',
             'save_token' => true,
         ]),
         req('Refresh employee token', 'POST', '/employees/refresh-token', [
             'body' => [
                 'refresh_token' => '{{employee_refresh_token}}',
             ],
-            'description' => 'Rotates and auto-saves the new access and refresh tokens.',
+            'description' => 'Rotates and auto-saves the new tokens. The response refreshes the employee role and effective permissions snapshot.',
             'save_token' => true,
         ]),
         req('App content overview', 'GET', '/app-content/overview'),
@@ -555,10 +555,25 @@ $folders = [
     'Roles & permissions' => [
         req('Roles — create form', 'GET', '/roles/create'),
         req('List roles', 'GET', '/roles', ['query' => ['per_page' => 20]]),
-        req('Create role', 'POST', '/roles', ['body' => ['name' => 'manager', 'title_ar' => 'مدير', 'title_en' => 'Manager', 'is_active' => true]]),
+        req('Create role', 'POST', '/roles', ['body' => [
+            'name' => 'manager',
+            'title_ar' => 'مدير',
+            'title_en' => 'Manager',
+            'is_active' => true,
+            'permission_matrix' => [
+                'all_requests' => ['view', 'edit'],
+                'employees' => ['view'],
+            ],
+        ]]),
         req('Show role', 'GET', '/roles/{{id}}'),
         req('Update role', 'POST', '/roles/{{id}}', ['body' => ['title_ar' => 'مدير النظام']]),
-        req('Assign permissions', 'POST', '/roles/{{id}}/assign-permissions', ['body' => ['permission_ids' => [1, 2, 3]]]),
+        req('Assign permissions', 'POST', '/roles/{{id}}/assign-permissions', ['body' => [
+            'permission_matrix' => [
+                'all_requests' => ['view', 'edit'],
+                'employees' => ['view'],
+                'roles' => ['view'],
+            ],
+        ]]),
         req('Delete role', 'POST', '/roles/{{id}}/delete'),
         req('Permissions by section', 'GET', '/permissions/by-section'),
         req('Permissions — create form', 'GET', '/permissions/create'),
@@ -754,7 +769,7 @@ $collection = [
     'info' => [
         '_postman_id' => $collectionId,
         'name' => 'AQDI Admin API',
-        'description' => "Complete Admin API under /api/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically",
+        'description' => "Complete Admin API under /api/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically\n4. Login and refresh responses include the employee role and effective permissions matrix\n5. Protected requests require both authentication and the matching section.action permission",
         'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
         '_exporter_id' => 'aqdi-blade',
     ],

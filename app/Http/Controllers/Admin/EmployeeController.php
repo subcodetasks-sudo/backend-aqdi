@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\V2\StoreEmployeeRequest;
 use App\Http\Requests\Admin\V2\StoreEmployeeNoteRequest;
+use App\Http\Requests\Admin\V2\StoreEmployeeRequest;
 use App\Http\Requests\Admin\V2\StoreEmployeeSalaryRequest;
 use App\Http\Requests\Admin\V2\UpdateEmployeeRequest;
 use App\Http\Resources\Admin\V2\Api\EmployeeNoteResource;
@@ -63,119 +63,123 @@ class EmployeeController extends Controller
         return $data;
     }
 
-  public function login_check(Request $request, EmployeeTokenService $tokenService)
-{
-    try {
+    public function login_check(Request $request, EmployeeTokenService $tokenService)
+    {
+        try {
 
-        $validated = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-            'fcm_token' => ['nullable', 'string'],
-            'remember' => ['sometimes', 'boolean'],
-            'remember_me' => ['sometimes', 'boolean'],
-            'rememberMe' => ['sometimes', 'boolean'],
-        ]);
+            $validated = $request->validate([
+                'email' => ['required', 'email'],
+                'password' => ['required', 'string'],
+                'fcm_token' => ['nullable', 'string'],
+                'remember' => ['sometimes', 'boolean'],
+                'remember_me' => ['sometimes', 'boolean'],
+                'rememberMe' => ['sometimes', 'boolean'],
+            ]);
 
-        $employee = Employee::with('roleRelation')
-            ->where('email', $validated['email'])
-            ->first();
+            $employee = Employee::with('roleRelation')
+                ->where('email', $validated['email'])
+                ->first();
 
-        if (!$employee || !Hash::check($validated['password'], $employee->password)) {
+            if (! $employee || ! Hash::check($validated['password'], $employee->password)) {
+                return response()->json([
+                    'message' => trans('api.credentials_error'),
+                    'success' => false,
+                ], Response::HTTP_UNAUTHORIZED);
+            }
+
+            if (! $employee->is_active) {
+                return response()->json([
+                    'message' => trans('api.employee_inactive'),
+                    'code' => 'forbidden',
+                    'success' => false,
+                ], Response::HTTP_FORBIDDEN);
+            }
+
+            if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
+                return response()->json([
+                    'message' => trans('api.employee_account_blocked'),
+                    'code' => 'forbidden',
+                    'success' => false,
+                ], Response::HTTP_FORBIDDEN);
+            }
+
+            if (array_key_exists('fcm_token', $validated) && filled($validated['fcm_token'])) {
+                $employee->fcm_token = $validated['fcm_token'];
+                $employee->save();
+            }
+
+            $employee->tokens()->delete();
+            $employee->refreshTokens()->delete();
+
+            $remembered = (bool) ($validated['remember_me']
+                ?? $validated['rememberMe']
+                ?? $validated['remember']
+                ?? false);
+            $tokens = $tokenService->issueTokenPair($employee, $remembered);
+
             return response()->json([
-                'message' => trans('api.credentials_error'),
-                'success' => false,
-            ], Response::HTTP_UNAUTHORIZED);
-        }
+                'message' => trans('api.login_success'),
+                'success' => true,
+                'data' => [
 
-        if (!$employee->is_active) {
+                    'id' => $employee->id,
+                    'name' => $employee->name,
+                    'email' => $employee->email,
+                    'phone' => $employee->phone,
+                    'base_salary' => $employee->base_salary,
+                    'role_id' => $employee->role_id,
+                    'role' => $employee->resolvedRoleName(),
+                    'role_title' => $employee->resolvedRoleTitle(),
+                    'is_system_admin' => $tokens['is_system_admin'],
+                    'permissions' => $tokens['permissions'],
+                    'permission_names' => $tokens['permission_names'],
+                    'permission_matrix' => $tokens['permission_matrix'],
+
+                    'is_active' => (bool) $employee->is_active,
+                    'is_online' => (bool) $employee->is_online,
+
+                    'is_blocked' => $employee->blocked_until
+                        ? now()->lessThan($employee->blocked_until)
+                        : false,
+
+                    'blocked_until' => $employee->blocked_until?->format('Y-m-d H:i:s'),
+                    'reason_of_block' => $employee->reason_of_block,
+
+                    'profile_image' => $employee->profile_image
+                        ? url($employee->profile_image)
+                        : null,
+
+                    'facebook' => $employee->facebook,
+                    'instagram' => $employee->instagram,
+                    'whatsapp' => $employee->whatsapp,
+                    'snapchat' => $employee->snapchat,
+                    'tiktok' => $employee->tiktok,
+                    'twitter' => $employee->twitter,
+                    'fcm_token' => $employee->fcm_token,
+
+                    'token' => $tokens['token'],
+                    'refresh_token' => $tokens['refresh_token'],
+                    'token_expires_in' => $tokens['token_expires_in'],
+                    'token_type' => 'Bearer',
+                ],
+            ], Response::HTTP_OK);
+
+        } catch (ValidationException $e) {
+
             return response()->json([
-                'message' => trans('api.employee_inactive'),
-                'code' => 'forbidden',
+                'message' => __('The given data was invalid.'),
                 'success' => false,
-            ], Response::HTTP_FORBIDDEN);
-        }
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
 
-        if ($employee->blocked_until && now()->lessThan($employee->blocked_until)) {
+        } catch (Throwable $e) {
+
             return response()->json([
-                'message' => trans('api.employee_account_blocked'),
-                'code' => 'forbidden',
+                'message' => trans('api.error_occurred').': '.$e->getMessage(),
                 'success' => false,
-            ], Response::HTTP_FORBIDDEN);
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
-
-        if (array_key_exists('fcm_token', $validated) && filled($validated['fcm_token'])) {
-            $employee->fcm_token = $validated['fcm_token'];
-            $employee->save();
-        }
-
-        $employee->tokens()->delete();
-        $employee->refreshTokens()->delete();
-
-        $remembered = (bool) ($validated['remember_me']
-            ?? $validated['rememberMe']
-            ?? $validated['remember']
-            ?? false);
-        $tokens = $tokenService->issueTokenPair($employee, $remembered);
-
-        return response()->json([
-            'message' => trans('api.login_success'),
-            'success' => true,
-            'data' => [
-
-                'id' => $employee->id,
-                'name' => $employee->name,
-                'email' => $employee->email,
-                'phone' => $employee->phone,
-                'base_salary' => $employee->base_salary,
-                'role_id' => $employee->role_id,
-                'role' => $employee->resolvedRoleName(),
-                'role_title' => $employee->resolvedRoleTitle(),
-
-                'is_active' => (bool) $employee->is_active,
-                'is_online' => (bool) $employee->is_online,
-
-                'is_blocked' => $employee->blocked_until
-                    ? now()->lessThan($employee->blocked_until)
-                    : false,
-
-                'blocked_until' => $employee->blocked_until?->format('Y-m-d H:i:s'),
-                'reason_of_block' => $employee->reason_of_block,
-
-                'profile_image' => $employee->profile_image
-                    ? url($employee->profile_image)
-                    : null,
-
-                'facebook' => $employee->facebook,
-                'instagram' => $employee->instagram,
-                'whatsapp' => $employee->whatsapp,
-                'snapchat' => $employee->snapchat,
-                'tiktok' => $employee->tiktok,
-                'twitter' => $employee->twitter,
-                'fcm_token' => $employee->fcm_token,
-
-                'token' => $tokens['token'],
-                'refresh_token' => $tokens['refresh_token'],
-                'token_expires_in' => $tokens['token_expires_in'],
-                'token_type' => 'Bearer',
-            ],
-        ], Response::HTTP_OK);
-
-    } catch (ValidationException $e) {
-
-        return response()->json([
-            'message' => __('The given data was invalid.'),
-            'success' => false,
-            'errors' => $e->errors(),
-        ], Response::HTTP_UNPROCESSABLE_ENTITY);
-
-    } catch (Throwable $e) {
-
-        return response()->json([
-            'message' => trans('api.error_occurred') . ': ' . $e->getMessage(),
-            'success' => false,
-        ], Response::HTTP_INTERNAL_SERVER_ERROR);
     }
-}
 
     public function refreshToken(Request $request, EmployeeTokenService $tokenService)
     {
@@ -215,7 +219,7 @@ class EmployeeController extends Controller
 
             return $this->successMessage(trans('api.logout_success'));
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -256,9 +260,9 @@ class EmployeeController extends Controller
 
             if ($search = $request->input('search')) {
                 $query->where(function ($q) use ($search) {
-                    $q->where('name', 'like', '%' . $search . '%')
-                        ->orWhere('email', 'like', '%' . $search . '%')
-                        ->orWhere('phone', 'like', '%' . $search . '%');
+                    $q->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%')
+                        ->orWhere('phone', 'like', '%'.$search.'%');
                 });
             }
 
@@ -277,7 +281,7 @@ class EmployeeController extends Controller
                 'pagination' => $this->paginate($employees),
             ], trans('api.success'));
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -292,9 +296,9 @@ class EmployeeController extends Controller
 
             if ($request->hasFile('profile_image')) {
                 $image = $request->file('profile_image');
-                $imageName = time() . '_' . $image->getClientOriginalName();
+                $imageName = time().'_'.$image->getClientOriginalName();
                 $imagePath = $image->storeAs('employees/profiles', $imageName, 'public');
-                $data['profile_image'] = 'storage/' . $imagePath;
+                $data['profile_image'] = 'storage/'.$imagePath;
             }
 
             $employee = Employee::create($this->syncRoleNameFromRoleId($data));
@@ -308,7 +312,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -325,7 +329,7 @@ class EmployeeController extends Controller
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.employee_not_found'), 404);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -346,9 +350,9 @@ class EmployeeController extends Controller
                 }
 
                 $image = $request->file('profile_image');
-                $imageName = time() . '_' . $image->getClientOriginalName();
+                $imageName = time().'_'.$image->getClientOriginalName();
                 $imagePath = $image->storeAs('employees/profiles', $imageName, 'public');
-                $data['profile_image'] = 'storage/' . $imagePath;
+                $data['profile_image'] = 'storage/'.$imagePath;
             }
 
             $employee->update($this->syncRoleNameFromRoleId($data));
@@ -363,7 +367,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -383,7 +387,7 @@ class EmployeeController extends Controller
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.employee_not_found'), 404);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -401,7 +405,7 @@ class EmployeeController extends Controller
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.employee_not_found'), 404);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -430,7 +434,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -452,9 +456,10 @@ class EmployeeController extends Controller
         } catch (ModelNotFoundException) {
             return $this->errorMessage(trans('api.employee_not_found'), 404);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
+
     public function storeNote(StoreEmployeeNoteRequest $request, int $id)
     {
         try {
@@ -475,7 +480,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -508,7 +513,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -532,7 +537,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
 
@@ -568,8 +573,7 @@ class EmployeeController extends Controller
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
         } catch (Throwable $e) {
-            return $this->errorMessage(trans('api.error_occurred') . ': ' . $e->getMessage(), 500);
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
     }
-
 }

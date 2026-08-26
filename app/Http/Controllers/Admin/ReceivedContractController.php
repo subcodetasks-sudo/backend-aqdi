@@ -133,7 +133,6 @@ class ReceivedContractController extends Controller
 
             $contractModel = Contract::query()->whereKey($contractId)->first();
             if ($contractModel) {
-                // الاستلام بيحوّل العقد لحالة "مستلم" (6) — "مسترجع" (2) بيغيّرها الموظف يدوياً بعدين.
                 $contractModel->update([
                     'contract_status_id' => ContractStatus::RECEIVED_ID,
                 ]);

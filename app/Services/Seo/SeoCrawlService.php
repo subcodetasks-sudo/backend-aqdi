@@ -313,23 +313,25 @@ class SeoCrawlService
 
     public function paginateIssues(SeoCrawlRun $run, array $filters, int $perPage): LengthAwarePaginator
     {
-        $query = $run->issues()->latest('id');
-
-        if (! empty($filters['type'])) {
-            $query->where('type', $filters['type']);
-        }
-        if (! empty($filters['severity'])) {
-            $query->where('severity', $filters['severity']);
-        }
-        if (! empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($inner) use ($search): void {
-                $inner->where('path', 'like', '%'.$search.'%')
-                    ->orWhere('message_ar', 'like', '%'.$search.'%')
-                    ->orWhere('message_en', 'like', '%'.$search.'%');
-            });
-        }
-
-        return $query->paginate($perPage);
+        return $run->pages()
+            ->whereHas('issues', function ($query) use ($filters): void {
+                if (! empty($filters['type'])) {
+                    $query->where('type', $filters['type']);
+                }
+                if (! empty($filters['severity'])) {
+                    $query->where('severity', $filters['severity']);
+                }
+                if (! empty($filters['search'])) {
+                    $search = $filters['search'];
+                    $query->where(function ($inner) use ($search): void {
+                        $inner->where('path', 'like', '%'.$search.'%')
+                            ->orWhere('message_ar', 'like', '%'.$search.'%')
+                            ->orWhere('message_en', 'like', '%'.$search.'%');
+                    });
+                }
+            })
+            ->with(['issues' => fn ($query) => $query->orderBy('id')])
+            ->latest('id')
+            ->paginate($perPage);
     }
 }

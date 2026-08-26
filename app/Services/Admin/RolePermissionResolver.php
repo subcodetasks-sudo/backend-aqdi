@@ -2,7 +2,9 @@
 
 namespace App\Services\Admin;
 
+use App\Models\Employee;
 use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Support\Collection;
 
 class RolePermissionResolver
@@ -18,8 +20,10 @@ class RolePermissionResolver
         bool $activateAll = false
     ): array {
         if ($activateAll) {
+            $this->syncAllPermissionsFromConfig();
+
             return Permission::query()
-                ->where('is_active', true)
+                ->whereIn('name', $this->configuredPermissionNames())
                 ->pluck('id')
                 ->all();
         }
@@ -40,13 +44,18 @@ class RolePermissionResolver
     protected function idsFromMatrix(array $matrix): Collection
     {
         $ids = collect();
+        $configuredSections = array_keys(config('permissions.sections', []));
+        $configuredActions = array_keys(config('permissions.actions', []));
 
         foreach ($matrix as $section => $actions) {
             $sectionKey = $this->normalizeSectionKey((string) $section);
+            if (! in_array($sectionKey, $configuredSections, true)) {
+                continue;
+            }
 
             foreach ((array) $actions as $action) {
                 $action = strtolower(trim((string) $action));
-                if ($action === '') {
+                if (! in_array($action, $configuredActions, true)) {
                     continue;
                 }
 
@@ -142,7 +151,8 @@ class RolePermissionResolver
         $sectionKey = $this->normalizeSectionKey($sectionKey);
         $action = strtolower(trim($action));
 
-        if ($action === '') {
+        if (! array_key_exists($sectionKey, config('permissions.sections', []))
+            || ! array_key_exists($action, config('permissions.actions', []))) {
             return null;
         }
 
@@ -186,5 +196,120 @@ class RolePermissionResolver
         }
 
         return $created;
+    }
+
+    /**
+     * Effective configured permissions for an authenticated employee.
+     *
+     * @return array{names: array<int, string>, matrix: array<string, array<int, string>>}
+     */
+    public function effectivePermissionsFor(Employee $employee): array
+    {
+        if ($employee->isSystemAdmin()) {
+            return $this->permissionSetFromNames($this->configuredPermissionNames());
+        }
+
+        $employee->loadMissing('roleRelation.permissions');
+
+        if (! $employee->roleRelation) {
+            return $this->permissionSetFromNames([]);
+        }
+
+        return $this->effectivePermissionsForRole($employee->roleRelation);
+    }
+
+    /**
+     * Effective configured permissions for a role.
+     *
+     * @return array{names: array<int, string>, matrix: array<string, array<int, string>>}
+     */
+    public function effectivePermissionsForRole(Role $role): array
+    {
+        if ($role->isFullAccess()) {
+            return $this->permissionSetFromNames($this->configuredPermissionNames());
+        }
+
+        $role->loadMissing('permissions');
+
+        $grantedNames = $role->permissions
+            ->where('is_active', true)
+            ->pluck('name')
+            ->all();
+
+        return $this->permissionSetFromNames($grantedNames);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function configuredPermissionNames(): array
+    {
+        $names = [];
+
+        foreach (array_keys(config('permissions.sections', [])) as $section) {
+            foreach (array_keys(config('permissions.actions', [])) as $action) {
+                $names[] = "{$section}.{$action}";
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Grant every configured permission to full-access roles without detaching
+     * any existing grants.
+     *
+     * @return int Number of newly attached role-permission rows
+     */
+    public function grantAllPermissionsToFullAccessRoles(): int
+    {
+        $this->syncAllPermissionsFromConfig();
+
+        $permissionIds = Permission::query()
+            ->whereIn('name', $this->configuredPermissionNames())
+            ->pluck('id')
+            ->all();
+        $attached = 0;
+
+        Role::query()->get()->each(function (Role $role) use ($permissionIds, &$attached) {
+            if (! $role->isFullAccess()) {
+                return;
+            }
+
+            $changes = $role->permissions()->syncWithoutDetaching($permissionIds);
+            $attached += count($changes['attached']);
+        });
+
+        return $attached;
+    }
+
+    /**
+     * @param  array<int, string>  $names
+     * @return array{names: array<int, string>, matrix: array<string, array<int, string>>}
+     */
+    protected function permissionSetFromNames(array $names): array
+    {
+        $granted = array_fill_keys($names, true);
+        $orderedNames = [];
+        $matrix = [];
+
+        foreach (array_keys(config('permissions.sections', [])) as $section) {
+            foreach (array_keys(config('permissions.actions', [])) as $action) {
+                $name = "{$section}.{$action}";
+
+                if (! isset($granted[$name])) {
+                    continue;
+                }
+
+                $orderedNames[] = $name;
+                $matrix[$section] ??= [];
+                $matrix[$section][] = $action;
+            }
+        }
+
+        return [
+            'names' => $orderedNames,
+            'matrix' => $matrix,
+        ];
     }
 }

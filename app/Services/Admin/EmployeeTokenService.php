@@ -8,8 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeTokenService
 {
+    public function __construct(
+        protected RolePermissionResolver $permissionResolver
+    ) {}
+
     /**
-     * @return array{token: string, refresh_token: string, token_expires_in: int}
+     * @return array<string, mixed>
      */
     public function issueTokenPair(Employee $employee, bool $remembered): array
     {
@@ -19,7 +23,7 @@ class EmployeeTokenService
     /**
      * Rotate a valid refresh token. A concurrent reuse of the old token fails.
      *
-     * @return array{token: string, refresh_token: string, token_expires_in: int}|null
+     * @return array<string, mixed>|null
      */
     public function rotate(string $plainTextToken): ?array
     {
@@ -65,10 +69,12 @@ class EmployeeTokenService
     }
 
     /**
-     * @return array{token: string, refresh_token: string, token_expires_in: int}
+     * @return array<string, mixed>
      */
     private function createTokenPair(Employee $employee, bool $remembered): array
     {
+        $employee->loadMissing('roleRelation.permissions');
+
         $accessTtl = max(1, (int) config('admin_auth.access_token_ttl_seconds', 900));
         $refreshTtlConfig = $remembered
             ? 'admin_auth.remembered_refresh_token_ttl_seconds'
@@ -88,7 +94,16 @@ class EmployeeTokenService
             'expires_at' => now()->addSeconds($refreshTtl),
         ]);
 
+        $effectivePermissions = $this->permissionResolver->effectivePermissionsFor($employee);
+
         return [
+            'role_id' => $employee->role_id,
+            'role' => $employee->resolvedRoleName(),
+            'role_title' => $employee->resolvedRoleTitle(),
+            'is_system_admin' => $employee->isSystemAdmin(),
+            'permissions' => $effectivePermissions['names'],
+            'permission_names' => $effectivePermissions['names'],
+            'permission_matrix' => $effectivePermissions['matrix'],
             'token' => $accessToken,
             'refresh_token' => $plainTextRefreshToken,
             'token_expires_in' => $accessTtl,

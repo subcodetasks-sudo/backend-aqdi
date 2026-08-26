@@ -9,8 +9,10 @@ class PermissionSeeder extends Seeder
 {
     public function run(): void
     {
-        $created = app(RolePermissionResolver::class)->syncAllPermissionsFromConfig();
+        $resolver = app(RolePermissionResolver::class);
+        $created = $resolver->syncAllPermissionsFromConfig();
+        $granted = $resolver->grantAllPermissionsToFullAccessRoles();
 
-        $this->command?->info("Permissions synced. Created: {$created}");
+        $this->command?->info("Permissions synced. Created: {$created}; full-access grants added: {$granted}");
     }
 }

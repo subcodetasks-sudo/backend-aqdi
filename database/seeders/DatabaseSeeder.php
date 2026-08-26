@@ -44,7 +44,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Roles & Users
-        $this->call([RoleSeeder::class]);
+        $this->call([
+            RoleSeeder::class,
+            PermissionSeeder::class,
+        ]);
         $this->call([
             AdminSeeder::class,
             EmployeeSeeder::class,
@@ -72,7 +75,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $account = Account::first();
-        if (!$account) {
+        if (! $account) {
             Account::create(['valueContract' => 55]);
         } else {
             $account->update(['valueContract' => 55]);

@@ -104,11 +104,27 @@ class SeoCrawlTest extends TestCase
         $this->assertArrayHasKey('page', $issues['items'][0]);
         $this->assertArrayHasKey('problem', $issues['items'][0]);
         $this->assertArrayHasKey('severity', $issues['items'][0]);
+        $this->assertArrayHasKey('problems', $issues['items'][0]);
+        $this->assertArrayHasKey('problems_count', $issues['items'][0]);
+        $this->assertSame(
+            count(array_unique(array_column($issues['items'], 'page'))),
+            count($issues['items']),
+            'Each crawled page must appear only once in the issues response.'
+        );
 
-        $this->getJson('/api/admin/seo-crawl/issues/'.$issues['items'][0]['id'])
+        $pageWithMultipleProblems = collect($issues['items'])
+            ->first(fn (array $item) => $item['problems_count'] > 1);
+        $this->assertNotNull($pageWithMultipleProblems);
+        $this->assertCount(
+            $pageWithMultipleProblems['problems_count'],
+            $pageWithMultipleProblems['problems']
+        );
+
+        $this->getJson('/api/admin/seo-crawl/issues/'.$pageWithMultipleProblems['id'])
             ->assertOk()
-            ->assertJsonPath('data.id', $issues['items'][0]['id'])
+            ->assertJsonPath('data.id', $pageWithMultipleProblems['id'])
             ->assertJsonPath('data.run_id', $run->id)
+            ->assertJsonPath('data.problems_count', $pageWithMultipleProblems['problems_count'])
             ->assertJsonStructure([
                 'data' => [
                     'id',
@@ -118,6 +134,17 @@ class SeoCrawlTest extends TestCase
                     'severity',
                     'details',
                     'run_id',
+                    'problems' => [
+                        '*' => [
+                            'id',
+                            'problem',
+                            'problem_ar',
+                            'problem_en',
+                            'type',
+                            'severity',
+                            'details',
+                        ],
+                    ],
                     'page_details' => [
                         'url',
                         'status_code',

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Admin\V2\Api\SeoCrawlIssueDetailResource;
-use App\Http\Resources\Admin\V2\Api\SeoCrawlIssueResource;
+use App\Http\Resources\Admin\V2\Api\SeoCrawlPageIssuesResource;
 use App\Http\Traits\Responser;
 use App\Jobs\RunSeoCrawlJob;
 use App\Models\SeoCrawlIssue;
@@ -117,7 +117,7 @@ class SeoCrawlController extends Controller
 
             return $this->paginatedApiResponse(
                 $issues,
-                SeoCrawlIssueResource::collection($issues),
+                SeoCrawlPageIssuesResource::collection($issues),
                 trans('api.success')
             );
         } catch (ModelNotFoundException $e) {
@@ -131,7 +131,7 @@ class SeoCrawlController extends Controller
     {
         try {
             return $this->apiResponse(
-                new SeoCrawlIssueDetailResource($issue->load('page')),
+                new SeoCrawlIssueDetailResource($issue->load('page.issues')),
                 trans('api.success')
             );
         } catch (Throwable $e) {

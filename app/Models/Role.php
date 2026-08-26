@@ -70,4 +70,26 @@ class Role extends Model
     {
         return $this->hasMany(Employee::class, 'role_id');
     }
+
+    /**
+     * Whether this role bypasses individual permission grants.
+     */
+    public function isFullAccess(): bool
+    {
+        $configuredNames = array_map(
+            'strtolower',
+            (array) config('permissions.full_access_roles', ['admin'])
+        );
+        $name = strtolower((string) $this->name);
+
+        if ($name !== '' && in_array($name, $configuredNames, true)) {
+            return true;
+        }
+
+        $titleEn = strtolower((string) $this->title_en);
+
+        return str_contains($titleEn, 'super admin')
+            || $titleEn === 'system admin'
+            || (string) $this->title_ar === 'مدير النظام';
+    }
 }
