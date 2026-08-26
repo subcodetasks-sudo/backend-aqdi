@@ -75,7 +75,7 @@ class EmployeeTokenService
      */
     private function createTokenPair(Employee $employee, bool $remembered): array
     {
-        $accessTtl = max(1, (int) config('admin_auth.access_token_ttl_seconds', 900));
+        $accessTtl = max(1, (int) config('admin_auth.access_token_ttl_seconds', 15));
         $refreshTtlConfig = $remembered
             ? 'admin_auth.remembered_refresh_token_ttl_seconds'
             : 'admin_auth.refresh_token_ttl_seconds';
