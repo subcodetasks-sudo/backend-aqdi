@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\V2\StoreEmployeeNoteRequest;
 use App\Http\Requests\Admin\V2\StoreEmployeeRequest;
 use App\Http\Requests\Admin\V2\StoreEmployeeSalaryRequest;
 use App\Http\Requests\Admin\V2\UpdateEmployeeRequest;
+use App\Http\Resources\Admin\V2\Api\EmployeeAuthResource;
 use App\Http\Resources\Admin\V2\Api\EmployeeNoteResource;
 use App\Http\Resources\Admin\V2\Api\EmployeeNotesListResource;
 use App\Http\Resources\Admin\V2\Api\EmployeeResource;
@@ -117,52 +118,10 @@ class EmployeeController extends Controller
                 ?? false);
             $tokens = $tokenService->issueTokenPair($employee, $remembered);
 
-            return response()->json([
-                'message' => trans('api.login_success'),
-                'success' => true,
-                'data' => [
-
-                    'id' => $employee->id,
-                    'name' => $employee->name,
-                    'email' => $employee->email,
-                    'phone' => $employee->phone,
-                    'base_salary' => $employee->base_salary,
-                    'role_id' => $employee->role_id,
-                    'role' => $employee->resolvedRoleName(),
-                    'role_title' => $employee->resolvedRoleTitle(),
-                    'is_system_admin' => $tokens['is_system_admin'],
-                    'permissions' => $tokens['permissions'],
-                    'permission_names' => $tokens['permission_names'],
-                    'permission_matrix' => $tokens['permission_matrix'],
-
-                    'is_active' => (bool) $employee->is_active,
-                    'is_online' => (bool) $employee->is_online,
-
-                    'is_blocked' => $employee->blocked_until
-                        ? now()->lessThan($employee->blocked_until)
-                        : false,
-
-                    'blocked_until' => $employee->blocked_until?->format('Y-m-d H:i:s'),
-                    'reason_of_block' => $employee->reason_of_block,
-
-                    'profile_image' => $employee->profile_image
-                        ? url($employee->profile_image)
-                        : null,
-
-                    'facebook' => $employee->facebook,
-                    'instagram' => $employee->instagram,
-                    'whatsapp' => $employee->whatsapp,
-                    'snapchat' => $employee->snapchat,
-                    'tiktok' => $employee->tiktok,
-                    'twitter' => $employee->twitter,
-                    'fcm_token' => $employee->fcm_token,
-
-                    'token' => $tokens['token'],
-                    'refresh_token' => $tokens['refresh_token'],
-                    'token_expires_in' => $tokens['token_expires_in'],
-                    'token_type' => 'Bearer',
-                ],
-            ], Response::HTTP_OK);
+        return $this->apiResponse(
+            new EmployeeAuthResource($employee, $tokens),
+            trans('api.login_success')
+        );
 
         } catch (ValidationException $e) {
 
@@ -190,13 +149,16 @@ class EmployeeController extends Controller
                 return $this->errorMessage(trans('api.unauthorized'), 401);
             }
 
-            $tokens = $tokenService->rotate($refreshToken);
+            $rotation = $tokenService->rotate($refreshToken);
 
-            if (! $tokens) {
+            if (! $rotation) {
                 return $this->errorMessage(trans('api.unauthorized'), 401);
             }
 
-            return $this->apiResponse($tokens, trans('api.success'));
+            return $this->apiResponse(
+                new EmployeeAuthResource($rotation['employee'], $rotation['tokens']),
+                trans('api.success')
+            );
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
