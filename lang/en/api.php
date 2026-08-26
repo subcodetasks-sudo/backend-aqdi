@@ -158,5 +158,11 @@ return [
     'seo_crawl_not_running' => 'No site scan is currently running',
     'seo_crawl_not_found' => 'No crawl results found',
 
+    'google_seo_redirect' => 'Open Google to connect Search Console and Analytics',
+    'google_seo_disconnected' => 'Google Search Console disconnected',
+    'google_seo_not_configured' => 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing',
+    'google_seo_invalid_state' => 'Google login expired. Start connect again',
+    'google_seo_no_token' => 'Google did not return a token. Grant access and try again',
+
 ];
 

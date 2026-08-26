@@ -24,4 +24,16 @@ return [
         'settings' => ['ar' => 'الاعدادات', 'en' => 'Settings'],
         'seo_crawl' => ['ar' => 'زحف وفحص الموقع', 'en' => 'Site crawl & audit'],
     ],
+
+    /**
+     * Role `name` values that skip the permission matrix (full access).
+     *
+     * @var list<string>
+     */
+    'full_access_roles' => [
+        'admin',
+        'super_admin',
+        'superadmin',
+        'super-admin',
+    ],
 ];

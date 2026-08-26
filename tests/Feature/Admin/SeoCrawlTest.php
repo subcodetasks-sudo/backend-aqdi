@@ -117,6 +117,30 @@ class SeoCrawlTest extends TestCase
         Queue::assertPushed(RunSeoCrawlJob::class);
     }
 
+    public function test_system_admin_can_start_scan_without_seo_crawl_permission(): void
+    {
+        Queue::fake();
+
+        $role = Role::query()->create([
+            'name' => 'admin',
+            'title_ar' => 'مدير النظام',
+            'title_en' => 'System Admin',
+            'is_active' => true,
+        ]);
+        $employee = Employee::query()->create([
+            'name' => 'Super Admin',
+            'email' => 'admin@aqdi.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+            'role_id' => $role->id,
+        ]);
+        Sanctum::actingAs($employee);
+
+        $this->postJson('/api/admin/seo-crawl/run')
+            ->assertStatus(202)
+            ->assertJsonPath('data.status', 'queued');
+    }
+
     public function test_stop_scan_marks_queued_run_stopped(): void
     {
         $this->actingEmployee();

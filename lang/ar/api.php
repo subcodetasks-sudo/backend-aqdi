@@ -156,5 +156,11 @@ return [
     'seo_crawl_not_running' => 'لا يوجد فحص للموقع قيد التشغيل',
     'seo_crawl_not_found' => 'لا توجد نتائج زحف',
 
+    'google_seo_redirect' => 'افتح جوجل لربط Search Console و Analytics',
+    'google_seo_disconnected' => 'تم إلغاء ربط Search Console',
+    'google_seo_not_configured' => 'GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET غير موجودين',
+    'google_seo_invalid_state' => 'انتهت صلاحية تسجيل جوجل. ابدأ الربط من جديد',
+    'google_seo_no_token' => 'جوجل لم يُرجع توكن. وافق على الصلاحيات ثم أعد المحاولة',
+
 ];
 

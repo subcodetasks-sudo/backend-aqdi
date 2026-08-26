@@ -291,17 +291,26 @@ $folders = [
     'SEO crawl' => [
         req('Dashboard (latest scan)', 'GET', '/seo-crawl', [
             'bearer' => true,
-            'description' => 'Summary cards + category grid for the technical crawl of aqdi.sa. Poll this after POST /seo-crawl until status is completed.',
+            'description' => 'Summary cards + category grid. Poll after POST /seo-crawl/run until status is completed or stopped.',
+        ]),
+        req('Dashboard by run_id', 'GET', '/seo-crawl', [
+            'bearer' => true,
+            'query' => ['run_id' => '{{seo_crawl_run_id}}'],
         ]),
         req('Start site scan', 'POST', '/seo-crawl/run', [
             'bearer' => true,
-            'body' => (object) [],
-            'description' => 'Queues a crawl of https://aqdi.sa (or body.url / max_pages). Returns 202. POST /seo-crawl is the same. 409 if a scan is already running.',
+            'body' => [
+                'url' => 'https://aqdi.sa',
+                'max_pages' => 400,
+            ],
+            'description' => 'Queues a crawl. Returns 202 (queued). POST /seo-crawl is the same. 409 if a scan is already running. Permission: seo_crawl.create.',
         ]),
         req('Stop site scan', 'POST', '/seo-crawl/stop', [
             'bearer' => true,
-            'body' => (object) [],
-            'description' => 'Stops the in-progress crawl (optional body.run_id). Returns 409 if nothing is running.',
+            'body' => [
+                'run_id' => '{{seo_crawl_run_id}}',
+            ],
+            'description' => 'Stops the in-progress crawl. Omit run_id to stop the current scan. 409 if nothing is running.',
         ]),
         req('Issues table', 'GET', '/seo-crawl/issues', [
             'bearer' => true,
@@ -311,6 +320,19 @@ $folders = [
         req('Issues — 404 only', 'GET', '/seo-crawl/issues', [
             'bearer' => true,
             'query' => ['type' => 'page_404', 'severity' => 'high'],
+        ]),
+        req('Google SEO status', 'GET', '/seo-google/status', [
+            'bearer' => true,
+            'description' => 'Whether a real Google account is linked for Search Console + Analytics (read-only).',
+        ]),
+        req('Connect Google Search Console', 'POST', '/seo-google/connect', [
+            'bearer' => true,
+            'body' => (object) [],
+            'description' => 'Returns data.auth_url. Open it, sign in with the Google account that owns Console, then Google redirects to the admin frontend.',
+        ]),
+        req('Disconnect Google Search Console', 'POST', '/seo-google/disconnect', [
+            'bearer' => true,
+            'body' => (object) [],
         ]),
     ],
     'Orders' => [
@@ -706,6 +728,7 @@ $collectionVars = [
     ['key' => 'message_alert_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'message_alert_section_id', 'value' => '1', 'type' => 'default'],
     ['key' => 'message_alert_section_item_id', 'value' => '1', 'type' => 'default'],
+    ['key' => 'seo_crawl_run_id', 'value' => '', 'type' => 'default'],
 ];
 
 $collection = [

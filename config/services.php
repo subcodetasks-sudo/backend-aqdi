@@ -45,7 +45,9 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => '',
+        'redirect' => env('GOOGLE_REDIRECT_URI', ''),
+        'seo_redirect' => env('GOOGLE_SEO_REDIRECT_URI'),
+        'seo_frontend_redirect' => env('ADMIN_FRONTEND_URL', env('PAYMENT_FRONTEND_URL', 'http://localhost:3000')),
     ],
 
     'moyasar' => [

@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\FilterContract;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\GeneralSettingController;
+use App\Http\Controllers\Admin\GoogleSeoController;
 use App\Http\Controllers\Admin\HomeAdminController;
 use App\Http\Controllers\Admin\InstructionSectionController;
 use App\Http\Controllers\Admin\LocationAnalyticsController;
@@ -236,6 +237,17 @@ Route::prefix('seo-crawl')->name('seo-crawl.')
         Route::post('/run', 'run')->middleware('permission:seo_crawl.create')->name('run');
         Route::post('/stop', 'stop')->middleware('permission:seo_crawl.create')->name('stop');
         Route::get('/issues', 'issues')->middleware('permission:seo_crawl.view')->name('issues');
+    });
+
+Route::get('/seo-google/callback', [GoogleSeoController::class, 'callback'])->name('seo-google.callback');
+
+Route::prefix('seo-google')->name('seo-google.')
+    ->controller(GoogleSeoController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/status', 'status')->middleware('permission:seo_crawl.view')->name('status');
+        Route::post('/connect', 'connect')->middleware('permission:seo_crawl.create')->name('connect');
+        Route::post('/disconnect', 'disconnect')->middleware('permission:seo_crawl.create')->name('disconnect');
     });
 
 // Employee-recorded contract payments (ClickPay link on create)

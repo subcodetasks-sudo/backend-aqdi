@@ -118,10 +118,15 @@ class Employee extends Authenticatable
 
     /**
      * Whether this employee's role has the given "section.action" permission
-     * (e.g. "analytics.view"). Employees without a linked role are denied.
+     * (e.g. "analytics.view"). Employees without a linked role are denied,
+     * except system admins who have full access.
      */
     public function hasPermission(string $permissionName): bool
     {
+        if ($this->isSystemAdmin()) {
+            return true;
+        }
+
         if (! $this->roleRelation) {
             return false;
         }
@@ -131,5 +136,26 @@ class Employee extends Authenticatable
         return $this->roleRelation->permissions
             ->where('is_active', true)
             ->contains('name', $permissionName);
+    }
+
+    /**
+     * System admin / super-admin roles are not limited by the permission matrix.
+     */
+    public function isSystemAdmin(): bool
+    {
+        $this->loadMissing('roleRelation');
+
+        $names = array_map('strtolower', (array) config('permissions.full_access_roles', ['admin']));
+        $roleName = strtolower((string) $this->resolvedRoleName());
+        if ($roleName !== '' && in_array($roleName, $names, true)) {
+            return true;
+        }
+
+        $titleEn = strtolower((string) ($this->roleRelation?->title_en ?? ''));
+        $titleAr = (string) ($this->roleRelation?->title_ar ?? '');
+
+        return str_contains($titleEn, 'super admin')
+            || $titleEn === 'system admin'
+            || $titleAr === 'مدير النظام';
     }
 }
