@@ -27,7 +27,7 @@ return [
         'employee_kpis' => ['ar' => 'مؤشرات الموظفين', 'en' => 'Employee KPIs'],
         'users' => ['ar' => 'العملاء', 'en' => 'Users / Clients'],
         'notifications' => ['ar' => 'الإشعارات', 'en' => 'Push Notifications'],
-        'payments' => ['ar' => 'المدفوعات', 'en' => 'Payments'],
+        'payments' => ['ar' => 'سجلات المدفوعات', 'en' => 'Payment records'],
         'contract_payments' => ['ar' => 'تحصيل الموظف', 'en' => 'Employee Contract Payments'],
         'regions' => ['ar' => 'المناطق', 'en' => 'Regions'],
         'cities' => ['ar' => 'المدن', 'en' => 'Cities'],
@@ -36,22 +36,74 @@ return [
         'tenant_roles' => ['ar' => 'صفات المستأجر', 'en' => 'Tenant Roles'],
         'contract_statuses' => ['ar' => 'حالات العقد', 'en' => 'Contract Statuses'],
         'draft_contract_statuses' => ['ar' => 'حالات المسودة', 'en' => 'Draft Contract Statuses'],
-        'contract_periods' => ['ar' => 'فترات العقد', 'en' => 'Contract Periods'],
+        'contract_periods' => ['ar' => 'مدة الطلب', 'en' => 'Order duration'],
         'contract_whatsapp' => ['ar' => 'طلبات واتساب', 'en' => 'Contract WhatsApp'],
         'instrument_settings' => ['ar' => 'إعدادات نوع الصك', 'en' => 'Instrument Type Settings'],
         'coupons' => ['ar' => 'الكوبونات', 'en' => 'Coupons'],
         'blogs' => ['ar' => 'المدونة', 'en' => 'Blogs'],
-        'ads' => ['ar' => 'الإعلانات', 'en' => 'Ads'],
+        'ads' => ['ar' => 'إعلانات التطبيق', 'en' => 'In-app ads'],
         'faqs' => ['ar' => 'الأسئلة الشائعة', 'en' => 'FAQs'],
         'paperworks' => ['ar' => 'المستندات', 'en' => 'Paperworks'],
         'popup_contracts' => ['ar' => 'نوافذ العقود', 'en' => 'Popup Contracts'],
-        'instruction_sections' => ['ar' => 'الأقسام التعليمية', 'en' => 'Instruction Sections'],
+        'instruction_sections' => ['ar' => 'الصور التعليمية', 'en' => 'Instruction images'],
         'message_alerts' => ['ar' => 'رسائل توضيحية', 'en' => 'Message Alerts'],
         'app_content' => ['ar' => 'محتوى التطبيق', 'en' => 'App Content'],
         'payment_messages' => ['ar' => 'رسائل الدفع', 'en' => 'Payment Messages'],
         'settings' => ['ar' => 'الاعدادات', 'en' => 'Settings'],
         'sms' => ['ar' => 'الرسائل النصية', 'en' => 'SMS'],
-        'seo_crawl' => ['ar' => 'زحف وفحص الموقع', 'en' => 'Site crawl & audit'],
+        'seo_crawl' => ['ar' => 'SEO (زحف وترتيب الكلمات)', 'en' => 'SEO crawl & keywords'],
+    ],
+
+    /**
+     * Admin dashboard page/tab ids → catalog section the API actually gates.
+     * Values are keys of `sections`. Do not invent a gate the matrix will never send.
+     *
+     * @var array<string, string>
+     */
+    'screens' => [
+        'unit-types' => 'property_reference',
+        'unit-usage' => 'property_reference',
+        'property-types' => 'property_reference',
+        'property-usage' => 'property_reference',
+
+        'message-sections' => 'message_alerts',
+        'message-section-items' => 'message_alerts',
+        'message-for-employee' => 'message_alerts',
+        'message-for-property' => 'message_alerts',
+        'customer-app-messages' => 'app_content',
+
+        'order-duration' => 'contract_periods',
+
+        'seo-crawl' => 'seo_crawl',
+        'seo-keywords' => 'seo_crawl',
+
+        'terms' => 'app_content',
+        'privacy' => 'app_content',
+        'payment-types' => 'app_content',
+
+        'meter-fees' => 'settings',
+
+        'marketing-overview' => 'analytics',
+        'marketing-campaigns' => 'analytics',
+        'marketing-reports' => 'analytics',
+        'marketing-pixels' => 'analytics',
+        'marketing-content-articles' => 'blogs',
+
+        'contract-statuses' => 'contract_statuses',
+        'draft-contract-statuses' => 'draft_contract_statuses',
+        'contract-whatsapp' => 'contract_whatsapp',
+
+        'instruction-sections' => 'instruction_sections',
+    ],
+
+    /**
+     * Frontend routes that must not get their own gate. Key is the extra route;
+     * value is the canonical screen id (see `screens`).
+     *
+     * @var array<string, string>
+     */
+    'duplicate_screens' => [
+        'message-for-clients' => 'customer-app-messages',
     ],
 
     /**
