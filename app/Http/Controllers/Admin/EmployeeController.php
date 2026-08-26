@@ -32,7 +32,7 @@ class EmployeeController extends Controller
     protected function employeeBaseRelations(): array
     {
         return [
-            'roleRelation',
+            'roleRelation.permissions',
             'salaries' => fn ($q) => $q->orderByDesc('created_at'),
             'notes' => fn ($q) => $q->orderByDesc('addition_date')->orderByDesc('created_at'),
             'receivedContract' => fn ($q) => $q->with('contract')->orderByDesc('created_at'),
@@ -118,10 +118,10 @@ class EmployeeController extends Controller
                 ?? false);
             $tokens = $tokenService->issueTokenPair($employee, $remembered);
 
-        return $this->apiResponse(
-            new EmployeeAuthResource($employee, $tokens),
-            trans('api.login_success')
-        );
+            return $this->apiResponse(
+                new EmployeeAuthResource($employee, $tokens),
+                trans('api.login_success')
+            );
 
         } catch (ValidationException $e) {
 
@@ -157,6 +157,26 @@ class EmployeeController extends Controller
 
             return $this->apiResponse(
                 new EmployeeAuthResource($rotation['employee'], $rotation['tokens']),
+                trans('api.success')
+            );
+        } catch (Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
+    public function profile(Request $request)
+    {
+        try {
+            $employee = $request->user();
+
+            if (! $employee instanceof Employee) {
+                return $this->errorMessage(trans('api.unauthorized'), 403);
+            }
+
+            $employee->loadMissing('roleRelation.permissions');
+
+            return $this->apiResponse(
+                new EmployeeAuthResource($employee),
                 trans('api.success')
             );
         } catch (Throwable $e) {
@@ -217,7 +237,7 @@ class EmployeeController extends Controller
     {
         try {
             $query = Employee::query()
-                ->with(['roleRelation'])
+                ->with(['roleRelation.permissions'])
                 ->withCount(['salaries', 'notes', 'receivedContract', 'refundableContract']);
 
             if ($search = $request->input('search')) {

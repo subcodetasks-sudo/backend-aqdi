@@ -10,9 +10,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class EmployeeAuthResource extends JsonResource
 {
     /**
-     * @param  array{token: string, refresh_token: string, token_expires_in: int}  $tokens
+     * @param  array{token: string, refresh_token: string, token_expires_in: int}|null  $tokens
      */
-    public function __construct(Employee $employee, protected array $tokens)
+    public function __construct(Employee $employee, protected ?array $tokens = null)
     {
         parent::__construct($employee);
     }
@@ -26,10 +26,10 @@ class EmployeeAuthResource extends JsonResource
         $employee = $this->resource;
         $employee->loadMissing('roleRelation.permissions');
 
-        $effective = app(RolePermissionResolver::class)
-            ->effectivePermissionsFor($employee);
+        $resolver = app(RolePermissionResolver::class);
+        $effective = $resolver->effectivePermissionsFor($employee);
 
-        return [
+        $payload = [
             'id' => $employee->id,
             'name' => $employee->name,
             'email' => $employee->email,
@@ -42,6 +42,7 @@ class EmployeeAuthResource extends JsonResource
             'permissions' => $effective['names'],
             'permission_names' => $effective['names'],
             'permission_matrix' => $effective['matrix'],
+            'permission_modules' => $resolver->modulesForEmployee($employee),
             'is_active' => (bool) $employee->is_active,
             'is_online' => (bool) $employee->is_online,
             'is_blocked' => $employee->blocked_until
@@ -59,10 +60,17 @@ class EmployeeAuthResource extends JsonResource
             'tiktok' => $employee->tiktok,
             'twitter' => $employee->twitter,
             'fcm_token' => $employee->fcm_token,
+        ];
+
+        if ($this->tokens === null) {
+            return $payload;
+        }
+
+        return array_merge($payload, [
             'token' => $this->tokens['token'],
             'refresh_token' => $this->tokens['refresh_token'],
             'token_expires_in' => $this->tokens['token_expires_in'],
             'token_type' => 'Bearer',
-        ];
+        ]);
     }
 }

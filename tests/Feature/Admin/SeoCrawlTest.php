@@ -531,7 +531,7 @@ class SeoCrawlTest extends TestCase
             $table->unsignedBigInteger('seo_crawl_run_id');
             $table->string('url_hash', 64);
             $table->text('url');
-            $table->string('path', 1024);
+            $table->text('path');
             $table->unsignedSmallInteger('status_code')->default(0);
             $table->unsignedInteger('load_time_ms')->default(0);
             $table->string('content_type', 191)->nullable();

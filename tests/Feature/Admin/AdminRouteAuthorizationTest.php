@@ -23,6 +23,8 @@ class AdminRouteAuthorizationTest extends TestCase
     private const AUTH_ONLY_ROUTES = [
         'POST api/admin/employees/fcm',
         'POST api/admin/employees/logout',
+        'GET api/admin/employees/me',
+        'GET api/admin/employees/profile',
         'GET api/admin/employees/me/kpis',
     ];
 

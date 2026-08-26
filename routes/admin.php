@@ -76,6 +76,8 @@ Route::prefix('employees')->name('employees.')->controller(EmployeeController::c
     Route::post('/refresh-token', 'refreshToken')->name('refresh-token');
 
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', 'profile')->name('me');
+        Route::get('/profile', 'profile')->name('profile');
         Route::get('/', 'index')->middleware('permission:employees.view')->name('index');
         Route::get('/employee-salary', 'employeeSalary')->middleware('permission:employee_salaries.view')->name('employee-salary');
         Route::get('/employee-notes', 'employeeNotes')->middleware('permission:employees.view')->name('employee-notes');

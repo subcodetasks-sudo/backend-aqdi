@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "d972bbdb-ec5a-4e2e-921c-260a4c635e88",
+        "_postman_id": "19c65539-5932-4fab-b609-1efe1112c8d3",
         "name": "AQDI Admin API",
         "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically\n4. Login and refresh responses include the employee role and effective permissions matrix\n5. Protected requests require both authentication and the matching section.action permission",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -133,6 +133,70 @@
                             }
                         }
                     ]
+                },
+                {
+                    "name": "My profile (permissions)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/employees\/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "me"
+                            ]
+                        },
+                        "description": "Returns the authenticated employee with is_system_admin, permissions, permission_matrix, and permission_modules."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "My profile alias",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/employees\/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "profile"
+                            ]
+                        },
+                        "description": "Alias of GET \/employees\/me."
+                    },
+                    "response": []
                 },
                 {
                     "name": "App content overview",

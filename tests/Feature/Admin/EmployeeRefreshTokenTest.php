@@ -160,6 +160,37 @@ class EmployeeRefreshTokenTest extends TestCase
             array_keys(config('permissions.actions')),
             $response->json('data.permission_matrix.seo_crawl')
         );
+        $this->assertNotEmpty($response->json('data.permission_modules'));
+        $this->assertTrue(collect($response->json('data.permission_modules'))
+            ->firstWhere('section_key', 'analytics')['actions'][0]['granted']);
+    }
+
+    public function test_profile_returns_the_authenticated_employee_permissions_without_new_tokens(): void
+    {
+        $role = $this->createRole('admin');
+        $employee = $this->createEmployee($role);
+
+        $login = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk();
+
+        $profile = $this->withToken($login->json('data.token'))
+            ->getJson(route('employees.me', absolute: false))
+            ->assertOk()
+            ->assertJsonPath('data.id', $employee->id)
+            ->assertJsonPath('data.is_system_admin', true);
+
+        $this->assertArrayNotHasKey('token', $profile->json('data'));
+
+        $this->assertSame($login->json('data.permissions'), $profile->json('data.permissions'));
+        $this->assertSame($login->json('data.permission_matrix'), $profile->json('data.permission_matrix'));
+        $this->assertNotEmpty($profile->json('data.permission_modules'));
+
+        $this->withToken($login->json('data.token'))
+            ->getJson(route('employees.profile', absolute: false))
+            ->assertOk()
+            ->assertJsonPath('data.id', $employee->id);
     }
 
     public function test_role_detail_keeps_permission_objects_and_ids_and_adds_effective_contracts(): void

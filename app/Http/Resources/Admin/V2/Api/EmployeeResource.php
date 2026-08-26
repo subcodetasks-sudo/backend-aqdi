@@ -14,6 +14,8 @@ class EmployeeResource extends JsonResource
      */
     public function toArray($request)
     {
+        $effective = $this->effectivePermissions();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -27,6 +29,10 @@ class EmployeeResource extends JsonResource
                 $this->roleRelation,
                 fn () => new RoleBriefResource($this->roleRelation)
             ),
+            'is_system_admin' => $this->isSystemAdmin(),
+            'permissions' => $effective['names'],
+            'permission_names' => $effective['names'],
+            'permission_matrix' => $effective['matrix'],
             'is_active' => (bool) $this->is_active,
             'is_online' => (bool) $this->is_online,
             'is_blocked' => $this->blocked_until ? now()->lessThan($this->blocked_until) : false,

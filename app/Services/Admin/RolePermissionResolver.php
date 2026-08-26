@@ -94,6 +94,26 @@ class RolePermissionResolver
      */
     public function allModulesForForm(): array
     {
+        return $this->modulesFromNames(null);
+    }
+
+    /**
+     * Full permission grid with granted flags for an employee.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function modulesForEmployee(Employee $employee): array
+    {
+        return $this->modulesFromNames($this->effectivePermissionsFor($employee)['names']);
+    }
+
+    /**
+     * @param  array<int, string>|null  $grantedNames
+     * @return array<int, array<string, mixed>>
+     */
+    protected function modulesFromNames(?array $grantedNames): array
+    {
+        $granted = $grantedNames === null ? null : array_fill_keys($grantedNames, true);
         $sections = config('permissions.sections', []);
         $actions = config('permissions.actions', []);
         $existing = Permission::query()
@@ -109,14 +129,20 @@ class RolePermissionResolver
 
             foreach ($actions as $actionKey => $actionLabels) {
                 $permission = $sectionPermissions->firstWhere('action', $actionKey);
-
-                $actionRows[] = [
+                $name = $permission?->name ?? "{$sectionKey}.{$actionKey}";
+                $row = [
                     'action' => $actionKey,
                     'action_label_ar' => $actionLabels['ar'] ?? $actionKey,
                     'action_label_en' => $actionLabels['en'] ?? $actionKey,
                     'permission_id' => $permission?->id,
-                    'permission_name' => $permission?->name ?? "{$sectionKey}.{$actionKey}",
+                    'permission_name' => $name,
                 ];
+
+                if ($granted !== null) {
+                    $row['granted'] = isset($granted[$name]);
+                }
+
+                $actionRows[] = $row;
             }
 
             $modules[] = [

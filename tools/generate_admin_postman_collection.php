@@ -151,6 +151,14 @@ $folders = [
             'description' => 'Rotates and auto-saves the new tokens. The response refreshes the employee role and effective permissions snapshot.',
             'save_token' => true,
         ]),
+        req('My profile (permissions)', 'GET', '/employees/me', [
+            'bearer' => true,
+            'description' => 'Returns the authenticated employee with is_system_admin, permissions, permission_matrix, and permission_modules.',
+        ]),
+        req('My profile alias', 'GET', '/employees/profile', [
+            'bearer' => true,
+            'description' => 'Alias of GET /employees/me.',
+        ]),
         req('App content overview', 'GET', '/app-content/overview'),
     ],
     'Employees' => [
