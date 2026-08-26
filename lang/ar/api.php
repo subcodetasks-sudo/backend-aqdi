@@ -150,4 +150,11 @@ return [
     'user_coupon_default_message' => 'تهانينا! حصلت على خصم خاص على رسوم السنة الأولى.',
     'user_coupon_ack_success' => 'تم تأكيد الإشعار',
 
+    'seo_crawl_started' => 'بدأ فحص الموقع',
+    'seo_crawl_stopped' => 'تم إيقاف فحص الموقع',
+    'seo_crawl_in_progress' => 'يوجد فحص للموقع قيد التشغيل حالياً',
+    'seo_crawl_not_running' => 'لا يوجد فحص للموقع قيد التشغيل',
+    'seo_crawl_not_found' => 'لا توجد نتائج زحف',
+
 ];
+

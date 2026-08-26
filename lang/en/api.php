@@ -152,4 +152,11 @@ return [
     'user_coupon_default_message' => 'Congratulations! You received a special discount on first-year fees.',
     'user_coupon_ack_success' => 'Notification acknowledged',
 
+    'seo_crawl_started' => 'Site scan started',
+    'seo_crawl_stopped' => 'Site scan stopped',
+    'seo_crawl_in_progress' => 'A site scan is already running',
+    'seo_crawl_not_running' => 'No site scan is currently running',
+    'seo_crawl_not_found' => 'No crawl results found',
+
 ];
+

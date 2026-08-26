@@ -48,6 +48,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingContractController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\SeoCrawlController;
 use App\Http\Controllers\Admin\SmsController;
 use App\Http\Controllers\Admin\SmsSettingController;
 use App\Http\Controllers\Admin\TenantRoleController;
@@ -223,6 +224,18 @@ Route::prefix('reports')->name('reports.')
         Route::get('/marketing/utm-template', 'marketingUtmTemplate')->middleware('permission:analytics.view')->name('marketing.utm-template');
         Route::post('/marketing/spend', 'importAdSpend')->middleware('permission:analytics.edit')->name('marketing.spend');
         Route::post('/marketing/sync', 'syncAdSpend')->middleware('permission:analytics.edit')->name('marketing.sync');
+    });
+
+// Technical SEO crawl of aqdi.sa (dashboard + issues table)
+Route::prefix('seo-crawl')->name('seo-crawl.')
+    ->controller(SeoCrawlController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', 'show')->middleware('permission:seo_crawl.view')->name('show');
+        Route::post('/', 'run')->middleware('permission:seo_crawl.create')->name('store');
+        Route::post('/run', 'run')->middleware('permission:seo_crawl.create')->name('run');
+        Route::post('/stop', 'stop')->middleware('permission:seo_crawl.create')->name('stop');
+        Route::get('/issues', 'issues')->middleware('permission:seo_crawl.view')->name('issues');
     });
 
 // Employee-recorded contract payments (ClickPay link on create)

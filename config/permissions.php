@@ -22,5 +22,6 @@ return [
         'employees' => ['ar' => 'الموظفين', 'en' => 'Employees'],
         'employee_salaries' => ['ar' => 'رواتب الموظفين', 'en' => 'Employee Salaries'],
         'settings' => ['ar' => 'الاعدادات', 'en' => 'Settings'],
+        'seo_crawl' => ['ar' => 'زحف وفحص الموقع', 'en' => 'Site crawl & audit'],
     ],
 ];

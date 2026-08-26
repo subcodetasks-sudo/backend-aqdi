@@ -288,6 +288,31 @@ $folders = [
             'body' => ['days' => 7, 'platform' => 'google'],
         ]),
     ],
+    'SEO crawl' => [
+        req('Dashboard (latest scan)', 'GET', '/seo-crawl', [
+            'bearer' => true,
+            'description' => 'Summary cards + category grid for the technical crawl of aqdi.sa. Poll this after POST /seo-crawl until status is completed.',
+        ]),
+        req('Start site scan', 'POST', '/seo-crawl/run', [
+            'bearer' => true,
+            'body' => (object) [],
+            'description' => 'Queues a crawl of https://aqdi.sa (or body.url / max_pages). Returns 202. POST /seo-crawl is the same. 409 if a scan is already running.',
+        ]),
+        req('Stop site scan', 'POST', '/seo-crawl/stop', [
+            'bearer' => true,
+            'body' => (object) [],
+            'description' => 'Stops the in-progress crawl (optional body.run_id). Returns 409 if nothing is running.',
+        ]),
+        req('Issues table', 'GET', '/seo-crawl/issues', [
+            'bearer' => true,
+            'query' => ['page' => 1, 'per_page' => 20],
+            'description' => 'Issue rows: page, problem, severity. Optional query: type, severity=high|medium|low, search, run_id.',
+        ]),
+        req('Issues — 404 only', 'GET', '/seo-crawl/issues', [
+            'bearer' => true,
+            'query' => ['type' => 'page_404', 'severity' => 'high'],
+        ]),
+    ],
     'Orders' => [
         req('List orders', 'GET', '/orders', ['query' => ['per_page' => 20, 'page' => 1]]),
         req('List orders — is_received', 'GET', '/orders', ['query' => ['is_received' => 1, 'per_page' => 20]]),
