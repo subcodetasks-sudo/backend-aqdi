@@ -37,6 +37,7 @@ class EmployeeResource extends JsonResource
             'is_online' => (bool) $this->is_online,
             'is_blocked' => $this->blocked_until ? now()->lessThan($this->blocked_until) : false,
             'blocked_until' => $this->blocked_until?->format('Y-m-d H:i:s'),
+            'blocked_until_label' => $this->blocked_until?->format('Y-m-d h:i A'),
             'reason_of_block' => $this->reason_of_block,
             'profile_image' => $this->profile_image ? url($this->profile_image) : null,
             'facebook' => $this->facebook,
@@ -58,7 +59,9 @@ class EmployeeResource extends JsonResource
                 $this->whenLoaded('refundableContract')
             ),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'created_at_label' => $this->created_at?->format('Y-m-d h:i A'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'updated_at_label' => $this->updated_at?->format('Y-m-d h:i A'),
         ];
     }
 }

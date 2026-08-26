@@ -60,6 +60,18 @@ class EmployeeRefreshTokenTest extends TestCase
 
         $this->assertNotEmpty($response->json('data.token'));
         $this->assertNotEmpty($response->json('data.refresh_token'));
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
+            (string) $response->json('data.token_expires_at_label')
+        );
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
+            (string) $response->json('data.refresh_token_expires_at_label')
+        );
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
+            (string) $response->json('data.created_at_label')
+        );
 
         $accessToken = DB::table('personal_access_tokens')->first();
         $refreshToken = DB::table('employee_refresh_tokens')->first();

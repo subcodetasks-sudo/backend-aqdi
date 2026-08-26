@@ -9,7 +9,15 @@ use Illuminate\Support\Facades\DB;
 class EmployeeTokenService
 {
     /**
-     * @return array{token: string, refresh_token: string, token_expires_in: int}
+     * @return array{
+     *     token: string,
+     *     refresh_token: string,
+     *     token_expires_in: int,
+     *     token_expires_at: string,
+     *     token_expires_at_label: string,
+     *     refresh_token_expires_at: string,
+     *     refresh_token_expires_at_label: string
+     * }
      */
     public function issueTokenPair(Employee $employee, bool $remembered): array
     {
@@ -21,7 +29,15 @@ class EmployeeTokenService
      *
      * @return array{
      *     employee: Employee,
-     *     tokens: array{token: string, refresh_token: string, token_expires_in: int}
+     *     tokens: array{
+     *         token: string,
+     *         refresh_token: string,
+     *         token_expires_in: int,
+     *         token_expires_at: string,
+     *         token_expires_at_label: string,
+     *         refresh_token_expires_at: string,
+     *         refresh_token_expires_at_label: string
+     *     }
      * }|null
      */
     public function rotate(string $plainTextToken): ?array
@@ -71,7 +87,15 @@ class EmployeeTokenService
     }
 
     /**
-     * @return array{token: string, refresh_token: string, token_expires_in: int}
+     * @return array{
+     *     token: string,
+     *     refresh_token: string,
+     *     token_expires_in: int,
+     *     token_expires_at: string,
+     *     token_expires_at_label: string,
+     *     refresh_token_expires_at: string,
+     *     refresh_token_expires_at_label: string
+     * }
      */
     private function createTokenPair(Employee $employee, bool $remembered): array
     {
@@ -81,23 +105,29 @@ class EmployeeTokenService
             : 'admin_auth.refresh_token_ttl_seconds';
         $refreshTtl = max(1, (int) config($refreshTtlConfig));
         $plainTextRefreshToken = $this->generateRefreshToken();
+        $accessExpiresAt = now()->addSeconds($accessTtl);
+        $refreshExpiresAt = now()->addSeconds($refreshTtl);
 
         $accessToken = $employee->createToken(
             'admin-employee',
             ['*'],
-            now()->addSeconds($accessTtl)
+            $accessExpiresAt
         )->plainTextToken;
 
         $employee->refreshTokens()->create([
             'token_hash' => $this->hash($plainTextRefreshToken),
             'remembered' => $remembered,
-            'expires_at' => now()->addSeconds($refreshTtl),
+            'expires_at' => $refreshExpiresAt,
         ]);
 
         return [
             'token' => $accessToken,
             'refresh_token' => $plainTextRefreshToken,
             'token_expires_in' => $accessTtl,
+            'token_expires_at' => $accessExpiresAt->format('Y-m-d H:i:s'),
+            'token_expires_at_label' => $accessExpiresAt->format('Y-m-d h:i A'),
+            'refresh_token_expires_at' => $refreshExpiresAt->format('Y-m-d H:i:s'),
+            'refresh_token_expires_at_label' => $refreshExpiresAt->format('Y-m-d h:i A'),
         ];
     }
 
