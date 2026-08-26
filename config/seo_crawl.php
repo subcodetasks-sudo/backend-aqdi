@@ -32,6 +32,14 @@ return [
         '#^/db(/|$)#i',
     ],
 
+    /** Write live crawl status to Firebase Realtime Database. */
+    'firebase_status' => filter_var(env('SEO_CRAWL_FIREBASE_STATUS', true), FILTER_VALIDATE_BOOLEAN),
+
+    'firebase_path' => env('SEO_CRAWL_FIREBASE_PATH', 'seo_crawl/status'),
+
+    /** Minimum seconds between progress writes while a crawl is running. */
+    'firebase_progress_interval' => (float) env('SEO_CRAWL_FIREBASE_PROGRESS_INTERVAL', 1),
+
     'skip_extensions' => [
         'pdf', 'zip', 'rar', '7z', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
         'mp3', 'mp4', 'avi', 'mov', 'wmv', 'webp', 'jpg', 'jpeg', 'png', 'gif',

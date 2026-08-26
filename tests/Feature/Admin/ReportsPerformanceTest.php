@@ -256,7 +256,7 @@ class ReportsPerformanceTest extends TestCase
             'range' => $range,
             'date_from' => $range === null ? null : $range[0]->toDateString(),
             'date_to' => $range === null ? null : $range[1]->toDateString(),
-        ], $contractType, $employeeId, false);
+        ], $contractType, $employeeId, false)->resolve();
     }
 
     private function seedPerformanceFixture(): void

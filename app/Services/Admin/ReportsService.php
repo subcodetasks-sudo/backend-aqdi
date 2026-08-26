@@ -2,6 +2,12 @@
 
 namespace App\Services\Admin;
 
+use App\Http\Resources\Admin\V2\Api\Reports\CustomersReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\OrdersReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\PerformanceReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ProfitsReportResource;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportProfitSettingsResource;
+use App\Http\Resources\Admin\V2\Api\Reports\SalesReportResource;
 use App\Models\Contract;
 use App\Models\ContractStatus;
 use App\Models\CouponUsage;
@@ -48,9 +54,8 @@ class ReportsService
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
-     * @return array<string, mixed>
      */
-    public function orders(array $filter, ?string $contractType, ?int $employeeId): array
+    public function orders(array $filter, ?string $contractType, ?int $employeeId): OrdersReportResource
     {
         $range = $filter['range'];
         $base = $this->ordersBaseQuery($range, $contractType, $employeeId);
@@ -63,7 +68,7 @@ class ReportsService
         $returned = (clone $base)->where('contract_status_id', ContractStatus::RETURN_ID)->count();
         $canceled = $this->canceledContractsQuery($range, $contractType, $employeeId)->count();
 
-        return [
+        return new OrdersReportResource([
             'kpis' => [
                 'total' => $total,
                 'new' => $new,
@@ -77,20 +82,19 @@ class ReportsService
             'by_employee' => $this->ordersByEmployee($range, $contractType),
             'by_contract_type' => $this->ordersByContractType($range, $employeeId),
             'by_stage' => $this->statusBreakdown($range, $contractType, $employeeId),
-        ];
+        ]);
     }
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
-     * @return array<string, mixed>
      */
-    public function sales(array $filter, ?string $contractType, ?int $employeeId): array
+    public function sales(array $filter, ?string $contractType, ?int $employeeId): SalesReportResource
     {
         $range = $filter['range'];
         $totals = $this->salesTotals($range, $contractType, $employeeId);
         $revenueBreakdown = $this->revenueByTypeAndDuration($range, $employeeId, $contractType);
 
-        return [
+        return new SalesReportResource([
             'kpis' => [
                 'total_sales' => $totals['total_sales'],
                 'payments_count' => $totals['payments_count'],
@@ -114,14 +118,13 @@ class ReportsService
                     : 0,
                 'net_revenue_after_refunds' => $totals['net_revenue'],
             ],
-        ];
+        ]);
     }
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
-     * @return array<string, mixed>
      */
-    public function profits(array $filter, bool $includeSalaries): array
+    public function profits(array $filter, bool $includeSalaries): ProfitsReportResource
     {
         $range = $filter['range'];
         $pnl = $this->buildPnl($range, null, null, $includeSalaries);
@@ -143,7 +146,7 @@ class ReportsService
             : 0;
         $cac = $paidCount > 0 ? $this->moneyValue($figures['ad_spend'] / $paidCount) : 0;
 
-        return [
+        return new ProfitsReportResource([
             'kpis' => [
                 'customer_income' => $this->moneyValue($totals['total_sales']),
                 'gross_profit' => $this->moneyValue($figures['gross_profit']),
@@ -180,13 +183,10 @@ class ReportsService
                 $figures['meter_fee']
             ),
             'pnl' => $pnl['lines'],
-        ];
+        ]);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function profitSettings(bool $includeSalaries): array
+    public function profitSettings(bool $includeSalaries): ReportProfitSettingsResource
     {
         $settings = Setting::query()->first() ?? Setting::query()->create([]);
         $moyasar = $this->moyasarFees->rates($settings);
@@ -206,14 +206,13 @@ class ReportsService
             $payload['monthly_salaries'] = $settings->monthly_salaries !== null ? (float) $settings->monthly_salaries : null;
         }
 
-        return $payload;
+        return new ReportProfitSettingsResource($payload);
     }
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
      */
-    public function updateProfitSettings(array $data, bool $canEditSalaries): array
+    public function updateProfitSettings(array $data, bool $canEditSalaries): ReportProfitSettingsResource
     {
         $settings = Setting::query()->first() ?? Setting::query()->create([]);
 
@@ -249,9 +248,8 @@ class ReportsService
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
-     * @return array<string, mixed>
      */
-    public function customers(array $filter, ?string $contractType, ?int $employeeId): array
+    public function customers(array $filter, ?string $contractType, ?int $employeeId): CustomersReportResource
     {
         $range = $filter['range'];
 
@@ -281,7 +279,7 @@ class ReportsService
 
         $topCustomers = $this->topCustomers($range, $contractType, $employeeId);
 
-        return [
+        return new CustomersReportResource([
             'kpis' => [
                 'total' => $total,
                 'new' => $newCustomers,
@@ -294,19 +292,18 @@ class ReportsService
                 ['label' => 'عملاء عائدون', 'value' => max(0, $total - $newCustomers)],
             ],
             'top_customers' => $topCustomers,
-        ];
+        ]);
     }
 
     /**
      * @param  array{range: array{0: Carbon, 1: Carbon}|null}  $filter
-     * @return array<string, mixed>
      */
     public function performance(
         array $filter,
         ?string $contractType = null,
         ?int $employeeId = null,
         bool $includeSalaries = false
-    ): array {
+    ): PerformanceReportResource {
         $range = $filter['range'];
         $base = $this->ordersBaseQuery($range, $contractType, $employeeId);
         $doneIds = $this->doneStatusIds();
@@ -341,7 +338,7 @@ class ReportsService
         $pnl = $this->buildPnl($range, $contractType, $employeeId, $includeSalaries);
         $figures = $pnl['figures'];
 
-        return [
+        return new PerformanceReportResource([
             'period_label' => $filter['label_ar'] ?? null,
             'kpis' => [
                 'total_count' => $totalCount,
@@ -409,7 +406,7 @@ class ReportsService
             'correction_errors' => [],
             'refund_requests_by_status' => $this->refundRequestsByStatus($range),
             'refund_requests_total' => $this->moneyValue($this->refundsAmount($range)),
-        ];
+        ]);
     }
 
     // ------------------------------------------------------------------

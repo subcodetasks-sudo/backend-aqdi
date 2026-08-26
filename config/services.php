@@ -38,6 +38,8 @@ return [
         'secret' => env('FIREBASE_SECRET'),
         'credentials' => env('FIREBASE_CREDENTIALS', storage_path('app/aqdi-test-34027147e050.json')),
         'project_id' => env('FIREBASE_PROJECT_ID', 'aqdi-3d3ee'),
+        'database_url' => env('FIREBASE_DATABASE_URL'),
+        'database_access_token' => env('FIREBASE_DATABASE_ACCESS_TOKEN'),
         'employees_topic' => env('FIREBASE_EMPLOYEES_TOPIC', 'employees'),
         'users_topic' => env('FIREBASE_USERS_TOPIC', 'users'),
     ],

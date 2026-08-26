@@ -91,7 +91,7 @@ class ReportsProfitsTest extends TestCase
             'range' => null,
             'date_from' => null,
             'date_to' => null,
-        ], false);
+        ], false)->resolve();
 
         $labels = array_column($result['pnl'], 'label');
         $byLabel = collect($result['pnl'])->keyBy('label');
@@ -190,7 +190,7 @@ class ReportsProfitsTest extends TestCase
             'range' => [$today->copy()->startOfDay(), $today->copy()->endOfDay()],
             'date_from' => $today->toDateString(),
             'date_to' => $today->toDateString(),
-        ], true);
+        ], true)->resolve();
 
         $this->assertSame(1, $result['kpis']['proration_days']);
         $this->assertSame(30, $result['kpis']['proration_month_days']);
@@ -220,7 +220,7 @@ class ReportsProfitsTest extends TestCase
     {
         $service = app(ReportsService::class);
 
-        $defaults = $service->profitSettings(false);
+        $defaults = $service->profitSettings(false)->resolve();
         $this->assertSame(1.75, $defaults['moyasar_mada_percent']);
         $this->assertSame(2.5, $defaults['moyasar_credit_percent']);
         $this->assertSame(2.5, $defaults['moyasar_fee_percent']);
@@ -233,7 +233,7 @@ class ReportsProfitsTest extends TestCase
             'moyasar_fee_percent' => 2.75,
             'moyasar_fixed_fee' => 1.00,
             'meter_transfer_fee' => 10,
-        ], false);
+        ], false)->resolve();
 
         $this->assertSame(1.8, $updated['moyasar_mada_percent']);
         $this->assertSame(2.75, $updated['moyasar_credit_percent']);

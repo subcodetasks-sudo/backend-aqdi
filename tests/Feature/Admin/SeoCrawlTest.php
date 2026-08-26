@@ -117,6 +117,40 @@ class SeoCrawlTest extends TestCase
         Queue::assertPushed(RunSeoCrawlJob::class);
     }
 
+    public function test_crawl_status_is_written_to_firebase_realtime_database(): void
+    {
+        config([
+            'seo_crawl.firebase_status' => true,
+            'seo_crawl.firebase_status_in_tests' => true,
+            'seo_crawl.firebase_path' => 'seo_crawl/status',
+            'services.firebase.database_url' => 'https://example-default-rtdb.firebaseio.com/',
+            'services.firebase.database_access_token' => 'test-token',
+        ]);
+
+        Http::fake([
+            'https://example-default-rtdb.firebaseio.com/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $service = app(SeoCrawlService::class);
+        $run = $service->createRun('https://aqdi.sa');
+
+        Http::assertSent(function ($request) use ($run) {
+            $data = $request->data();
+
+            return $request->method() === 'PUT'
+                && str_contains($request->url(), 'seo_crawl/status.json')
+                && ($data['status'] ?? null) === SeoCrawlRun::STATUS_QUEUED
+                && (int) ($data['id'] ?? 0) === $run->id;
+        });
+
+        $service->stop($run->id);
+
+        Http::assertSent(function ($request) {
+            return $request->method() === 'PUT'
+                && ($request->data()['status'] ?? null) === SeoCrawlRun::STATUS_STOPPED;
+        });
+    }
+
     public function test_system_admin_can_start_scan_without_seo_crawl_permission(): void
     {
         Queue::fake();
@@ -190,7 +224,8 @@ class SeoCrawlTest extends TestCase
         $this->getJson('/api/admin/seo-crawl')
             ->assertOk()
             ->assertJsonPath('data.status', 'never_run')
-            ->assertJsonPath('data.summary.indexed_pages.count', 0);
+            ->assertJsonPath('data.summary.indexed_pages.count', 0)
+            ->assertJsonPath('data.realtime.path', 'seo_crawl/status');
     }
 
     private function fakeAqdiSite(): void

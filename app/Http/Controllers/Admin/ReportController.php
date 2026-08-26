@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ImportAdSpendRequest;
+use App\Http\Resources\Admin\V2\Api\Reports\ReportJsonResource;
 use App\Http\Traits\Responser;
 use App\Models\Employee;
 use App\Services\Admin\MarketingReportsService;
@@ -31,10 +32,10 @@ class ReportController extends Controller
         try {
             $filter = $this->reports->resolveReportPeriodFilter($request);
 
-            return $this->apiResponse(array_merge(
-                $this->periodMeta($filter),
-                $this->reports->orders($filter, $this->contractType($request), $this->employeeId($request))
-            ), trans('api.success'));
+            return $this->reportResponse(
+                $this->reports->orders($filter, $this->contractType($request), $this->employeeId($request)),
+                $filter
+            );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -47,10 +48,10 @@ class ReportController extends Controller
         try {
             $filter = $this->reports->resolveReportPeriodFilter($request);
 
-            return $this->apiResponse(array_merge(
-                $this->periodMeta($filter),
-                $this->reports->sales($filter, $this->contractType($request), $this->employeeId($request))
-            ), trans('api.success'));
+            return $this->reportResponse(
+                $this->reports->sales($filter, $this->contractType($request), $this->employeeId($request)),
+                $filter
+            );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -63,10 +64,10 @@ class ReportController extends Controller
         try {
             $filter = $this->reports->resolveReportPeriodFilter($request);
 
-            return $this->apiResponse(array_merge(
-                $this->periodMeta($filter),
-                $this->reports->profits($filter, $this->canSeeSalaries($request))
-            ), trans('api.success'));
+            return $this->reportResponse(
+                $this->reports->profits($filter, $this->canSeeSalaries($request)),
+                $filter
+            );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -78,7 +79,7 @@ class ReportController extends Controller
     {
         try {
             return $this->apiResponse(
-                $this->reports->profitSettings($this->canSeeSalaries($request)),
+                $this->reports->profitSettings($this->canSeeSalaries($request))->resolve(),
                 trans('api.success')
             );
         } catch (Throwable $e) {
@@ -101,7 +102,7 @@ class ReportController extends Controller
             ]);
 
             return $this->apiResponse(
-                $this->reports->updateProfitSettings($data, $this->canEditSalaries($request)),
+                $this->reports->updateProfitSettings($data, $this->canEditSalaries($request))->resolve(),
                 trans('api.updated_successfully')
             );
         } catch (ValidationException $e) {
@@ -116,14 +117,14 @@ class ReportController extends Controller
         try {
             $filter = $this->reports->resolveReportPeriodFilter($request);
 
-            return $this->apiResponse(array_merge(
-                $this->periodMeta($filter),
+            return $this->reportResponse(
                 $this->reports->customers(
                     $filter,
                     $this->contractType($request),
                     $this->employeeId($request)
-                )
-            ), trans('api.success'));
+                ),
+                $filter
+            );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -136,15 +137,15 @@ class ReportController extends Controller
         try {
             $filter = $this->reports->resolveReportPeriodFilter($request);
 
-            return $this->apiResponse(array_merge(
-                $this->periodMeta($filter),
+            return $this->reportResponse(
                 $this->reports->performance(
                     $filter,
                     $this->contractType($request),
                     $this->employeeId($request),
                     $this->canSeeSalaries($request)
-                )
-            ), trans('api.success'));
+                ),
+                $filter
+            );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
@@ -234,6 +235,17 @@ class ReportController extends Controller
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
+    }
+
+    /**
+     * @param  array{key: string, date_from: string|null, date_to: string|null}  $filter
+     */
+    private function reportResponse(ReportJsonResource $resource, array $filter)
+    {
+        return $this->apiResponse(
+            $resource->withPeriod($this->periodMeta($filter))->resolve(),
+            trans('api.success')
+        );
     }
 
     /**

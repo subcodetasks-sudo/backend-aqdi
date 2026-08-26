@@ -15,15 +15,20 @@ class SeoCrawlService
 {
     public function __construct(
         protected SiteCrawler $crawler,
-        protected SiteAuditAnalyzer $analyzer
+        protected SiteAuditAnalyzer $analyzer,
+        protected SeoCrawlFirebaseStatus $firebaseStatus
     ) {}
 
     public function createRun(?string $baseUrl = null): SeoCrawlRun
     {
-        return SeoCrawlRun::query()->create([
+        $run = SeoCrawlRun::query()->create([
             'base_url' => $this->crawler->normalizeUrl($baseUrl ?: (string) config('seo_crawl.base_url')),
             'status' => SeoCrawlRun::STATUS_QUEUED,
         ]);
+
+        $this->firebaseStatus->publish($run);
+
+        return $run;
     }
 
     public function inProgressRun(): ?SeoCrawlRun
@@ -69,7 +74,10 @@ class SeoCrawlService
             'finished_at' => now(),
         ]);
 
-        return $run->refresh();
+        $run = $run->refresh();
+        $this->firebaseStatus->publish($run);
+
+        return $run;
     }
 
     public function execute(int $runId, ?int $maxPages = null, ?callable $onProgress = null): SeoCrawlRun
@@ -82,8 +90,10 @@ class SeoCrawlService
                 'finished_at' => $run->finished_at ?? now(),
             ]);
             $this->clearStopRequest($runId);
+            $run = $run->refresh();
+            $this->firebaseStatus->publish($run);
 
-            return $run->refresh();
+            return $run;
         }
 
         $run->update([
@@ -91,12 +101,21 @@ class SeoCrawlService
             'started_at' => now(),
             'error_message' => null,
         ]);
+        $run = $run->refresh();
+        $this->firebaseStatus->publish($run);
+
+        $progress = function (string $url, int $n, int $max) use ($onProgress, $run): void {
+            $this->firebaseStatus->progress($run, $url, $n, $max);
+            if ($onProgress) {
+                $onProgress($url, $n, $max);
+            }
+        };
 
         try {
             $pages = $this->crawler->crawl(
                 $run->base_url,
                 $maxPages,
-                $onProgress,
+                $progress,
                 fn () => $this->isStopRequested($runId)
             );
 
@@ -110,6 +129,7 @@ class SeoCrawlService
                 'error_message' => $e->getMessage(),
             ]);
             $this->clearStopRequest($runId);
+            $this->firebaseStatus->publish($run->refresh());
 
             throw $e;
         }
@@ -136,7 +156,10 @@ class SeoCrawlService
             ]);
             $this->clearStopRequest($run->id);
 
-            return $run->refresh();
+            $run = $run->refresh();
+            $this->firebaseStatus->publish($run);
+
+            return $run;
         }
 
         $analysis = $this->analyzer->analyze(
@@ -208,7 +231,10 @@ class SeoCrawlService
 
         $this->clearStopRequest($run->id);
 
-        return $run->refresh();
+        $run = $run->refresh();
+        $this->firebaseStatus->publish($run);
+
+        return $run;
     }
 
     protected function stopCacheKey(int $runId): string
@@ -258,6 +284,11 @@ class SeoCrawlService
             'pages_crawled' => (int) ($run?->pages_crawled ?? 0),
             'pages_failed' => (int) ($run?->pages_failed ?? 0),
             'error_message' => $run?->error_message,
+            'realtime' => [
+                'enabled' => (bool) config('seo_crawl.firebase_status', true)
+                    && filled(config('services.firebase.database_url')),
+                'path' => (string) config('seo_crawl.firebase_path', 'seo_crawl/status'),
+            ],
             'summary' => [
                 'indexed_pages' => [
                     'label' => trans('seo_crawl.indexed_pages'),
