@@ -61,6 +61,10 @@ class EmployeeController extends Controller
             }
         }
 
+        if (array_key_exists('work_period', $data)) {
+            $data['work_period'] = Employee::normalizeWorkPeriod($data['work_period']) ?? 'morning';
+        }
+
         return $data;
     }
 

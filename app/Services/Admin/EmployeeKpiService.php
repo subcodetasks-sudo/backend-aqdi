@@ -1030,6 +1030,8 @@ class EmployeeKpiService
      */
     private function shiftFor(Employee $employee): array
     {
+        $period = $employee->resolvedWorkPeriod();
+        $config = (array) (config("employee_kpis.work_periods.{$period}") ?: []);
         $default = config('employee_kpis.default_shift', [
             'name' => 'وردية الصباح',
             'start' => '09:00',
@@ -1037,9 +1039,9 @@ class EmployeeKpiService
         ]);
 
         return [
-            'name' => (string) ($employee->shift_name ?? $default['name']),
-            'start' => (string) ($employee->shift_start ?? $default['start']),
-            'end' => (string) ($employee->shift_end ?? $default['end']),
+            'name' => (string) ($config['shift_name'] ?? $employee->shift_name ?? $default['name']),
+            'start' => (string) ($config['start'] ?? $employee->shift_start ?? $default['start']),
+            'end' => (string) ($config['end'] ?? $employee->shift_end ?? $default['end']),
         ];
     }
 

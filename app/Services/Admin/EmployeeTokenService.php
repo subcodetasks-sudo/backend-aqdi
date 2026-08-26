@@ -14,9 +14,7 @@ class EmployeeTokenService
      *     refresh_token: string,
      *     token_expires_in: int,
      *     token_expires_at: string,
-     *     token_expires_at_label: string,
-     *     refresh_token_expires_at: string,
-     *     refresh_token_expires_at_label: string
+     *     refresh_token_expires_at: string
      * }
      */
     public function issueTokenPair(Employee $employee, bool $remembered): array
@@ -34,9 +32,7 @@ class EmployeeTokenService
      *         refresh_token: string,
      *         token_expires_in: int,
      *         token_expires_at: string,
-     *         token_expires_at_label: string,
-     *         refresh_token_expires_at: string,
-     *         refresh_token_expires_at_label: string
+     *         refresh_token_expires_at: string
      *     }
      * }|null
      */
@@ -92,9 +88,7 @@ class EmployeeTokenService
      *     refresh_token: string,
      *     token_expires_in: int,
      *     token_expires_at: string,
-     *     token_expires_at_label: string,
-     *     refresh_token_expires_at: string,
-     *     refresh_token_expires_at_label: string
+     *     refresh_token_expires_at: string
      * }
      */
     private function createTokenPair(Employee $employee, bool $remembered): array
@@ -125,9 +119,7 @@ class EmployeeTokenService
             'refresh_token' => $plainTextRefreshToken,
             'token_expires_in' => $accessTtl,
             'token_expires_at' => $accessExpiresAt->format('Y-m-d H:i:s'),
-            'token_expires_at_label' => $accessExpiresAt->format('Y-m-d h:i A'),
             'refresh_token_expires_at' => $refreshExpiresAt->format('Y-m-d H:i:s'),
-            'refresh_token_expires_at_label' => $refreshExpiresAt->format('Y-m-d h:i A'),
         ];
     }
 

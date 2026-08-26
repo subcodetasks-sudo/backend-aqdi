@@ -33,6 +33,7 @@ class Employee extends Authenticatable
         'password',
         'role',
         'role_id',
+        'work_period',
         'reason_of_block',
         'fcm_token',
 
@@ -163,5 +164,51 @@ class Employee extends Authenticatable
     public function effectivePermissions(): array
     {
         return app(RolePermissionResolver::class)->effectivePermissionsFor($this);
+    }
+
+    /**
+     * Client-selected work window: morning (صباحا) or evening (مساء).
+     */
+    public function resolvedWorkPeriod(): string
+    {
+        return self::normalizeWorkPeriod($this->work_period) ?? 'morning';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function workPeriodPayload(): array
+    {
+        $period = $this->resolvedWorkPeriod();
+        $config = (array) (config("employee_kpis.work_periods.{$period}") ?: config('employee_kpis.work_periods.morning'));
+
+        return [
+            'work_period' => $period,
+            'work_period_label' => app()->getLocale() === 'en'
+                ? ($config['label_en'] ?? $period)
+                : ($config['label_ar'] ?? $period),
+            'work_period_label_ar' => $config['label_ar'] ?? $period,
+            'work_period_label_en' => $config['label_en'] ?? $period,
+            'shift' => [
+                'name' => $config['shift_name'] ?? $period,
+                'start' => $config['start'] ?? '09:00',
+                'end' => $config['end'] ?? '17:00',
+            ],
+        ];
+    }
+
+    public static function normalizeWorkPeriod(mixed $value): ?string
+    {
+        if (! is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($value));
+
+        return match ($normalized) {
+            'morning', 'am', 'صباحا', 'صباح', 'morning_shift' => 'morning',
+            'evening', 'pm', 'مساء', 'evening_shift' => 'evening',
+            default => null,
+        };
     }
 }

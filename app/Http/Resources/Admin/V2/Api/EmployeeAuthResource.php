@@ -15,9 +15,7 @@ class EmployeeAuthResource extends JsonResource
      *     refresh_token: string,
      *     token_expires_in: int,
      *     token_expires_at: string,
-     *     token_expires_at_label: string,
-     *     refresh_token_expires_at: string,
-     *     refresh_token_expires_at_label: string
+     *     refresh_token_expires_at: string
      * }|null  $tokens
      */
     public function __construct(Employee $employee, protected ?array $tokens = null)
@@ -51,13 +49,13 @@ class EmployeeAuthResource extends JsonResource
             'permission_names' => $effective['names'],
             'permission_matrix' => $effective['matrix'],
             'permission_modules' => $resolver->modulesForEmployee($employee),
+            ...$employee->workPeriodPayload(),
             'is_active' => (bool) $employee->is_active,
             'is_online' => (bool) $employee->is_online,
             'is_blocked' => $employee->blocked_until
                 ? now()->lessThan($employee->blocked_until)
                 : false,
             'blocked_until' => $employee->blocked_until?->format('Y-m-d H:i:s'),
-            'blocked_until_label' => $employee->blocked_until?->format('Y-m-d h:i A'),
             'reason_of_block' => $employee->reason_of_block,
             'profile_image' => $employee->profile_image
                 ? url($employee->profile_image)
@@ -69,10 +67,6 @@ class EmployeeAuthResource extends JsonResource
             'tiktok' => $employee->tiktok,
             'twitter' => $employee->twitter,
             'fcm_token' => $employee->fcm_token,
-            'created_at' => $employee->created_at?->format('Y-m-d H:i:s'),
-            'created_at_label' => $employee->created_at?->format('Y-m-d h:i A'),
-            'updated_at' => $employee->updated_at?->format('Y-m-d H:i:s'),
-            'updated_at_label' => $employee->updated_at?->format('Y-m-d h:i A'),
         ];
 
         if ($this->tokens === null) {
@@ -84,9 +78,7 @@ class EmployeeAuthResource extends JsonResource
             'refresh_token' => $this->tokens['refresh_token'],
             'token_expires_in' => $this->tokens['token_expires_in'],
             'token_expires_at' => $this->tokens['token_expires_at'],
-            'token_expires_at_label' => $this->tokens['token_expires_at_label'],
             'refresh_token_expires_at' => $this->tokens['refresh_token_expires_at'],
-            'refresh_token_expires_at_label' => $this->tokens['refresh_token_expires_at_label'],
             'token_type' => 'Bearer',
         ]);
     }

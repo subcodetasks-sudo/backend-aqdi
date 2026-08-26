@@ -34,6 +34,7 @@ class UpdateEmployeeRequest extends FormRequest
             'base_salary' => ['nullable', 'numeric', 'min:0'],
             'role' => ['nullable', 'string', 'max:255'],
             'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+            'work_period' => ['nullable', 'string', Rule::in(['morning', 'evening', 'am', 'pm', 'صباحا', 'مساء'])],
             'is_active' => ['sometimes', 'boolean'],
             'facebook' => ['nullable', 'string', 'max:255'],
             'instagram' => ['nullable', 'string', 'max:255'],

@@ -16,6 +16,24 @@ return [
         'start' => '09:00',
         'end' => '17:00',
     ],
+    'work_periods' => [
+        'morning' => [
+            'value' => 'morning',
+            'label_ar' => 'صباحا',
+            'label_en' => 'Morning',
+            'shift_name' => 'وردية الصباح',
+            'start' => '09:00',
+            'end' => '17:00',
+        ],
+        'evening' => [
+            'value' => 'evening',
+            'label_ar' => 'مساء',
+            'label_en' => 'Evening',
+            'shift_name' => 'وردية المساء',
+            'start' => '17:00',
+            'end' => '01:00',
+        ],
+    ],
     'activity_limit' => 20,
     'activity_full_limit' => 2000,
 ];

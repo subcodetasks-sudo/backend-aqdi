@@ -173,13 +173,14 @@ $folders = [
                 'password' => 'password123',
                 'phone' => '0500000000',
                 'role_id' => 1,
+                'work_period' => 'evening',
                 'is_active' => true,
             ],
         ]),
         req('Show employee', 'GET', '/employees/{{employee_id}}', ['bearer' => true]),
         req('Update employee', 'POST', '/employees/{{employee_id}}', [
             'bearer' => true,
-            'body' => ['name' => 'موظف محدّث', 'is_active' => true],
+            'body' => ['name' => 'موظف محدّث', 'is_active' => true, 'work_period' => 'morning'],
         ]),
         req('Store salary', 'POST', '/employees/{{employee_id}}/salary', [
             'bearer' => true,

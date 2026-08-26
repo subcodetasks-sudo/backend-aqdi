@@ -60,18 +60,8 @@ class EmployeeRefreshTokenTest extends TestCase
 
         $this->assertNotEmpty($response->json('data.token'));
         $this->assertNotEmpty($response->json('data.refresh_token'));
-        $this->assertMatchesRegularExpression(
-            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
-            (string) $response->json('data.token_expires_at_label')
-        );
-        $this->assertMatchesRegularExpression(
-            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
-            (string) $response->json('data.refresh_token_expires_at_label')
-        );
-        $this->assertMatchesRegularExpression(
-            '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2} (AM|PM)$/',
-            (string) $response->json('data.created_at_label')
-        );
+        $this->assertSame('morning', $response->json('data.work_period'));
+        $this->assertSame('صباحا', $response->json('data.work_period_label_ar'));
 
         $accessToken = DB::table('personal_access_tokens')->first();
         $refreshToken = DB::table('employee_refresh_tokens')->first();
@@ -88,6 +78,20 @@ class EmployeeRefreshTokenTest extends TestCase
             \Carbon\Carbon::parse($refreshToken->expires_at)->timestamp,
             2
         );
+    }
+
+    public function test_login_returns_the_selected_evening_work_period(): void
+    {
+        $this->createEmployee(workPeriod: 'evening');
+
+        $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.work_period', 'evening')
+            ->assertJsonPath('data.work_period_label_ar', 'مساء')
+            ->assertJsonPath('data.shift.start', '17:00')
+            ->assertJsonPath('data.shift.end', '01:00');
     }
 
     public function test_refresh_rotates_token_and_rejects_reuse_of_the_old_token(): void
@@ -285,11 +289,12 @@ class EmployeeRefreshTokenTest extends TestCase
             ]);
     }
 
-    private function createEmployee(?Role $role = null): Employee
+    private function createEmployee(?Role $role = null, string $workPeriod = 'morning'): Employee
     {
         return Employee::query()->create([
             'role_id' => $role?->id,
             'role' => $role?->name,
+            'work_period' => $workPeriod,
             'name' => 'Test Employee',
             'email' => 'employee@example.com',
             'password' => Hash::make('password'),
@@ -352,6 +357,7 @@ class EmployeeRefreshTokenTest extends TestCase
             $table->timestamp('blocked_until')->nullable();
             $table->string('password');
             $table->string('role')->nullable();
+            $table->string('work_period', 16)->default('morning');
             $table->string('fcm_token')->nullable();
             $table->timestamps();
         });
