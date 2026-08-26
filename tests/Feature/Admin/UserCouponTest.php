@@ -4,6 +4,8 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Contract;
 use App\Models\Coupon;
+use App\Models\Employee;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserCoupon;
 use App\Services\Admin\UserCouponService;
@@ -43,6 +45,8 @@ class UserCouponTest extends TestCase
             'coupon_usages',
             'coupons',
             'personal_access_tokens',
+            'employees',
+            'roles',
             'contracts',
             'users',
         ] as $table) {
@@ -132,10 +136,7 @@ class UserCouponTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $employee = new \App\Models\Employee;
-        $employee->id = 1;
-        $employee->name = 'Admin';
-        Sanctum::actingAs($employee, ['*']);
+        $this->actingAdmin();
 
         $response = $this->postJson("/api/admin/users/{$userId}/coupons", [
             'type' => 'percentage',
@@ -156,8 +157,51 @@ class UserCouponTest extends TestCase
         $this->assertTrue(Coupon::query()->where('code_coupon', $response->json('data.secret_code'))->exists());
     }
 
+    private function actingAdmin(): Employee
+    {
+        $role = Role::query()->create([
+            'name' => 'admin',
+            'title_ar' => 'مدير النظام',
+            'title_en' => 'System Admin',
+            'is_active' => true,
+        ]);
+
+        $employee = Employee::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin@aqdi.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+            'role_id' => $role->id,
+            'role' => $role->name,
+        ]);
+
+        Sanctum::actingAs($employee);
+
+        return $employee;
+    }
+
     private function createMinimalSchema(): void
     {
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('title_ar')->nullable();
+            $table->string('title_en')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('employees', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('role_id')->nullable();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('password');
+            $table->boolean('is_active')->default(true);
+            $table->string('role')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('fname')->nullable();

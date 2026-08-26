@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Employee;
+use App\Models\Role;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 class UserClientsIntegrationsTest extends TestCase
@@ -38,6 +42,9 @@ class UserClientsIntegrationsTest extends TestCase
             'real_units',
             'real_estates',
             'contracts',
+            'personal_access_tokens',
+            'employees',
+            'roles',
             'users',
         ] as $table) {
             Schema::dropIfExists($table);
@@ -48,6 +55,37 @@ class UserClientsIntegrationsTest extends TestCase
 
     private function createMinimalSchema(): void
     {
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('title_ar')->nullable();
+            $table->string('title_en')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('employees', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('role_id')->nullable();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('password');
+            $table->boolean('is_active')->default(true);
+            $table->string('role')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('personal_access_tokens', function (Blueprint $table): void {
+            $table->id();
+            $table->morphs('tokenable');
+            $table->string('name');
+            $table->string('token', 64)->unique();
+            $table->text('abilities')->nullable();
+            $table->timestamp('last_used_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('fname')->nullable();
@@ -108,6 +146,8 @@ class UserClientsIntegrationsTest extends TestCase
 
     public function test_export_returns_csv_file(): void
     {
+        $this->actingAdmin();
+
         DB::table('users')->insert([
             'fname' => 'أحمد',
             'lname' => 'علي',
@@ -129,6 +169,8 @@ class UserClientsIntegrationsTest extends TestCase
 
     public function test_properties_return_404_for_missing_user(): void
     {
+        $this->actingAdmin();
+
         $this->getJson('/api/admin/users/999/properties')
             ->assertNotFound()
             ->assertJsonPath('success', false);
@@ -136,6 +178,8 @@ class UserClientsIntegrationsTest extends TestCase
 
     public function test_discount_returns_404_for_missing_user(): void
     {
+        $this->actingAdmin();
+
         $this->postJson('/api/admin/users/999/discount', [
             'contract_id' => 1,
             'type' => 'waiver',
@@ -145,6 +189,8 @@ class UserClientsIntegrationsTest extends TestCase
 
     public function test_discount_requires_contract_and_reason(): void
     {
+        $this->actingAdmin();
+
         $userId = DB::table('users')->insertGetId([
             'fname' => 'سارة',
             'lname' => 'محمد',
@@ -157,5 +203,28 @@ class UserClientsIntegrationsTest extends TestCase
         $this->postJson('/api/admin/users/'.$userId.'/discount', [
             'type' => 'percentage',
         ])->assertStatus(422);
+    }
+
+    private function actingAdmin(): Employee
+    {
+        $role = Role::query()->create([
+            'name' => 'admin',
+            'title_ar' => 'مدير النظام',
+            'title_en' => 'System Admin',
+            'is_active' => true,
+        ]);
+
+        $employee = Employee::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin@aqdi.test',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+            'role_id' => $role->id,
+            'role' => $role->name,
+        ]);
+
+        Sanctum::actingAs($employee);
+
+        return $employee;
     }
 }

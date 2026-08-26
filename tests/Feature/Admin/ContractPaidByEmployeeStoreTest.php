@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Interfaces\PaymentGatewayInterface;
 use App\Models\ContractPaidByEmployee;
 use App\Models\Employee;
+use App\Models\Role;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +53,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
         Schema::dropIfExists('contract_periods');
         Schema::dropIfExists('contracts');
         Schema::dropIfExists('employees');
+        Schema::dropIfExists('roles');
 
         parent::tearDown();
     }
@@ -63,15 +65,27 @@ class ContractPaidByEmployeeStoreTest extends TestCase
         Schema::dropIfExists('contract_periods');
         Schema::dropIfExists('contracts');
         Schema::dropIfExists('employees');
+        Schema::dropIfExists('roles');
+
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('title_ar')->nullable();
+            $table->string('title_en')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
 
         Schema::create('employees', function (Blueprint $table): void {
             $table->id();
+            $table->unsignedBigInteger('role_id')->nullable();
             $table->string('name');
             $table->decimal('base_salary', 10, 2)->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->boolean('is_active')->default(true);
             $table->string('password');
+            $table->string('role')->nullable();
             $table->timestamps();
         });
 
@@ -124,12 +138,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
 
     public function test_employee_can_create_paid_contract_with_generated_uuid_and_payment_link(): void
     {
-        $employee = Employee::query()->create([
-            'name' => 'Test Employee',
-            'email' => 'employee-paid-contract@test.local',
-            'password' => Hash::make('secret'),
-            'is_active' => true,
-        ]);
+        $employee = $this->actingEmployee();
 
         $period = \App\Models\ContractPeriod::query()->create([
             'period' => '1',
@@ -137,8 +146,6 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'contract_type' => 'housing',
             'price' => 100,
         ]);
-
-        Sanctum::actingAs($employee);
 
         $response = $this->postJson('/api/admin/contract-paid-by-employees', [
             'customer_mobile' => '0512345678',
@@ -178,12 +185,7 @@ class ContractPaidByEmployeeStoreTest extends TestCase
 
     public function test_employee_can_create_paid_contract_without_notes(): void
     {
-        $employee = Employee::query()->create([
-            'name' => 'Test Employee 2',
-            'email' => 'employee-paid-contract-2@test.local',
-            'password' => Hash::make('secret'),
-            'is_active' => true,
-        ]);
+        $this->actingEmployee('employee-paid-contract-2@test.local');
 
         $period = \App\Models\ContractPeriod::query()->create([
             'period' => '2',
@@ -191,8 +193,6 @@ class ContractPaidByEmployeeStoreTest extends TestCase
             'contract_type' => 'commercial',
             'price' => 200,
         ]);
-
-        Sanctum::actingAs($employee);
 
         $response = $this->postJson('/api/admin/contract-paid-by-employees', [
             'customer_mobile' => '0598765432',
@@ -220,5 +220,28 @@ class ContractPaidByEmployeeStoreTest extends TestCase
         ]);
 
         $response->assertUnauthorized();
+    }
+
+    private function actingEmployee(string $email = 'employee-paid-contract@test.local'): Employee
+    {
+        $role = Role::query()->create([
+            'name' => 'admin',
+            'title_ar' => 'مدير النظام',
+            'title_en' => 'System Admin',
+            'is_active' => true,
+        ]);
+
+        $employee = Employee::query()->create([
+            'name' => 'Test Employee',
+            'email' => $email,
+            'password' => Hash::make('secret'),
+            'is_active' => true,
+            'role_id' => $role->id,
+            'role' => $role->name,
+        ]);
+
+        Sanctum::actingAs($employee);
+
+        return $employee;
     }
 }

@@ -275,9 +275,17 @@ class MarketingAttributionTest extends TestCase
             'action_label_ar' => 'تعديل',
             'is_active' => true,
         ]);
+        $create = Permission::query()->create([
+            'name' => 'analytics.create',
+            'section' => 'analytics',
+            'action' => 'create',
+            'action_label_ar' => 'إضافة',
+            'is_active' => true,
+        ]);
         DB::table('role_permissions')->insert([
             ['role_id' => $role->id, 'permission_id' => $view->id, 'created_at' => now(), 'updated_at' => now()],
             ['role_id' => $role->id, 'permission_id' => $edit->id, 'created_at' => now(), 'updated_at' => now()],
+            ['role_id' => $role->id, 'permission_id' => $create->id, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $employee = Employee::query()->create([

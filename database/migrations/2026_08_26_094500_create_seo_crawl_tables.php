@@ -59,11 +59,11 @@ return new class extends Migration
                 $table->id();
                 $table->foreignId('seo_crawl_run_id')->constrained('seo_crawl_runs')->cascadeOnDelete();
                 $table->foreignId('seo_crawl_page_id')->nullable()->constrained('seo_crawl_pages')->nullOnDelete();
-                $table->string('path', 1024);
+                $table->text('path');
                 $table->string('type', 64);
                 $table->string('severity', 16);
-                $table->string('message_ar', 512);
-                $table->string('message_en', 512);
+                $table->text('message_ar');
+                $table->text('message_en');
                 $table->json('details')->nullable();
                 $table->timestamps();
 

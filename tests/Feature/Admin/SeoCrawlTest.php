@@ -86,6 +86,37 @@ class SeoCrawlTest extends TestCase
         $this->assertSame('missing_title', $dashboard['categories'][1]['type']);
     }
 
+    public function test_duplicate_title_issue_persists_long_encoded_arabic_paths(): void
+    {
+        $run = SeoCrawlRun::query()->create([
+            'base_url' => 'https://aqdi.sa',
+            'status' => SeoCrawlRun::STATUS_COMPLETED,
+            'started_at' => now(),
+            'finished_at' => now(),
+        ]);
+
+        $path = 'blogs.aqdi.sa/blogs/'.str_repeat('%D8%AF%D9%84%D9%8A%D9%84-', 40).'guide/';
+        $otherPath = 'blog/'.str_repeat('%D8%AF%D9%84%D9%8A%D9%84-', 40).'guide/';
+        $messageAr = 'عنوان صفحة مكرر مع '.$otherPath;
+        $messageEn = 'Duplicate page title with '.$otherPath;
+
+        $this->assertGreaterThan(512, strlen($messageAr));
+
+        $issue = SeoCrawlIssue::query()->create([
+            'seo_crawl_run_id' => $run->id,
+            'path' => $path,
+            'type' => 'duplicate_title',
+            'severity' => 'medium',
+            'message_ar' => $messageAr,
+            'message_en' => $messageEn,
+            'details' => ['other_path' => $otherPath],
+        ]);
+
+        $this->assertSame($messageAr, $issue->fresh()->message_ar);
+        $this->assertSame($messageEn, $issue->fresh()->message_en);
+        $this->assertSame($path, $issue->fresh()->path);
+    }
+
     public function test_admin_dashboard_and_issues_endpoints(): void
     {
         $this->actingEmployee();
@@ -521,11 +552,11 @@ class SeoCrawlTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('seo_crawl_run_id');
             $table->unsignedBigInteger('seo_crawl_page_id')->nullable();
-            $table->string('path', 1024);
+            $table->text('path');
             $table->string('type', 64);
             $table->string('severity', 16);
-            $table->string('message_ar', 512);
-            $table->string('message_en', 512);
+            $table->text('message_ar');
+            $table->text('message_en');
             $table->json('details')->nullable();
             $table->timestamps();
         });
