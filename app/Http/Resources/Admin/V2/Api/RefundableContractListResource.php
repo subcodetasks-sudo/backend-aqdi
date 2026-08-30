@@ -5,12 +5,14 @@ namespace App\Http\Resources\Admin\V2\Api;
 use App\Http\Resources\Api\V2\Contract\Concerns\MapsContractStatusFields;
 use App\Models\Payment;
 use App\Services\Admin\RefundableContractService;
+use App\Support\RefundableContractReference;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 class RefundableContractListResource extends JsonResource
 {
     use MapsContractStatusFields;
+
     /**
      * @return array<string, mixed>
      */
@@ -18,9 +20,12 @@ class RefundableContractListResource extends JsonResource
     {
         $contract = $this->contract;
         $uuid = $contract?->uuid;
+        $approval = $this->managementApprovalFields();
 
         return [
             'id' => $this->id,
+            'refund_id' => $this->id,
+            'refundable_contract_id' => $this->id,
             'order_number' => $contract ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT) : null,
             'draft_contract_number' => $contract ? str_pad((string) $contract->id, 6, '0', STR_PAD_LEFT) : null,
             'contract_id' => $this->contract_id,
@@ -42,7 +47,10 @@ class RefundableContractListResource extends JsonResource
             'is_return_order' => $contract?->contract_status_id === RefundableContractService::RETURN_CONTRACT_STATUS_ID,
             'payment_amount' => $this->resolvePaymentAmount($uuid),
             'refund_amount' => (float) $this->refund_amount,
+            'admin_confirmed' => $this->admin_confirmed,
             'is_refunded' => (bool) $this->is_refunded,
+            'customer_refunded' => (bool) $this->is_refunded,
+            'refunded' => (bool) $this->is_refunded,
             'refunded_status' => [
                 'refunded' => (bool) $this->is_refunded,
                 'label_ar' => $this->is_refunded ? 'تم الاسترجاع' : 'لم يتم الاسترجاع',
@@ -51,13 +59,37 @@ class RefundableContractListResource extends JsonResource
                 'id' => $this->employee_id,
                 'name' => $this->employee?->name,
             ],
-            'management_approval' => [
-                'approved' => (bool) $this->admin_confirmed,
-                'label_ar' => $this->admin_confirmed ? 'تم الموافقة' : 'لم تتم الموافقة',
-            ],
+            'management_approval' => $approval,
             'has_draft_contract' => (bool) $this->has_draft_contract,
             'notes' => $this->notes,
+            'reference_number' => RefundableContractReference::for($this->resource),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    /**
+     * @return array{approved: bool|null, label_ar: string}
+     */
+    private function managementApprovalFields(): array
+    {
+        if ($this->admin_confirmed === null) {
+            return [
+                'approved' => null,
+                'label_ar' => 'بانتظار الموافقة',
+            ];
+        }
+
+        if ($this->admin_confirmed === true || $this->admin_confirmed === 1 || $this->admin_confirmed === '1') {
+            return [
+                'approved' => true,
+                'label_ar' => 'تم الموافقة',
+            ];
+        }
+
+        return [
+            'approved' => false,
+            'label_ar' => 'لم تتم الموافقة',
         ];
     }
 
@@ -75,5 +107,4 @@ class RefundableContractListResource extends JsonResource
 
         return $amount !== null ? (float) $amount : null;
     }
-
 }

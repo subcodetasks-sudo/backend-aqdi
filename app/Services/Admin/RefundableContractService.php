@@ -15,7 +15,7 @@ class RefundableContractService
 {
     public const PERIODS = ['today', 'week', 'month', 'year', 'total'];
 
-    /** Returned orders (مسترجع): GET /api/admin/orders/return */
+    /** Returned orders (مسترجع): GET /api/admin/orders?status_id=2 */
     public const RETURN_CONTRACT_STATUS_ID = ContractStatus::RETURN_ID;
 
     public function baseQuery(): Builder
@@ -33,7 +33,12 @@ class RefundableContractService
     }
 
     /**
-     * Resolve a refundable row by contract uuid, then fall back to contract id.
+     * Resolve a refundable row for admin actions.
+     *
+     * Accepted {id} values (in order):
+     * 1. refundable_contracts.id (refund_id / refundable_contract_id)
+     * 2. contracts.uuid (order uuid / contract_uuid — preferred by frontend)
+     * 3. contracts.id (contract_id)
      */
     public function findForAdmin(string|int $key): ?RefundableContract
     {
@@ -43,6 +48,13 @@ class RefundableContractService
         }
 
         $query = $this->adminLookupQuery();
+
+        if (ctype_digit($key)) {
+            $byRefundId = (clone $query)->whereKey((int) $key)->first();
+            if ($byRefundId) {
+                return $byRefundId;
+            }
+        }
 
         $byUuid = (clone $query)
             ->whereHas('contract', fn (Builder $q) => $q
@@ -148,8 +160,12 @@ class RefundableContractService
         };
     }
 
-    public function resolvePeriod(?string $period): string
+    public function resolvePeriod(?string $period, ?string $createdAt = null): string
     {
+        if ($createdAt !== null && strtolower(trim($createdAt)) === 'all') {
+            return 'total';
+        }
+
         $period = $period ?: 'today';
 
         if (! in_array($period, self::PERIODS, true)) {
@@ -171,29 +187,30 @@ class RefundableContractService
     }
 
     /**
-     * Cards above the refunds table (موافقة الإدارة).
+     * Header KPI counts for return-orders admin UI.
      *
-     * @return array<string, mixed>
+     * @return array{pending: int, processing: int, completed: int, rejected: int}
      */
     public function getManagementApprovalSummary(Builder $periodQuery): array
     {
-        $approved = (clone $periodQuery)->where('refundable_contracts.admin_confirmed', true)->count();
-        $notApproved = (clone $periodQuery)->where('refundable_contracts.admin_confirmed', false)->count();
+        $pending = (clone $periodQuery)->whereNull('refundable_contracts.admin_confirmed')->count();
+        $processing = (clone $periodQuery)
+            ->where('refundable_contracts.admin_confirmed', true)
+            ->where('refundable_contracts.is_refunded', false)
+            ->count();
+        $completed = (clone $periodQuery)
+            ->where('refundable_contracts.admin_confirmed', true)
+            ->where('refundable_contracts.is_refunded', true)
+            ->count();
+        $rejected = (clone $periodQuery)
+            ->where('refundable_contracts.admin_confirmed', false)
+            ->count();
 
         return [
-            'approved' => [
-                'key' => 'approved',
-                'label_ar' => 'تمت الموافقة',
-                'label_en' => 'Approved',
-                'count' => $approved,
-            ],
-            'not_approved' => [
-                'key' => 'not_approved',
-                'label_ar' => 'لم تتم الموافقة',
-                'label_en' => 'Not approved',
-                'count' => $notApproved,
-            ],
-            'total' => $approved + $notApproved,
+            'pending' => $pending,
+            'processing' => $processing,
+            'completed' => $completed,
+            'rejected' => $rejected,
         ];
     }
 
@@ -322,7 +339,7 @@ class RefundableContractService
      * Employee refund request (طلب إسترجاع).
      * Creates the refundable row and sets contract status to مسترجع (2).
      *
-     * @param  array{contract_id?: int, draft_contract_number?: string, refund_amount: float|int|string, notes?: string|null}  $data
+     * @param  array{contract_id?: int|string, draft_contract_number?: string, refund_amount: float|int|string, notes?: string|null}  $data
      */
     public function createRefundRequest(Employee $employee, array $data): RefundableContract
     {
@@ -330,7 +347,7 @@ class RefundableContractService
 
         $pendingExists = RefundableContract::query()
             ->where('contract_id', $contract->id)
-            ->where('admin_confirmed', false)
+            ->whereNull('admin_confirmed')
             ->where('is_refunded', false)
             ->exists();
 
@@ -347,7 +364,7 @@ class RefundableContractService
             'has_draft_contract' => $hasDraft,
             'refund_amount' => $data['refund_amount'],
             'notes' => $data['notes'] ?? null,
-            'admin_confirmed' => false,
+            'admin_confirmed' => null,
             'is_refunded' => false,
         ]);
 
@@ -360,35 +377,92 @@ class RefundableContractService
     }
 
     /**
+     * Resolve admin action from request payload.
+     *
+     * @param  array<string, mixed>  $data
+     * @return 'approve'|'reject'|'retract'
+     */
+    public function resolveAdminAction(array $data): string
+    {
+        if (! empty($data['action'])) {
+            $action = strtolower(trim((string) $data['action']));
+
+            if (in_array($action, ['approve', 'reject', 'retract'], true)) {
+                return $action;
+            }
+        }
+
+        if (array_key_exists('admin_confirmed', $data) && $data['admin_confirmed'] === true) {
+            return 'approve';
+        }
+
+        if (array_key_exists('admin_confirmed', $data) && $data['admin_confirmed'] === false) {
+            $amount = (float) ($data['refund_amount'] ?? 0);
+
+            return $amount > 0 ? 'retract' : 'reject';
+        }
+
+        throw new InvalidArgumentException(trans('api.refund_update_requires_field'));
+    }
+
+    /**
      * Admin: update refund data and/or management approval (موافقة الإدارة).
      *
-     * @param  array{admin_confirmed?: bool, refund_amount?: float|int|string|null, notes?: string|null}  $data
+     * @param  array{action?: string, admin_confirmed?: bool, refund_amount?: float|int|string|null, notes?: string|null}  $data
      */
-    public function applyAdminUpdate(RefundableContract $record, array $data): RefundableContract
+    public function applyAdminUpdate(RefundableContract $record, array $data, ?Employee $employee = null): RefundableContract
     {
+        $action = $this->resolveAdminAction($data);
+
+        if ($action === 'approve') {
+            if ($record->admin_confirmed === true) {
+                throw new InvalidArgumentException(trans('api.refund_already_approved'));
+            }
+            if ($record->admin_confirmed === false) {
+                throw new InvalidArgumentException(trans('api.refund_already_rejected'));
+            }
+        }
+
+        if ($action === 'reject' && $record->admin_confirmed === false) {
+            throw new InvalidArgumentException(trans('api.refund_already_rejected'));
+        }
+
+        if ($action === 'reject' && $record->admin_confirmed === true) {
+            throw new InvalidArgumentException(trans('api.refund_already_approved'));
+        }
+
         $updates = [];
 
         if (array_key_exists('refund_amount', $data) && $data['refund_amount'] !== null) {
+            $amount = (float) $data['refund_amount'];
+            if ($action === 'approve' && $amount <= 0) {
+                throw new InvalidArgumentException(trans('api.refund_amount_invalid'));
+            }
             $updates['refund_amount'] = $data['refund_amount'];
+        } elseif ($action === 'approve' && (float) $record->refund_amount <= 0) {
+            throw new InvalidArgumentException(trans('api.refund_amount_invalid'));
         }
 
         if (array_key_exists('notes', $data)) {
             $updates['notes'] = $data['notes'];
         }
 
-        if (array_key_exists('admin_confirmed', $data)) {
-            $approved = (bool) $data['admin_confirmed'];
-            $updates['admin_confirmed'] = $approved;
-            $updates['is_refunded'] = $approved;
+        match ($action) {
+            'approve' => $updates['admin_confirmed'] = true,
+            'reject' => $updates['admin_confirmed'] = false,
+            'retract' => $updates['admin_confirmed'] = null,
+        };
+
+        // Customer refund (is_refunded) is separate from admin approval.
+        if ($action !== 'approve') {
+            $updates['is_refunded'] = false;
         }
 
         if ($updates !== []) {
             $record->update($updates);
         }
 
-        if (array_key_exists('admin_confirmed', $data)) {
-            $this->syncContractAfterRefundDecision($record, (bool) $data['admin_confirmed']);
-        }
+        $this->syncContractAfterRefundDecision($record->fresh(), $action, $employee);
 
         return $this->adminLookupQuery()->findOrFail($record->id);
     }
@@ -396,7 +470,7 @@ class RefundableContractService
     /**
      * Keep return order status on linked contract after admin decision.
      */
-    protected function syncContractAfterRefundDecision(RefundableContract $record, bool $approved): void
+    protected function syncContractAfterRefundDecision(RefundableContract $record, string $action, ?Employee $employee = null): void
     {
         $contract = Contract::query()
             ->whereKey($record->contract_id)
@@ -407,9 +481,56 @@ class RefundableContractService
             return;
         }
 
+        if ($action === 'retract') {
+            $contract->update([
+                'contract_status_id' => ContractStatus::RECEIVED_ID,
+                'accept_retrun_contract' => false,
+                'accept_retrun_contract_employee_id' => null,
+                'updated_at' => now(),
+            ]);
+
+            return;
+        }
+
+        if ($action === 'approve') {
+            $contractUpdates = [
+                'contract_status_id' => self::RETURN_CONTRACT_STATUS_ID,
+                'accept_retrun_contract' => true,
+                'updated_at' => now(),
+            ];
+
+            if ($employee) {
+                $contractUpdates['accept_retrun_contract_employee_id'] = $employee->id;
+            }
+
+            $contract->update($contractUpdates);
+
+            return;
+        }
+
+        // reject — stay in return status awaiting employee action or archive
         $contract->update([
             'contract_status_id' => self::RETURN_CONTRACT_STATUS_ID,
             'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * Ensure a refundable request exists before setting contract to return status.
+     */
+    public function assertRefundableRequestExists(Contract $contract): void
+    {
+        $exists = RefundableContract::query()
+            ->where('contract_id', $contract->id)
+            ->where(function (Builder $q): void {
+                $q->whereNull('admin_confirmed')
+                    ->orWhere('admin_confirmed', true);
+            })
+            ->where('is_refunded', false)
+            ->exists();
+
+        if (! $exists) {
+            throw new InvalidArgumentException(trans('api.refund_request_required_for_return_status'));
+        }
     }
 }

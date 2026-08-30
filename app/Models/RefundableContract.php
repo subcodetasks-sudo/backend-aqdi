@@ -21,7 +21,6 @@ class RefundableContract extends Model
 
     protected $casts = [
         'has_draft_contract' => 'boolean',
-        'admin_confirmed' => 'boolean',
         'is_refunded' => 'boolean',
         'refund_amount' => 'decimal:2',
     ];

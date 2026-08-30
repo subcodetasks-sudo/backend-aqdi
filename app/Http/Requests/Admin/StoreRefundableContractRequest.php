@@ -27,7 +27,7 @@ class StoreRefundableContractRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_id' => ['required_without:draft_contract_number', 'nullable', 'integer', 'min:1'],
+            'contract_id' => ['required_without:draft_contract_number', 'nullable', 'string', 'max:64'],
             'draft_contract_number' => ['required_without:contract_id', 'nullable', 'string', 'max:32'],
             'refund_amount' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],

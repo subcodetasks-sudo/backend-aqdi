@@ -17,6 +17,7 @@ use App\Models\TenantRole;
 use App\Services\FirebaseNotificationService;
 use App\Services\ContractStatusHistoryService;
 use App\Services\ContractStatusCaseService;
+use App\Services\Admin\RefundableContractService;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Illuminate\Support\Arr;
@@ -1235,6 +1236,10 @@ class OrderController extends Controller
             $statusId = (int) $request->contract_status_id;
             $status = ContractStatus::query()->find($statusId);
 
+            if ($statusId === ContractStatus::RETURN_ID) {
+                app(RefundableContractService::class)->assertRefundableRequestExists($contract);
+            }
+
             $caseError = $this->validateStatusCase($request, $contract, $statusId, $status?->name);
             if ($caseError !== null) {
                 return $caseError;
@@ -1253,6 +1258,8 @@ class OrderController extends Controller
                 false,
                 404
             );
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (\Throwable $e) {
             return $this->apiResponse(
                 null,
@@ -1447,8 +1454,8 @@ class OrderController extends Controller
 
             $contract = $this->findAdminContract($id);
 
-            if ((int) $contract->contract_status_id === ContractStatus::RETURN_ID) {
-                return $this->errorMessage(trans('api.refund_contract_already_returned'), 422);
+            if ((int) $contract->contract_status_id !== ContractStatus::RETURN_ID) {
+                return $this->errorMessage(trans('api.order_not_in_return_status'), 422);
             }
 
             $contract->update([

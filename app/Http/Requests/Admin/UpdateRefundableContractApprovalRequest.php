@@ -19,8 +19,9 @@ class UpdateRefundableContractApprovalRequest extends FormRequest
     {
         return [
             'uuid' => ['sometimes', 'nullable', 'string', 'max:64'],
-            'contract_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
-            'id' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'contract_id' => ['sometimes', 'nullable'],
+            'id' => ['sometimes', 'nullable'],
+            'action' => ['sometimes', 'nullable', 'string', 'in:approve,reject,retract'],
             'admin_confirmed' => ['sometimes', 'boolean'],
             'refund_amount' => ['sometimes', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
@@ -32,7 +33,8 @@ class UpdateRefundableContractApprovalRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             if (! $this->has('admin_confirmed')
                 && ! $this->has('refund_amount')
-                && ! $this->has('notes')) {
+                && ! $this->has('notes')
+                && ! $this->filled('action')) {
                 $validator->errors()->add(
                     'admin_confirmed',
                     trans('api.refund_update_requires_field')

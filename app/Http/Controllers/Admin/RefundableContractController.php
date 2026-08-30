@@ -25,18 +25,26 @@ class RefundableContractController extends Controller
     /**
      * List refund requests (مسترجع).
      * GET /api/admin/refundable-contracts?period=today
-     * GET /api/admin/analytics/refunds/contracts?period=today
+     * GET /api/admin/analytics/refunds/contracts?period=total
+     * GET /api/admin/analytics/refunds/contracts?created_at=all
      */
     public function index(Request $request)
     {
         try {
-            $period = $this->refundableService->resolvePeriod($request->query('period'));
+            $period = $this->refundableService->resolvePeriod(
+                $request->query('period'),
+                $request->query('created_at')
+            );
             $summary = $this->refundableService->buildIndexSummary($period);
 
             $query = $this->refundableService->periodQuery($period);
 
-            if ($request->filled('admin_confirmed')) {
-                $query->where('refundable_contracts.admin_confirmed', $request->boolean('admin_confirmed'));
+            if ($request->has('admin_confirmed') && $request->input('admin_confirmed') !== '') {
+                if ($request->input('admin_confirmed') === 'null') {
+                    $query->whereNull('refundable_contracts.admin_confirmed');
+                } else {
+                    $query->where('refundable_contracts.admin_confirmed', $request->boolean('admin_confirmed'));
+                }
             }
 
             if ($request->filled('contract_status_id')) {
@@ -75,8 +83,6 @@ class RefundableContractController extends Controller
      *
      * POST /api/admin/refundable-contracts
      * Also sets contract_status_id to مسترجع (2).
-     * Body: { "contract_id": 42, "refund_amount": 500, "notes": null }
-     * Or:   { "draft_contract_number": "000042", "refund_amount": 500 }
      */
     public function store(StoreRefundableContractRequest $request)
     {
@@ -105,16 +111,18 @@ class RefundableContractController extends Controller
     }
 
     /**
-     * Management approval (موافقة الإدارة): accept or reject.
-     * When approved, sets is_refunded (تم الاسترجاع).
+     * Management approval (موافقة الإدارة): approve, reject, or retract.
      *
-     * POST|PUT|PATCH /api/admin/refundable-contracts/{uuid}
-     * POST|PUT|PATCH /api/admin/analytics/refunds/contracts/{uuid}
-     * Accept: { "admin_confirmed": true }
-     * Reject: { "admin_confirmed": false }
-     * Optional: { "refund_amount": 125.99, "notes": "..." }
+     * POST /api/admin/analytics/refunds/contracts/{id}
      *
-     * {uuid} = contract uuid first, then contract_id
+     * {id} accepts (in order): refundable_contracts.id, contracts.uuid, contracts.id
+     *
+     * Approve:  { "admin_confirmed": true, "refund_amount": 150, "notes": "..." }
+     * Reject:   { "admin_confirmed": false, "refund_amount": 0, "notes": "..." }
+     * Retract:  { "admin_confirmed": false, "refund_amount": 150, "notes": "..." }
+     *           or { "action": "retract", "notes": "..." }
+     *
+     * Approve atomically sets accept_retrun_contract=true on the contract.
      */
     public function update(UpdateRefundableContractApprovalRequest $request, string $uuid)
     {
@@ -123,11 +131,6 @@ class RefundableContractController extends Controller
 
     /**
      * Same as update, but uuid/id in body — use when hosting WAF blocks POST .../{uuid}.
-     *
-     * POST /api/admin/analytics/refunds/contracts/confirm
-     * Body: { "uuid": "...", "admin_confirmed": true }
-     *   or: { "contract_id": 40892, "admin_confirmed": true }
-     *   or: { "id": 40892, "admin_confirmed": true }
      */
     public function confirm(UpdateRefundableContractApprovalRequest $request)
     {
@@ -148,17 +151,23 @@ class RefundableContractController extends Controller
             $record = $this->refundableService->findForAdmin($key);
 
             if (! $record) {
-                return $this->errorMessage(trans('api.not_found'), 404);
+                return $this->errorMessage(trans('api.refund_not_found'), 404);
             }
 
-            $record = $this->refundableService->applyAdminUpdate($record, $request->validated());
+            $employee = $request->user() instanceof Employee ? $request->user() : null;
+            $validated = $request->validated();
+            $action = $this->refundableService->resolveAdminAction($validated);
+
+            $record = $this->refundableService->applyAdminUpdate($record, $validated, $employee);
 
             return $this->apiResponse(
                 (new RefundableContractListResource($record))->resolve(),
-                trans('api.updated_successfully')
+                $this->approvalMessage($action)
             );
         } catch (ValidationException $e) {
             return $this->errorResponse($e->errors(), 422);
+        } catch (InvalidArgumentException $e) {
+            return $this->errorMessage($e->getMessage(), 422);
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
@@ -167,8 +176,6 @@ class RefundableContractController extends Controller
     /**
      * GET /api/admin/refundable-contracts/{uuid}
      * GET /api/admin/analytics/refunds/contracts/{uuid}
-     *
-     * {uuid} = contract uuid first, then contract_id
      */
     public function show(string $uuid)
     {
@@ -176,7 +183,7 @@ class RefundableContractController extends Controller
             $record = $this->refundableService->findForAdmin($uuid);
 
             if (! $record) {
-                return $this->errorMessage(trans('api.not_found'), 404);
+                return $this->errorMessage(trans('api.refund_not_found'), 404);
             }
 
             return $this->apiResponse(
@@ -186,6 +193,16 @@ class RefundableContractController extends Controller
         } catch (Throwable $e) {
             return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
         }
+    }
+
+    private function approvalMessage(string $action): string
+    {
+        return match ($action) {
+            'approve' => trans('api.refund_approved_successfully'),
+            'reject' => trans('api.refund_rejected_successfully'),
+            'retract' => trans('api.refund_retracted_successfully'),
+            default => trans('api.updated_successfully'),
+        };
     }
 
     private function periodLabelAr(string $period): string
