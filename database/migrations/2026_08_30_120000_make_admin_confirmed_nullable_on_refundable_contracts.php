@@ -11,7 +11,7 @@ return new class extends Migration
         DB::table('refundable_contracts')
             ->where('admin_confirmed', false)
             ->where('is_refunded', false)
-            ->update(['admin_confirmed' => null]);
+            ->update(['admin_confirmed' => false]);
 
         if (Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE refundable_contracts MODIFY admin_confirmed TINYINT(1) NULL DEFAULT NULL');
