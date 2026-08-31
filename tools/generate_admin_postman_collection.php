@@ -699,6 +699,70 @@ $folders = [
         req('Client — update', 'POST', '/message-alerts/client/{{message_alert_id}}', ['body' => ['message' => 'محدّث']]),
         req('Client — delete', 'POST', '/message-alerts/client/{{message_alert_id}}/delete'),
     ],
+    'App status (open/close + mobile version)' => [
+        req('Show website/mobile open flags and store versions', 'GET', '/settings/app-status', [
+            'bearer' => true,
+            'description' => 'website.is_open and mobile.is_open close/open the website and mobile app. ios/android hold latest_version, min_version, force_update, store_url.',
+        ]),
+        req('Close website', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'website' => ['is_open' => false],
+            ],
+        ]),
+        req('Open website', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'website' => ['is_open' => true],
+            ],
+        ]),
+        req('Close mobile app', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'mobile' => ['is_open' => false],
+            ],
+        ]),
+        req('Open mobile app', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'mobile' => ['is_open' => true],
+            ],
+        ]),
+        req('Update iOS version gate', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'ios' => [
+                    'latest_version' => '1.2.0',
+                    'min_version' => '1.1.0',
+                    'force_update' => false,
+                    'store_url' => 'https://apps.apple.com/app/aqdi',
+                    'message_ar' => 'يرجى تحديث التطبيق لمتابعة الاستخدام',
+                    'message_en' => 'Please update the app to continue',
+                ],
+            ],
+        ]),
+        req('Update Android version gate', 'PUT', '/settings/app-status', [
+            'bearer' => true,
+            'body' => [
+                'android' => [
+                    'latest_version' => '1.2.0',
+                    'min_version' => '1.1.0',
+                    'force_update' => false,
+                    'store_url' => 'https://play.google.com/store/apps/details?id=sa.aqdi',
+                    'message_ar' => 'يرجى تحديث التطبيق لمتابعة الاستخدام',
+                    'message_en' => 'Please update the app to continue',
+                ],
+            ],
+        ]),
+        req('Toggle website_status via general settings', 'PUT', '/settings/general/website_status', [
+            'bearer' => true,
+            'body' => ['enabled' => false],
+        ]),
+        req('Toggle mobile_status via general settings', 'PUT', '/settings/general/mobile_status', [
+            'bearer' => true,
+            'body' => ['enabled' => false],
+        ]),
+    ],
     'Legal content (terms & privacy)' => [
         req('Legal pages (both)', 'GET', '/content/legal-pages'),
         req('Get terms', 'GET', '/content/terms-and-conditions'),

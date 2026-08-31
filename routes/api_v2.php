@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
 use App\Http\Controllers\Api\V2\SettingContractController as V2SettingContractController;
 use App\Http\Controllers\Api\V2\SmsSettingController as V2SmsSettingController;
 use App\Http\Controllers\Api\V2\MeterFeeSettingController as V2MeterFeeSettingController;
+use App\Http\Controllers\Api\V2\AppStatusController as V2AppStatusController;
 use App\Http\Controllers\Api\V2\UncompeleteContractController as V2UncompeleteContractController;
 use App\Http\Controllers\Api\V2\CouponController as V2CouponController;
 use App\Http\Controllers\Api\V2\InvoiceController as V2InvoiceController;
@@ -47,6 +48,8 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
 });
+
+Route::get('/app-status', [V2AppStatusController::class, 'show']);
 
 Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
     Route::get('/', 'index');

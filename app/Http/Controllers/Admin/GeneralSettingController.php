@@ -17,6 +17,7 @@ class GeneralSettingController extends Controller
     public function index()
     {
         try {
+            GeneralSetting::syncFromConfig();
             $settings = GeneralSetting::query()->get()->keyBy('key');
 
             $data = [];
@@ -74,6 +75,7 @@ class GeneralSettingController extends Controller
     public function bulkUpdate(Request $request)
     {
         try {
+            GeneralSetting::syncFromConfig();
             $validKeys = array_keys(config('general_settings', []));
             $payload = $request->all();
 

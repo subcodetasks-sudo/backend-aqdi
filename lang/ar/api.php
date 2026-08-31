@@ -170,6 +170,9 @@ return [
     'google_seo_not_configured' => 'GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET غير موجودين',
     'google_seo_invalid_state' => 'انتهت صلاحية تسجيل جوجل. ابدأ الربط من جديد',
     'google_seo_no_token' => 'جوجل لم يُرجع توكن. وافق على الصلاحيات ثم أعد المحاولة',
+    'website_closed' => 'الموقع مغلق حالياً بسبب أعمال التطوير',
+    'mobile_app_closed' => 'التطبيق مغلق حالياً بسبب أعمال التطوير',
+    'app_update_required' => 'يرجى تحديث التطبيق لمتابعة الاستخدام',
 
 ];
 

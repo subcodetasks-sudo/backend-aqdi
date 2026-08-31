@@ -62,9 +62,10 @@ Route::get('greeting/{locale}', function ($locale) {
     return redirect()->back();
 });
 
-    Route::name('website.')->middleware('setLocale')->group(function() {
+    Route::name('website.')->middleware(['setLocale', 'website.open'])->group(function() {
 
     Route::get('/ads', [HomeController::class, 'landing'])->name('landing');
+    Route::get('/closed', [HomeController::class, 'closed'])->name('closed');
 
     Route::get('/', [HomeController::class, 'home'])->name('home');
     Route::get('/qa', [HomeController::class, 'qa'])->name('qa');

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\AppContentOverviewController;
+use App\Http\Controllers\Admin\AppStatusController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\ContentPageController;
@@ -680,6 +681,14 @@ Route::prefix('settings/general')->name('settings.general.')
         Route::get('/', 'index')->middleware('permission:settings.view')->name('index');
         Route::put('/', 'bulkUpdate')->middleware('permission:settings.edit')->name('bulk-update');
         Route::put('/{key}', 'update')->middleware('permission:settings.edit')->name('update');
+    });
+
+Route::prefix('settings/app-status')->name('settings.app-status.')
+    ->controller(AppStatusController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', 'show')->middleware('permission:settings.view')->name('show');
+        Route::match(['put', 'post', 'patch'], '/', 'update')->middleware('permission:settings.edit')->name('update');
     });
 
 // App content dashboard (payment methods, legal pages, customer messages)

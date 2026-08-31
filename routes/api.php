@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\Api\UserCouponController;
 use App\Http\Controllers\Api\GeneralController;
 use App\Http\Controllers\Api\InstructionImageController;
+use App\Http\Controllers\Api\V2\AppStatusController as V2AppStatusController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RealEstateControllor;
 use App\Http\Controllers\Api\SavedRealEstateController;
@@ -53,6 +54,8 @@ Route::controller(GeneralController::class)->group(function () {
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
 });
+
+Route::get('/app-status', [V2AppStatusController::class, 'show']);
 
 Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
     Route::get('/', 'index');

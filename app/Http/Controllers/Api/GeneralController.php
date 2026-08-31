@@ -34,6 +34,7 @@ use App\Models\ServicesPricing;
 use App\Models\Setting;
 use App\Models\UnitType;
 use App\Models\UsageUnit;
+use App\Services\AppStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -325,6 +326,7 @@ class GeneralController extends Controller
                 'description' => $privacy ? $privacy->description_trans : '',
             ],
             'image_banner' => $this->settingImageUrl($setting?->banner),
+            'app_status' => app(AppStatusService::class)->publicPayload(),
         ];
 
         return $this->apiResponse($payload, trans('api.success'));

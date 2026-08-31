@@ -34,6 +34,11 @@ class HomeController extends Controller
         ]);
     }
 
+    public function closed()
+    {
+        return response()->view('website.pages.closewebsite', [], 503);
+    }
+
     public function home(){
          
         $ip_address = request()->ip();

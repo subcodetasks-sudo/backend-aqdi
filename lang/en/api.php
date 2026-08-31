@@ -181,6 +181,9 @@ return [
     'google_seo_not_configured' => 'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are missing',
     'google_seo_invalid_state' => 'Google login expired. Start connect again',
     'google_seo_no_token' => 'Google did not return a token. Grant access and try again',
+    'website_closed' => 'The website is temporarily closed for maintenance',
+    'mobile_app_closed' => 'The mobile app is temporarily closed for maintenance',
+    'app_update_required' => 'Please update the app to continue',
 
 ];
 

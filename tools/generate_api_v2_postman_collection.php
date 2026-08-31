@@ -137,6 +137,7 @@ function generalPublicEndpoints(): array
         'contract-periods' => 'Contract periods',
         'settings' => 'App settings',
         'cover' => 'Cover image',
+        'app-status' => 'Website/mobile open status and app version',
     ];
 
     $items = [];
@@ -212,6 +213,21 @@ $loginTestScript = [
 
 $folders = [
     '01 — Public — General' => generalPublicEndpoints(),
+
+    '01b — Public — App status & version' => [
+        req('App status', 'GET', '/app-status', [
+            'public' => true,
+            'description' => 'website.is_open / mobile.is_open. Send platform + current_version to compute force_update / optional_update.',
+        ]),
+        req('App status — iOS version check', 'GET', '/app-status', [
+            'public' => true,
+            'query' => ['platform' => 'ios', 'current_version' => '1.0.3'],
+        ]),
+        req('App status — Android version check', 'GET', '/app-status', [
+            'public' => true,
+            'query' => ['platform' => 'android', 'current_version' => '1.0.3'],
+        ]),
+    ],
 
     '02 — Public — Instruction images' => [
         req('List instruction images', 'GET', '/instruction-images', ['public' => true]),

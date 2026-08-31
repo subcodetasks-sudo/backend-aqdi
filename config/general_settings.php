@@ -9,5 +9,6 @@ return [
     'apple_store' => ['label_ar' => 'متجر Apple', 'default' => false],
     'android_store' => ['label_ar' => 'متجر Android', 'default' => true],
     'website_status' => ['label_ar' => 'حالة الموقع', 'default' => true],
+    'mobile_status' => ['label_ar' => 'حالة التطبيق', 'default' => true],
     'thank_you_card' => ['label_ar' => 'بطاقة الشكر', 'default' => true],
 ];
