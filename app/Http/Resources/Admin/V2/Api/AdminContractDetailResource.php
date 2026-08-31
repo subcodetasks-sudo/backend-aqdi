@@ -812,7 +812,7 @@ class AdminContractDetailResource extends JsonResource
             'has_draft_contract' => (bool) $m->has_draft_contract,
             'refund_amount' => $m->refund_amount,
             'notes' => $m->notes,
-            'admin_confirmed' => (bool) $m->admin_confirmed,
+            'admin_confirmed' => $m->admin_confirmed,
             'is_refunded' => (bool) $m->is_refunded,
             'created_at' => optional($m->created_at)?->format('Y-m-d H:i:s'),
         ];

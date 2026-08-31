@@ -8,10 +8,12 @@ use App\Models\Employee;
 use App\Models\RefundableContract;
 use App\Models\Role;
 use App\Services\Admin\RefundableContractService;
+use App\Support\ContractReturnRequestFields;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
+use InvalidArgumentException;
 use Tests\TestCase;
 
 class RefundableContractFlowTest extends TestCase
@@ -35,6 +37,7 @@ class RefundableContractFlowTest extends TestCase
     {
         Schema::dropIfExists('refundable_contracts');
         Schema::dropIfExists('received_contracts');
+        Schema::dropIfExists('payments');
         Schema::dropIfExists('contract_statuses');
         Schema::dropIfExists('contracts');
         Schema::dropIfExists('users');
@@ -119,10 +122,94 @@ class RefundableContractFlowTest extends TestCase
         $this->assertSame('total', $service->resolvePeriod(null, 'all'));
     }
 
+    public function test_order_without_refund_row_has_no_return_request_signal(): void
+    {
+        [, $contract] = $this->seedReturnOrder(withRefund: false);
+
+        $fields = ContractReturnRequestFields::for($contract, null);
+
+        $this->assertFalse($fields['has_return_request']);
+        $this->assertNull($fields['return_request_status']);
+        $this->assertNull($fields['refund_contract_id']);
+        $this->assertNull($fields['refund_id']);
+        $this->assertNull($fields['refundable_contract_id']);
+        $this->assertNull($fields['refund_amount']);
+        $this->assertNull($fields['refund']);
+        $this->assertNull($fields['refundable_contract']);
+        $this->assertFalse($fields['return_contract']);
+    }
+
+    public function test_order_with_refund_row_exposes_canonical_return_request_signal(): void
+    {
+        [, $contract, $refund] = $this->seedReturnOrder();
+
+        $fields = ContractReturnRequestFields::for($contract, $refund);
+
+        $this->assertTrue($fields['has_return_request']);
+        $this->assertSame('pending', $fields['return_request_status']);
+        $this->assertSame($refund->id, $fields['refund_contract_id']);
+        $this->assertSame(150.0, $fields['refund_amount']);
+        $this->assertIsArray($fields['refund']);
+        $this->assertIsArray($fields['refundable_contract']);
+        $this->assertSame($refund->id, $fields['refund']['id']);
+    }
+
+    public function test_return_request_status_maps_admin_confirmed_and_refunded_flags(): void
+    {
+        $this->assertNull(ContractReturnRequestFields::status(null));
+        $this->assertNull(ContractReturnRequestFields::refundAmount(null));
+
+        $pending = new RefundableContract([
+            'admin_confirmed' => null,
+            'is_refunded' => false,
+            'refund_amount' => 0,
+        ]);
+        $this->assertSame('pending', ContractReturnRequestFields::status($pending));
+        $this->assertSame(0.0, ContractReturnRequestFields::refundAmount($pending));
+
+        $approved = new RefundableContract([
+            'admin_confirmed' => true,
+            'is_refunded' => false,
+            'refund_amount' => '80.50',
+        ]);
+        $this->assertSame('approved', ContractReturnRequestFields::status($approved));
+        $this->assertSame(80.5, ContractReturnRequestFields::refundAmount($approved));
+
+        $rejected = new RefundableContract([
+            'admin_confirmed' => false,
+            'is_refunded' => false,
+            'refund_amount' => 0,
+        ]);
+        $this->assertSame('rejected', ContractReturnRequestFields::status($rejected));
+
+        $refunded = new RefundableContract([
+            'admin_confirmed' => true,
+            'is_refunded' => true,
+            'refund_amount' => 40,
+        ]);
+        $this->assertSame('refunded', ContractReturnRequestFields::status($refunded));
+    }
+
+    public function test_assert_refundable_request_exists_is_required_before_return_status(): void
+    {
+        [, $contract] = $this->seedReturnOrder(withRefund: false);
+        $service = app(RefundableContractService::class);
+
+        try {
+            $service->assertRefundableRequestExists($contract);
+            $this->fail('Expected a refund request to be required before return status.');
+        } catch (InvalidArgumentException $e) {
+            $this->assertSame(trans('api.refund_request_required_for_return_status'), $e->getMessage());
+        }
+
+        [, $withRefund] = $this->seedReturnOrder();
+        $service->assertRefundableRequestExists($withRefund);
+    }
+
     /**
-     * @return array{0: Employee, 1: Contract, 2: RefundableContract}
+     * @return array{0: Employee, 1: Contract, 2: RefundableContract|null}
      */
-    private function seedReturnOrder(): array
+    private function seedReturnOrder(bool $withRefund = true): array
     {
         static $counter = 0;
         $counter++;
@@ -172,14 +259,17 @@ class RefundableContractFlowTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        $refund = RefundableContract::query()->create([
-            'contract_id' => $contract->id,
-            'user_id' => $userId,
-            'employee_id' => $employee->id,
-            'refund_amount' => 150,
-            'admin_confirmed' => null,
-            'is_refunded' => false,
-        ]);
+        $refund = null;
+        if ($withRefund) {
+            $refund = RefundableContract::query()->create([
+                'contract_id' => $contract->id,
+                'user_id' => $userId,
+                'employee_id' => $employee->id,
+                'refund_amount' => 150,
+                'admin_confirmed' => null,
+                'is_refunded' => false,
+            ]);
+        }
 
         return [$employee, $contract, $refund];
     }
@@ -250,6 +340,15 @@ class RefundableContractFlowTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('contract_id');
             $table->unsignedBigInteger('employee_id')->nullable();
+            $table->string('status')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('payments', function (Blueprint $table): void {
+            $table->id();
+            $table->string('contract_uuid')->nullable();
+            $table->string('name')->nullable();
+            $table->decimal('amount', 10, 2)->nullable();
             $table->string('status')->nullable();
             $table->timestamps();
         });

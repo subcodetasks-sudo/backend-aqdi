@@ -974,8 +974,12 @@ class OrderController extends Controller
                 'accept_retrun_contract_employee' => Arr::get($detail, 'accept_retrun_contract_employee'),
                 'return_status' => Arr::get($detail, 'return_status'),
                 'return_contract' => (bool) Arr::get($detail, 'return_contract', false),
+                'has_return_request' => (bool) Arr::get($detail, 'has_return_request', false),
+                'return_request_status' => Arr::get($detail, 'return_request_status'),
+                'refund_contract_id' => Arr::get($detail, 'refund_contract_id'),
                 'draft_contract_number' => Arr::get($detail, 'draft_contract_number'),
                 'refund_amount' => Arr::get($detail, 'refund_amount'),
+
                 'received_at' => Arr::get($detail, 'received_at'),
                 'received_since' => Arr::get($detail, 'received_since'),
                 'received_since_label_ar' => Arr::get($detail, 'received_since_label_ar'),
