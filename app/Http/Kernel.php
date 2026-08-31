@@ -47,6 +47,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\CheckApi::class,
             \App\Http\Middleware\ApiLocalization::class,
             \App\Http\Middleware\CaptureMarketingAttribution::class,
+            \App\Http\Middleware\EnsureWebsiteApiIsOpen::class,
         ],
 
     ];

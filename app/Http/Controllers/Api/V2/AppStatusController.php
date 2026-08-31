@@ -35,4 +35,26 @@ class AppStatusController extends Controller
             trans('api.success')
         );
     }
+
+    /**
+     * GET /api/v2/website-status
+     * GET /api/website-status
+     *
+     * Website SPA: if is_open is false, show the closed screen.
+     */
+    public function website()
+    {
+        $payload = $this->appStatus->websitePayload();
+
+        if ($payload['is_open']) {
+            return $this->apiResponse($payload, trans('api.success'));
+        }
+
+        return $this->jsonResponse([
+            'message' => trans('api.website_closed'),
+            'code' => 503,
+            'success' => false,
+            'data' => $payload,
+        ], 503);
+    }
 }

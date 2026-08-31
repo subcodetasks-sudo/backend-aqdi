@@ -66,6 +66,26 @@ class AppStatusServiceTest extends TestCase
         $this->assertFalse(GeneralSetting::isEnabled('mobile_status'));
     }
 
+    public function test_website_payload_reports_closed_with_message(): void
+    {
+        $service = app(AppStatusService::class);
+        $service->update(['website' => ['is_open' => false]]);
+
+        $payload = $service->websitePayload();
+
+        $this->assertFalse($payload['is_open']);
+        $this->assertNotEmpty($payload['message']);
+        $this->assertNotEmpty($payload['message_ar']);
+
+        $request = \Illuminate\Http\Request::create('/api/v2/settings', 'GET', [], [], [], [
+            'HTTP_X_CLIENT' => 'website',
+        ]);
+        $this->assertTrue($service->isWebsiteClient($request));
+
+        $mobile = \Illuminate\Http\Request::create('/api/v2/settings', 'GET', ['platform' => 'ios']);
+        $this->assertFalse($service->isWebsiteClient($mobile));
+    }
+
     public function test_force_update_when_current_version_is_below_min(): void
     {
         $service = app(AppStatusService::class);

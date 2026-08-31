@@ -138,6 +138,7 @@ function generalPublicEndpoints(): array
         'settings' => 'App settings',
         'cover' => 'Cover image',
         'app-status' => 'Website/mobile open status and app version',
+        'website-status' => 'Website open/closed status',
     ];
 
     $items = [];
@@ -223,9 +224,13 @@ $folders = [
             'public' => true,
             'query' => ['platform' => 'ios', 'current_version' => '1.0.3'],
         ]),
-        req('App status — Android version check', 'GET', '/app-status', [
+        req('Website status', 'GET', '/website-status', [
             'public' => true,
-            'query' => ['platform' => 'android', 'current_version' => '1.0.3'],
+            'description' => 'Website SPA. 200 when open, 503 when closed. data.is_open is the flag. Send header X-Client: website on other /api/v2 calls so they also 503 while the site is closed.',
+        ]),
+        req('App status — website', 'GET', '/app-status', [
+            'public' => true,
+            'query' => ['platform' => 'website'],
         ]),
     ],
 

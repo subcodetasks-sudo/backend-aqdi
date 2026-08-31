@@ -53,6 +53,41 @@ class AppStatusService
     }
 
     /**
+     * Public website-only status (web SPA / Blade AJAX).
+     *
+     * @return array{is_open: bool, message: string|null, message_ar: string|null, message_en: string|null}
+     */
+    public function websitePayload(): array
+    {
+        $open = $this->isWebsiteOpen();
+        $closedMessage = trans('api.website_closed');
+
+        return [
+            'is_open' => $open,
+            'message' => $open ? null : $closedMessage,
+            'message_ar' => $open ? null : trans('api.website_closed', [], 'ar'),
+            'message_en' => $open ? null : trans('api.website_closed', [], 'en'),
+        ];
+    }
+
+    /**
+     * True when the caller is the public website (not the mobile app, not admin).
+     */
+    public function isWebsiteClient(\Illuminate\Http\Request $request): bool
+    {
+        $raw = $request->header('X-Client')
+            ?? $request->header('X-Platform')
+            ?? $request->query('platform')
+            ?? $request->input('platform');
+
+        if (! is_string($raw) || trim($raw) === '') {
+            return false;
+        }
+
+        return $this->normalizePlatform($raw) === 'website';
+    }
+
+    /**
      * Public payload for website + mobile + version check.
      *
      * @return array<string, mixed>
@@ -64,15 +99,20 @@ class AppStatusService
         $platform = $this->normalizePlatform($platform);
 
         $payload = [
-            'website' => [
-                'is_open' => $this->isWebsiteOpen(),
-            ],
+            'website' => $this->websitePayload(),
             'mobile' => [
                 'is_open' => $this->isMobileOpen(),
             ],
             'ios' => $this->platformPayload(AppVersion::PLATFORM_IOS, $platform === AppVersion::PLATFORM_IOS ? $currentVersion : null),
             'android' => $this->platformPayload(AppVersion::PLATFORM_ANDROID, $platform === AppVersion::PLATFORM_ANDROID ? $currentVersion : null),
         ];
+
+        if ($platform === 'website') {
+            $payload['update'] = $payload['website'];
+            $payload['platform'] = 'website';
+
+            return $payload;
+        }
 
         if ($platform !== null) {
             $payload['update'] = $payload[$platform];
@@ -205,6 +245,7 @@ class AppStatusService
         $normalized = strtolower(trim($platform));
 
         return match ($normalized) {
+            'website', 'web' => 'website',
             'ios', 'iphone', 'apple', 'apple_store', 'app_store', 'appstore' => AppVersion::PLATFORM_IOS,
             'android', 'google', 'google_play', 'play' => AppVersion::PLATFORM_ANDROID,
             default => null,

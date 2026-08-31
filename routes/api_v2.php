@@ -50,6 +50,7 @@ Route::controller(GeneralController::class)->group(function () {
 });
 
 Route::get('/app-status', [V2AppStatusController::class, 'show']);
+Route::get('/website-status', [V2AppStatusController::class, 'website']);
 
 Route::prefix('instruction-images')->controller(InstructionImageController::class)->group(function () {
     Route::get('/', 'index');
