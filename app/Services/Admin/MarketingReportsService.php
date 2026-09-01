@@ -79,14 +79,14 @@ class MarketingReportsService
             ->selectRaw($this->queries->sourceExpression().' as source')
             ->selectRaw('COUNT(*) as orders')
             ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
-            ->groupByRaw($this->queries->sourceExpression())
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->get()
             ->keyBy('source');
 
         $revenueRows = $this->queries->revenueAggregates($range)
             ->selectRaw($this->queries->sourceExpression('contracts').' as source')
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-            ->groupByRaw($this->queries->sourceExpression('contracts'))
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->pluck('revenue', 'source');
 
         $spendRows = $this->queries->spendByPlatform($range);
@@ -143,7 +143,7 @@ class MarketingReportsService
             ->selectRaw("{$term} as keyword")
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->selectRaw('COUNT(DISTINCT contracts.id) as orders')
-            ->groupByRaw($term)
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->orderByDesc('revenue')
             ->limit(10)
             ->get()
@@ -171,7 +171,7 @@ class MarketingReportsService
                 ->whereRaw("{$campaign} != ''")
                 ->selectRaw("{$campaign} as campaign_name")
                 ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-                ->groupByRaw($campaign)
+                ->groupByRaw($this->queries->groupBySelectPositions(1))
                 ->pluck('revenue', 'campaign_name');
         }
 

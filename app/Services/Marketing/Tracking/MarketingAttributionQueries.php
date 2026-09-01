@@ -133,6 +133,18 @@ class MarketingAttributionQueries
     }
 
     /**
+     * GROUP BY the first N select-list expressions by position.
+     *
+     * MySQL ONLY_FULL_GROUP_BY does not treat COALESCE(users.utm_source, …) in
+     * GROUP BY as matching the same expression in SELECT, so repeating the SQL
+     * fails with "isn't in GROUP BY". Positional GROUP BY works on MySQL and SQLite.
+     */
+    public function groupBySelectPositions(int $count = 1): string
+    {
+        return implode(', ', range(1, max(1, $count)));
+    }
+
+    /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      * @return Collection<string, mixed>
      */

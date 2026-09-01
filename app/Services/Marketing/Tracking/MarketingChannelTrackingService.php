@@ -77,14 +77,14 @@ class MarketingChannelTrackingService
             ->selectRaw($this->queries->sourceExpression().' as source')
             ->selectRaw('COUNT(*) as orders')
             ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
-            ->groupByRaw($this->queries->sourceExpression())
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->get()
             ->keyBy('source');
 
         $revenueRows = $this->queries->revenueAggregates($range)
             ->selectRaw($this->queries->sourceExpression('contracts').' as source')
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-            ->groupByRaw($this->queries->sourceExpression('contracts'))
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->pluck('revenue', 'source');
 
         $spendRows = $this->queries->spendByPlatform($range);

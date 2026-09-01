@@ -123,7 +123,7 @@ class MarketingTrackingOverviewService
                 ->selectRaw("{$campaign} as campaign")
                 ->selectRaw('COUNT(*) as orders')
                 ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
-                ->groupByRaw("{$source}, {$campaign}")
+                ->groupByRaw($this->queries->groupBySelectPositions(2))
                 ->get();
 
             $revenue = $this->queries->revenueAggregates($range)
@@ -131,7 +131,7 @@ class MarketingTrackingOverviewService
                 ->whereRaw("{$campaign} != ''")
                 ->selectRaw("{$campaign} as campaign")
                 ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-                ->groupByRaw($campaign)
+                ->groupByRaw($this->queries->groupBySelectPositions(1))
                 ->pluck('revenue', 'campaign');
         }
 

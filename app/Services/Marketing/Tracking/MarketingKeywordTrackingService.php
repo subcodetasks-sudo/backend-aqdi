@@ -122,7 +122,7 @@ class MarketingKeywordTrackingService
             ->selectRaw("{$term} as keyword")
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->selectRaw('COUNT(DISTINCT contracts.id) as orders')
-            ->groupByRaw($term)
+            ->groupByRaw($this->queries->groupBySelectPositions(1))
             ->get();
 
         $map = [];
