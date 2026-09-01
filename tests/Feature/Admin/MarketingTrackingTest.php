@@ -9,20 +9,15 @@ use App\Models\Payment;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use App\Services\Admin\MarketingReportsService;
-use App\Services\Marketing\AdSpendSyncService;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
-class MarketingAttributionTest extends TestCase
+class MarketingTrackingTest extends TestCase
 {
     protected function setUp(): void
     {
@@ -39,6 +34,8 @@ class MarketingAttributionTest extends TestCase
         URL::forceRootUrl('http://localhost');
 
         $this->createMinimalSchema();
+        $this->actingEmployeeWithAnalytics();
+        $this->seedTrackingData();
     }
 
     protected function tearDown(): void
@@ -61,64 +58,74 @@ class MarketingAttributionTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_user_keeps_first_touch_utm_from_the_request(): void
+    public function test_channels_endpoint_returns_funnel_and_paid_channel_rows(): void
     {
-        $this->app->instance('request', Request::create('/signup', 'POST', [
-            'utm_source' => 'google',
-            'utm_campaign' => 'search-lease',
-            'utm_term' => 'عقد إيجار إلكتروني',
-            'gclid' => 'gclid-1',
-        ]));
+        $body = $this->getJson('/api/admin/marketing-tracking/channels?period=last_30_days')
+            ->assertOk()
+            ->json('data');
 
-        $user = User::query()->create([
-            'fname' => 'أحمد',
-            'mobile' => '0500000001',
-            'password' => Hash::make('password'),
-        ]);
+        $this->assertSame('impressions', $body['funnel'][0]['key']);
+        $this->assertSame(1000, $body['funnel'][0]['value']);
+        $this->assertSame('clicks', $body['funnel'][1]['key']);
+        $this->assertSame(80, $body['funnel'][1]['value']);
+        $this->assertSame(2, $body['funnel'][2]['value']);
+        $this->assertSame(1, $body['funnel'][3]['value']);
 
-        $this->assertSame('google', $user->utm_source);
-        $this->assertSame('search-lease', $user->utm_campaign);
-        $this->assertSame('عقد إيجار إلكتروني', $user->utm_term);
-        $this->assertSame('gclid-1', $user->gclid);
-        $this->assertNotNull($user->attributed_at);
-
-        $this->app->instance('request', Request::create('/signup', 'POST', [
-            'utm_source' => 'tiktok',
-        ]));
-        $user->refresh();
-        app(\App\Services\Marketing\AttributionService::class)->stampUser($user, request());
-        $this->assertSame('google', $user->fresh()->utm_source);
+        $google = collect($body['channels'])->firstWhere('source', 'google');
+        $this->assertSame(100, $google['spend']);
+        $this->assertSame(200, $google['revenue']);
+        $this->assertEquals(2, $google['roas']);
+        $this->assertSame('good', $google['roas_tone']);
+        $this->assertSame(1, $google['conversions']);
+        $this->assertSame(100, $google['cac']);
+        $this->assertSame(100, $google['profit']);
+        $this->assertSame('قوقل', $google['label_ar']);
     }
 
-    public function test_contract_copies_user_attribution_when_request_has_none(): void
+    public function test_keywords_endpoint_merges_utm_revenue_for_the_table(): void
     {
-        $user = User::query()->create([
-            'fname' => 'سارة',
-            'mobile' => '0500000002',
-            'password' => Hash::make('password'),
-            'utm_source' => 'whatsapp',
-            'utm_campaign' => 'wa-organic',
-        ]);
+        $body = $this->getJson('/api/admin/marketing-tracking/keywords?period=last_30_days')
+            ->assertOk()
+            ->json('data');
 
-        $this->app->instance('request', Request::create('/contract/start', 'POST'));
-
-        $contract = Contract::query()->create([
-            'user_id' => $user->id,
-            'contract_type' => 'housing',
-            'step' => 3,
-            'is_delete' => 0,
-        ]);
-
-        $this->assertSame('whatsapp', $contract->utm_source);
-        $this->assertSame('wa-organic', $contract->utm_campaign);
+        $this->assertSame(200, $body['summary']['organic_revenue']);
+        $this->assertSame(1, $body['summary']['target_keywords']);
+        $this->assertSame('عقد إيجار إلكتروني', $body['items'][0]['keyword']);
+        $this->assertSame(200, $body['items'][0]['revenue']);
+        $this->assertSame('stable', $body['items'][0]['status']);
+        $this->assertArrayHasKey('competition', $body['items'][0]);
+        $this->assertArrayHasKey('status_label_ar', $body['items'][0]);
     }
 
-    public function test_marketing_dashboard_computes_cac_conversion_and_roas(): void
+    public function test_overview_endpoint_matches_roas_and_widget_shape(): void
+    {
+        $body = $this->getJson('/api/admin/marketing-tracking?period=last_30_days')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertEquals(2, $body['summary']['roas']);
+        $this->assertSame(100, $body['summary']['spend']);
+        $this->assertSame(200, $body['summary']['revenue']);
+        $this->assertSame(100, $body['summary']['profit']);
+        $this->assertSame(100, $body['kpis']['cac']);
+        $this->assertSame(1, $body['kpis']['paying_customers']);
+        $this->assertSame(2, $body['kpis']['marketing_orders']);
+        $this->assertSame('google', $body['chart'][0]['source']);
+        $this->assertSame('عقد إيجار إلكتروني', $body['top_keywords'][0]['keyword']);
+        $this->assertSame('Google Search - High Intent', $body['top_campaigns'][0]['campaign']);
+        $this->assertSame('best', $body['best_campaign']['kind']);
+        $this->assertEquals(2, $body['best_campaign']['roas']);
+        $this->assertArrayHasKey('app_visits', $body['kpis']);
+        $this->assertArrayHasKey('website_visits', $body['kpis']);
+    }
+
+    private function seedTrackingData(): void
     {
         $user = User::query()->create([
             'fname' => 'خالد',
-            'mobile' => '0500000003',
+            'mobile' => '0500000099',
             'password' => Hash::make('password'),
+            'platform' => User::PLATFORM_WEBSITE,
         ]);
 
         $paid = Contract::query()->create([
@@ -128,7 +135,7 @@ class MarketingAttributionTest extends TestCase
             'is_delete' => 0,
             'is_completed' => 1,
             'utm_source' => 'google',
-            'utm_campaign' => 'Google - Awareness Campaign (Display)',
+            'utm_campaign' => 'Google Search - High Intent',
             'utm_term' => 'عقد إيجار إلكتروني',
         ]);
         Contract::query()->create([
@@ -138,7 +145,7 @@ class MarketingAttributionTest extends TestCase
             'is_delete' => 0,
             'is_completed' => 0,
             'utm_source' => 'google',
-            'utm_campaign' => 'Google - Awareness Campaign (Display)',
+            'utm_campaign' => 'Google Search - High Intent',
             'utm_term' => 'عقد إيجار إلكتروني',
         ]);
 
@@ -152,106 +159,14 @@ class MarketingAttributionTest extends TestCase
             'spent_on' => now()->toDateString(),
             'platform' => 'google',
             'campaign_id' => 'camp-1',
-            'campaign_name' => 'Google - Awareness Campaign (Display)',
+            'campaign_name' => 'Google Search - High Intent',
             'keyword' => '',
             'spend' => 100,
             'currency' => 'SAR',
+            'impressions' => 1000,
+            'clicks' => 80,
             'ingest_source' => 'manual',
         ]);
-
-        $filter = app(MarketingReportsService::class)->reportFilterFromPeriodKey('last_30_days');
-        $dashboard = app(MarketingReportsService::class)->dashboard($filter);
-
-        $google = collect($dashboard['by_source'])->firstWhere('source', 'google');
-        $this->assertNotNull($google);
-        $this->assertSame(2, $google['orders']);
-        $this->assertSame(1, $google['paid']);
-        $this->assertSame(200, $google['revenue']);
-        $this->assertSame(100, $google['spend']);
-        $this->assertSame(100, $google['cac']);
-        $this->assertSame(50, $google['conversion_percent']);
-
-        $this->assertSame('عقد إيجار إلكتروني', $dashboard['top_keywords'][0]['keyword']);
-        $this->assertSame(200, $dashboard['top_keywords'][0]['revenue']);
-
-        $this->assertSame('Google - Awareness Campaign (Display)', $dashboard['weakest_campaigns'][0]['campaign']);
-        $this->assertSame(2.0, $dashboard['weakest_campaigns'][0]['roas']);
-        $this->assertSame(100, $dashboard['weakest_campaigns'][0]['profit']);
-    }
-
-    public function test_admin_can_import_spend_and_read_utm_template(): void
-    {
-        $employee = $this->actingEmployeeWithAnalytics();
-
-        $this->postJson('/api/admin/reports/marketing/spend', [
-            'rows' => [[
-                'spent_on' => now()->toDateString(),
-                'platform' => 'tiktok',
-                'campaign_name' => 'TikTok - Conversion',
-                'spend' => 9300,
-                'currency' => 'SAR',
-            ]],
-        ])->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.synced', 1);
-
-        $this->assertSame(1, AdSpendDaily::query()->where('platform', 'tiktok')->count());
-
-        $this->getJson('/api/admin/reports/marketing/utm-template')
-            ->assertOk()
-            ->assertJsonPath('success', true);
-
-        $body = $this->getJson('/api/admin/reports/marketing?period=last_30_days')->assertOk()->json('data');
-        $this->assertArrayHasKey('by_source', $body);
-        $this->assertArrayHasKey('accounts', $body);
-    }
-
-    public function test_utm_link_command_prints_tagged_url(): void
-    {
-        $this->artisan('ads:utm-link', [
-            'url' => 'https://aqdi.com',
-            '--source' => 'google',
-            '--campaign' => 'search-lease',
-            '--term' => 'عقد إيجار',
-        ])->expectsOutputToContain('utm_source=google')
-            ->assertSuccessful();
-    }
-
-    public function test_credentials_command_lists_unconfigured_platforms(): void
-    {
-        $this->artisan('ads:credentials')->assertSuccessful();
-        $status = app(AdSpendSyncService::class)->credentialStatus();
-        $this->assertNotEmpty($status);
-        $this->assertFalse($status[0]['configured']);
-    }
-
-    public function test_meta_provider_maps_daily_campaign_spend_when_configured(): void
-    {
-        config([
-            'ads.platforms.meta.credentials.access_token' => 'token',
-            'ads.platforms.meta.credentials.ad_account_id' => 'act_123',
-        ]);
-
-        Http::fake([
-            'graph.facebook.com/*' => Http::response([
-                'data' => [[
-                    'campaign_id' => '99',
-                    'campaign_name' => 'Meta Conversion',
-                    'spend' => '25.50',
-                    'impressions' => '100',
-                    'clicks' => '4',
-                    'date_start' => '2026-08-01',
-                ]],
-            ], 200),
-        ]);
-
-        $rows = app(\App\Services\Marketing\AdSpend\MetaAdsSpendProvider::class)
-            ->fetch(Carbon::parse('2026-08-01')->startOfDay(), Carbon::parse('2026-08-01')->endOfDay());
-
-        $this->assertCount(1, $rows);
-        $this->assertSame('meta', $rows[0]['platform']);
-        $this->assertSame(25.5, $rows[0]['spend']);
-        $this->assertSame('Meta Conversion', $rows[0]['campaign_name']);
     }
 
     private function actingEmployeeWithAnalytics(): Employee
@@ -268,29 +183,13 @@ class MarketingAttributionTest extends TestCase
             'action_label_ar' => 'عرض',
             'is_active' => true,
         ]);
-        $edit = Permission::query()->create([
-            'name' => 'analytics.edit',
-            'section' => 'analytics',
-            'action' => 'edit',
-            'action_label_ar' => 'تعديل',
-            'is_active' => true,
-        ]);
-        $create = Permission::query()->create([
-            'name' => 'analytics.create',
-            'section' => 'analytics',
-            'action' => 'create',
-            'action_label_ar' => 'إضافة',
-            'is_active' => true,
-        ]);
         DB::table('role_permissions')->insert([
             ['role_id' => $role->id, 'permission_id' => $view->id, 'created_at' => now(), 'updated_at' => now()],
-            ['role_id' => $role->id, 'permission_id' => $edit->id, 'created_at' => now(), 'updated_at' => now()],
-            ['role_id' => $role->id, 'permission_id' => $create->id, 'created_at' => now(), 'updated_at' => now()],
         ]);
 
         $employee = Employee::query()->create([
-            'name' => 'Admin Analyst',
-            'email' => 'analyst@aqdi.test',
+            'name' => 'Tracking Admin',
+            'email' => 'tracking@aqdi.test',
             'password' => Hash::make('password'),
             'is_active' => true,
             'role_id' => $role->id,
@@ -306,12 +205,10 @@ class MarketingAttributionTest extends TestCase
         Schema::create('users', function (Blueprint $table): void {
             $table->id();
             $table->string('fname')->nullable();
-            $table->string('lname')->nullable();
-            $table->string('email')->nullable();
             $table->string('mobile')->nullable();
             $table->string('password')->nullable();
             $table->string('verification_code')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('platform')->nullable();
             $table->string('utm_source', 64)->nullable();
             $table->string('utm_medium', 64)->nullable();
             $table->string('utm_campaign', 191)->nullable();
@@ -386,11 +283,9 @@ class MarketingAttributionTest extends TestCase
             $table->id();
             $table->string('name');
             $table->string('title_ar')->nullable();
-            $table->string('title_en')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
-
         Schema::create('permissions', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -400,14 +295,12 @@ class MarketingAttributionTest extends TestCase
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
-
         Schema::create('role_permissions', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('role_id');
             $table->unsignedBigInteger('permission_id');
             $table->timestamps();
         });
-
         Schema::create('employees', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
@@ -417,7 +310,6 @@ class MarketingAttributionTest extends TestCase
             $table->unsignedBigInteger('role_id')->nullable();
             $table->timestamps();
         });
-
         Schema::create('personal_access_tokens', function (Blueprint $table): void {
             $table->id();
             $table->morphs('tokenable');

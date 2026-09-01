@@ -23,10 +23,12 @@ use App\Http\Controllers\Admin\FaqController;
 use App\Http\Controllers\Admin\FilterContract;
 use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\GeneralSettingController;
+use App\Http\Controllers\Admin\GoogleSearchConsoleController;
 use App\Http\Controllers\Admin\GoogleSeoController;
 use App\Http\Controllers\Admin\HomeAdminController;
 use App\Http\Controllers\Admin\InstructionSectionController;
 use App\Http\Controllers\Admin\LocationAnalyticsController;
+use App\Http\Controllers\Admin\MarketingTrackingController;
 use App\Http\Controllers\Admin\MessageAlertController;
 use App\Http\Controllers\Admin\MessageAlertSectionController;
 use App\Http\Controllers\Admin\MessageAlertSectionItemController;
@@ -245,6 +247,15 @@ Route::prefix('reports')->name('reports.')
         Route::post('/marketing/sync', 'syncAdSpend')->middleware('permission:analytics.create')->name('marketing.sync');
     });
 
+Route::prefix('marketing-tracking')->name('marketing-tracking.')
+    ->controller(MarketingTrackingController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', 'overview')->middleware('permission:analytics.view')->name('overview');
+        Route::get('/keywords', 'keywords')->middleware('permission:analytics.view')->name('keywords');
+        Route::get('/channels', 'channels')->middleware('permission:analytics.view')->name('channels');
+    });
+
 // Technical SEO crawl of aqdi.sa (dashboard + issues table)
 Route::prefix('seo-crawl')->name('seo-crawl.')
     ->controller(SeoCrawlController::class)
@@ -267,6 +278,21 @@ Route::prefix('seo-google')->name('seo-google.')
         Route::get('/status', 'status')->middleware('permission:seo_crawl.view')->name('status');
         Route::post('/connect', 'connect')->middleware('permission:seo_crawl.create')->name('connect');
         Route::post('/disconnect', 'disconnect')->middleware('permission:seo_crawl.create')->name('disconnect');
+    });
+
+Route::prefix('seo-google/search-console')->name('seo-google.search-console.')
+    ->controller(GoogleSearchConsoleController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', 'overview')->middleware('permission:seo_crawl.view')->name('overview');
+        Route::get('/sites', 'sites')->middleware('permission:seo_crawl.view')->name('sites');
+        Route::post('/sites', 'selectSite')->middleware('permission:seo_crawl.create')->name('sites.select');
+        Route::get('/queries', 'queries')->middleware('permission:seo_crawl.view')->name('queries');
+        Route::get('/pages', 'pages')->middleware('permission:seo_crawl.view')->name('pages');
+        Route::get('/countries', 'countries')->middleware('permission:seo_crawl.view')->name('countries');
+        Route::get('/devices', 'devices')->middleware('permission:seo_crawl.view')->name('devices');
+        Route::get('/dates', 'dates')->middleware('permission:seo_crawl.view')->name('dates');
+        Route::get('/sitemaps', 'sitemaps')->middleware('permission:seo_crawl.view')->name('sitemaps');
     });
 
 // Employee-recorded contract payments (ClickPay link on create)

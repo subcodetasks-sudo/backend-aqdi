@@ -34,13 +34,12 @@ class GoogleSeoOAuthService
     {
         $connection = $this->current();
         $connected = $connection?->isConnected() ?? false;
-        $scopes = $connection?->scopes ?? [];
 
         return [
             'connected' => $connected,
             'google_email' => $connected ? $connection?->google_email : null,
-            'search_console' => $connected && $this->hasScope($scopes, 'webmasters.readonly'),
-            'analytics' => $connected && $this->hasScope($scopes, 'analytics.readonly'),
+            'search_console' => $connection?->hasSearchConsole() ?? false,
+            'analytics' => $connected && ($connection?->hasScope('analytics.readonly') ?? false),
             'search_console_site_url' => $connected ? $connection?->search_console_site_url : null,
             'analytics_property_id' => $connected ? $connection?->analytics_property_id : null,
             'connected_at' => $connected ? $connection?->updated_at?->toIso8601String() : null,
@@ -147,19 +146,5 @@ class GoogleSeoOAuthService
     protected function stateKey(string $state): string
     {
         return 'google-seo-oauth:'.$state;
-    }
-
-    /**
-     * @param  list<string>|array<int, string>  $scopes
-     */
-    protected function hasScope(array $scopes, string $needle): bool
-    {
-        foreach ($scopes as $scope) {
-            if (str_contains((string) $scope, $needle)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

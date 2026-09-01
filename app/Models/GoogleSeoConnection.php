@@ -43,4 +43,20 @@ class GoogleSeoConnection extends Model
     {
         return filled($this->refresh_token) || filled($this->access_token);
     }
+
+    public function hasScope(string $needle): bool
+    {
+        foreach ($this->scopes ?? [] as $scope) {
+            if (str_contains((string) $scope, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function hasSearchConsole(): bool
+    {
+        return $this->isConnected() && $this->hasScope('webmasters');
+    }
 }

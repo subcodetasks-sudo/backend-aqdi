@@ -1,0 +1,1050 @@
+{
+    "info": {
+        "_postman_id": "5a6e2fd6-7ed9-4492-a650-5e98698b02ce",
+        "name": "AQDI Admin SEO Crawl",
+        "description": "Technical crawl and site audit for aqdi.sa (`/api/admin/seo-crawl`).\n\n1. Import this collection.\n2. Set `baseUrl` (e.g. http://localhost:8000 or https://aqdi.sa).\n3. Run **Employee login** — token is saved to `employee_token`.\n4. The employee role needs `seo_crawl.view` and `seo_crawl.create`.\n5. **Run crawl** returns 202 (`queued`). Poll **Dashboard** until `status` is `completed` or `stopped`.\n6. **Stop crawl** cancels the in-progress scan.\n\nStatuses: never_run | queued | running | completed | stopped | failed",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000"
+        },
+        {
+            "key": "employee_token",
+            "value": ""
+        },
+        {
+            "key": "seo_crawl_run_id",
+            "value": ""
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{employee_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Employee login (save token)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/employees/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "employees",
+                                "login"
+                            ]
+                        },
+                        "description": "Saves `data.token` to collection variable `employee_token`.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) { pm.collectionVariables.set(\"employee_token\", token); }"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Crawl",
+            "item": [
+                {
+                    "name": "Run crawl",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/run",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "run"
+                            ]
+                        },
+                        "description": "Start a technical crawl of aqdi.sa. Returns 202 with status `queued`. Optional body: url, max_pages. 409 if a scan is already running. Saves `data.id` to `seo_crawl_run_id`. Same as POST /seo-crawl.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"url\": \"https://aqdi.sa\",\n    \"max_pages\": 400\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const id = json?.data?.id;",
+                                    "if (id) { pm.collectionVariables.set(\"seo_crawl_run_id\", String(id)); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Run crawl (POST /seo-crawl alias)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl"
+                            ]
+                        },
+                        "description": "Alias of POST /seo-crawl/run.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const id = json?.data?.id;",
+                                    "if (id) { pm.collectionVariables.set(\"seo_crawl_run_id\", String(id)); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Stop crawl",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/stop",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "stop"
+                            ]
+                        },
+                        "description": "Stop the current scan (or `run_id` if sent). Returns 409 if nothing is running.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"run_id\": \"{{seo_crawl_run_id}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Stop crawl (latest in progress)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/stop",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "stop"
+                            ]
+                        },
+                        "description": "Stops whichever scan is queued/running. Omit run_id.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Results",
+            "item": [
+                {
+                    "name": "Dashboard (latest scan)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl"
+                            ]
+                        },
+                        "description": "Summary cards (indexed / healthy / broken / on-page) and the 12 category tiles. Poll until status is completed or stopped."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Dashboard by run_id",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl?run_id={{seo_crawl_run_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl"
+                            ],
+                            "query": [
+                                {
+                                    "key": "run_id",
+                                    "value": "{{seo_crawl_run_id}}"
+                                }
+                            ]
+                        },
+                        "description": "Same dashboard for a specific run."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Issues table",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/issues?page=1&per_page=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "run_id",
+                                    "value": "{{seo_crawl_run_id}}",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "page_404",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "severity",
+                                    "value": "high",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "search",
+                                    "value": "blog",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Paginated issue rows: page, problem, severity. Optional type, severity, search, run_id."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Issues — 404 pages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/issues?type=page_404&severity=high&per_page=50",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "type",
+                                    "value": "page_404"
+                                },
+                                {
+                                    "key": "severity",
+                                    "value": "high"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "50"
+                                }
+                            ]
+                        },
+                        "description": "Filter: type=page_404."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Issues — missing titles",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/issues?type=missing_title&per_page=50",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "type",
+                                    "value": "missing_title"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "50"
+                                }
+                            ]
+                        },
+                        "description": "Filter: type=missing_title."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Issues — broken links",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-crawl/issues?type=broken_link&per_page=50",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-crawl",
+                                "issues"
+                            ],
+                            "query": [
+                                {
+                                    "key": "type",
+                                    "value": "broken_link"
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "50"
+                                }
+                            ]
+                        },
+                        "description": "Filter: type=broken_link."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Google Search Console / Analytics",
+            "item": [
+                {
+                    "name": "Connection status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "status"
+                            ]
+                        },
+                        "description": "Shows whether a real Google account is linked (email only, no tokens)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Connect Google (get auth_url)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/connect",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "connect"
+                            ]
+                        },
+                        "description": "Returns auth_url. Open it in the browser, sign in with the Google account that owns Search Console, then Google redirects back to the admin frontend (?google_seo=connected). Read-only scopes only.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Disconnect Google",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/disconnect",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "disconnect"
+                            ]
+                        },
+                        "description": "Removes the stored Google tokens from Aqdi.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Search Console data",
+            "item": [
+                {
+                    "name": "Overview",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        },
+                        "description": "Totals for the selected Search Console site. Optional from/to (Y-m-d). Defaults to the last 28 days."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "List sites",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/sites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sites"
+                            ]
+                        },
+                        "description": "Search Console properties on the connected Google account. Auto-selects when only one site exists."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Select site",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/sites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sites"
+                            ]
+                        },
+                        "description": "Persist the property used for reports. Body: { \"site_url\": \"https://aqdi.sa/\" }",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"site_url\": \"https://aqdi.sa/\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Queries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/queries?from=2026-08-01&to=2026-08-28&limit=25",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "queries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "25"
+                                }
+                            ]
+                        },
+                        "description": "Top search queries. Optional from, to, limit, start_row."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Pages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/pages?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "pages"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        },
+                        "description": "Top pages by Search Console performance."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Countries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/countries",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "countries"
+                            ]
+                        },
+                        "description": "Performance by country (ISO code, e.g. sau)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Devices",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/devices",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "devices"
+                            ]
+                        },
+                        "description": "Performance by device (MOBILE / DESKTOP / TABLET)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Dates",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/dates",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "dates"
+                            ]
+                        },
+                        "description": "Daily time series for the selected range."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Sitemaps",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/seo-google/search-console/sitemaps",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sitemaps"
+                            ]
+                        },
+                        "description": "Sitemaps submitted in Search Console for the selected site."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

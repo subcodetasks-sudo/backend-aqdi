@@ -320,6 +320,82 @@ $collection = [
                 ),
             ],
         ],
+        [
+            'name' => 'Search Console data',
+            'item' => [
+                requestItem(
+                    'Overview',
+                    'GET',
+                    '/seo-google/search-console',
+                    'Totals for the selected Search Console site. Optional from/to (Y-m-d). Defaults to the last 28 days.',
+                    null,
+                    [
+                        ['key' => 'from', 'value' => '2026-08-01'],
+                        ['key' => 'to', 'value' => '2026-08-28'],
+                    ]
+                ),
+                requestItem(
+                    'List sites',
+                    'GET',
+                    '/seo-google/search-console/sites',
+                    'Search Console properties on the connected Google account. Auto-selects when only one site exists.'
+                ),
+                requestItem(
+                    'Select site',
+                    'POST',
+                    '/seo-google/search-console/sites',
+                    'Persist the property used for reports. Body: { "site_url": "https://aqdi.sa/" }',
+                    ['site_url' => 'https://aqdi.sa/']
+                ),
+                requestItem(
+                    'Queries',
+                    'GET',
+                    '/seo-google/search-console/queries',
+                    'Top search queries. Optional from, to, limit, start_row.',
+                    null,
+                    [
+                        ['key' => 'from', 'value' => '2026-08-01'],
+                        ['key' => 'to', 'value' => '2026-08-28'],
+                        ['key' => 'limit', 'value' => '25'],
+                    ]
+                ),
+                requestItem(
+                    'Pages',
+                    'GET',
+                    '/seo-google/search-console/pages',
+                    'Top pages by Search Console performance.',
+                    null,
+                    [
+                        ['key' => 'from', 'value' => '2026-08-01'],
+                        ['key' => 'to', 'value' => '2026-08-28'],
+                    ]
+                ),
+                requestItem(
+                    'Countries',
+                    'GET',
+                    '/seo-google/search-console/countries',
+                    'Performance by country (ISO code, e.g. sau).'
+                ),
+                requestItem(
+                    'Devices',
+                    'GET',
+                    '/seo-google/search-console/devices',
+                    'Performance by device (MOBILE / DESKTOP / TABLET).'
+                ),
+                requestItem(
+                    'Dates',
+                    'GET',
+                    '/seo-google/search-console/dates',
+                    'Daily time series for the selected range.'
+                ),
+                requestItem(
+                    'Sitemaps',
+                    'GET',
+                    '/seo-google/search-console/sitemaps',
+                    'Sitemaps submitted in Search Console for the selected site.'
+                ),
+            ],
+        ],
     ],
 ];
 

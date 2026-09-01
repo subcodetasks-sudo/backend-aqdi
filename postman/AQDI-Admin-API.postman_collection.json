@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "10a94dc1-aa99-41d5-a9f6-a3e0832a1f1b",
+        "_postman_id": "fef9b752-856e-46e9-92f6-0b5e4a5f2198",
         "name": "AQDI Admin API",
         "description": "Complete Admin API under \/api\/admin.\n\n1. Import AQDI-Admin-API.postman_environment.json\n2. Set baseUrl\n3. Run Employee login to save access and refresh tokens automatically\n4. Login and refresh responses include the employee role and effective permissions matrix\n5. Protected requests require both authentication and the matching section.action permission",
         "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json",
@@ -1960,6 +1960,124 @@
             ]
         },
         {
+            "name": "Marketing tracking",
+            "item": [
+                {
+                    "name": "Overview (ROAS + widgets)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/marketing-tracking?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing-tracking"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                }
+                            ]
+                        },
+                        "description": "UI payload: summary (ROAS\/spend\/revenue\/profit), kpis, spend-vs-revenue chart, top keywords\/pages\/campaigns, best\/weakest campaign. Permission: analytics.view."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Keyword ranking table",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/marketing-tracking\/keywords?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing-tracking",
+                                "keywords"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                }
+                            ]
+                        },
+                        "description": "Summary cards + keyword rows (rank, previous, search volume, competition, status, revenue). Merges Search Console + UTM revenue."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Funnel and paid channels",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/marketing-tracking\/channels?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing-tracking",
+                                "channels"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                }
+                            ]
+                        },
+                        "description": "Marketing funnel (impressions → clicks → leads → conversions) and paid-channel ROI table (spend, revenue, ROAS, CAC, profit)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
             "name": "SEO crawl",
             "item": [
                 {
@@ -2323,6 +2441,378 @@
                                     "language": "json"
                                 }
                             }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console overview",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        },
+                        "description": "Totals: clicks, impressions, CTR, average position. Permission: seo_crawl.view."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console sites",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/sites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sites"
+                            ]
+                        },
+                        "description": "List Search Console properties on the connected Google account."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Select Search Console site",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/sites",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sites"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"site_url\": \"https:\\\/\\\/aqdi.sa\\\/\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "Persist the Search Console property used for reports. Permission: seo_crawl.create."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console queries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/queries?from=2026-08-01&to=2026-08-28&limit=25",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "queries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "25"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console pages",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/pages?from=2026-08-01&to=2026-08-28&limit=25",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "pages"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "25"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console countries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/countries?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "countries"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console devices",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/devices?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "devices"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console dates",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/dates?from=2026-08-01&to=2026-08-28",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "dates"
+                            ],
+                            "query": [
+                                {
+                                    "key": "from",
+                                    "value": "2026-08-01"
+                                },
+                                {
+                                    "key": "to",
+                                    "value": "2026-08-28"
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Search Console sitemaps",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/admin\/seo-google\/search-console\/sitemaps",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "seo-google",
+                                "search-console",
+                                "sitemaps"
+                            ]
                         }
                     },
                     "response": []

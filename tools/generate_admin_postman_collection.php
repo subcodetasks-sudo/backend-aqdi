@@ -315,6 +315,23 @@ $folders = [
             'body' => ['days' => 7, 'platform' => 'google'],
         ]),
     ],
+    'Marketing tracking' => [
+        req('Overview (ROAS + widgets)', 'GET', '/marketing-tracking', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+            'description' => 'UI payload: summary (ROAS/spend/revenue/profit), kpis, spend-vs-revenue chart, top keywords/pages/campaigns, best/weakest campaign. Permission: analytics.view.',
+        ]),
+        req('Keyword ranking table', 'GET', '/marketing-tracking/keywords', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+            'description' => 'Summary cards + keyword rows (rank, previous, search volume, competition, status, revenue). Merges Search Console + UTM revenue.',
+        ]),
+        req('Funnel and paid channels', 'GET', '/marketing-tracking/channels', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+            'description' => 'Marketing funnel (impressions → clicks → leads → conversions) and paid-channel ROI table (spend, revenue, ROAS, CAC, profit).',
+        ]),
+    ],
     'SEO crawl' => [
         req('Dashboard (latest scan)', 'GET', '/seo-crawl', [
             'bearer' => true,
@@ -360,6 +377,43 @@ $folders = [
         req('Disconnect Google Search Console', 'POST', '/seo-google/disconnect', [
             'bearer' => true,
             'body' => (object) [],
+        ]),
+        req('Search Console overview', 'GET', '/seo-google/search-console', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28'],
+            'description' => 'Totals: clicks, impressions, CTR, average position. Permission: seo_crawl.view.',
+        ]),
+        req('Search Console sites', 'GET', '/seo-google/search-console/sites', [
+            'bearer' => true,
+            'description' => 'List Search Console properties on the connected Google account.',
+        ]),
+        req('Select Search Console site', 'POST', '/seo-google/search-console/sites', [
+            'bearer' => true,
+            'body' => ['site_url' => 'https://aqdi.sa/'],
+            'description' => 'Persist the Search Console property used for reports. Permission: seo_crawl.create.',
+        ]),
+        req('Search Console queries', 'GET', '/seo-google/search-console/queries', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28', 'limit' => 25],
+        ]),
+        req('Search Console pages', 'GET', '/seo-google/search-console/pages', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28', 'limit' => 25],
+        ]),
+        req('Search Console countries', 'GET', '/seo-google/search-console/countries', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28'],
+        ]),
+        req('Search Console devices', 'GET', '/seo-google/search-console/devices', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28'],
+        ]),
+        req('Search Console dates', 'GET', '/seo-google/search-console/dates', [
+            'bearer' => true,
+            'query' => ['from' => '2026-08-01', 'to' => '2026-08-28'],
+        ]),
+        req('Search Console sitemaps', 'GET', '/seo-google/search-console/sitemaps', [
+            'bearer' => true,
         ]),
     ],
     'Orders' => [

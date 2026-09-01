@@ -76,6 +76,7 @@ return [
 
         'seo-crawl' => 'seo_crawl',
         'seo-keywords' => 'seo_crawl',
+        'seo-search-console' => 'seo_crawl',
 
         'terms' => 'app_content',
         'privacy' => 'app_content',
@@ -86,6 +87,8 @@ return [
         'marketing-overview' => 'analytics',
         'marketing-campaigns' => 'analytics',
         'marketing-reports' => 'analytics',
+        'marketing-tracking' => 'analytics',
+        'marketing-keywords' => 'analytics',
         'marketing-pixels' => 'analytics',
         'marketing-content-articles' => 'blogs',
 
