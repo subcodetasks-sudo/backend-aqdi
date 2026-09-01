@@ -25,7 +25,7 @@ class Payment extends Model
 
     public function scopeSuccessful(Builder $query): Builder
     {
-        return $query->where('status', 'success');
+        return $query->where('payments.status', 'success');
     }
 
     /**

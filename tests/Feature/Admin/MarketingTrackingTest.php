@@ -243,6 +243,7 @@ class MarketingTrackingTest extends TestCase
             $table->string('contract_type')->nullable();
             $table->string('app_or_web')->nullable();
             $table->unsignedBigInteger('contract_status_id')->nullable();
+            $table->string('status')->nullable();
             $table->integer('step')->default(1);
             $table->boolean('is_completed')->default(false);
             $table->boolean('is_draft')->default(false);

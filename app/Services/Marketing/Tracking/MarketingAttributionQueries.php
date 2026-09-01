@@ -44,7 +44,7 @@ class MarketingAttributionQueries
     {
         $driver = DB::connection()->getDriverName();
         $query = Payment::query()
-            ->successful()
+            ->where('payments.status', 'success')
             ->join('contracts', function ($join) use ($driver) {
                 $join->on('payments.contract_uuid', '=', 'contracts.uuid');
                 if ($driver === 'sqlite') {
