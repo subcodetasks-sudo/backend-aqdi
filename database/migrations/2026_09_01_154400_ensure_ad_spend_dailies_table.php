@@ -25,7 +25,6 @@ return new class extends Migration
             $table->unsignedInteger('clicks')->nullable();
             $table->string('ingest_source', 16)->default('api');
             $table->timestamps();
-
             $table->unique(
                 ['spent_on', 'platform', 'campaign_id', 'keyword'],
                 'ad_spend_dailies_unique'
