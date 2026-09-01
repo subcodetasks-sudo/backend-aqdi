@@ -73,25 +73,21 @@ class MarketingChannelTrackingService
      */
     public function channels(?array $range): array
     {
-        $orderRows = $this->queries->contractBase($range)
+        $orderRows = $this->queries->contractAggregates($range)
             ->selectRaw($this->queries->sourceExpression().' as source')
             ->selectRaw('COUNT(*) as orders')
-            ->selectRaw('SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as paid')
+            ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
             ->groupByRaw($this->queries->sourceExpression())
             ->get()
             ->keyBy('source');
 
-        $revenueRows = $this->queries->revenueQuery($range)
+        $revenueRows = $this->queries->revenueAggregates($range)
             ->selectRaw($this->queries->sourceExpression('contracts').' as source')
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->groupByRaw($this->queries->sourceExpression('contracts'))
             ->pluck('revenue', 'source');
 
-        $spendRows = $this->queries->campaignSpendQuery($range)
-            ->select('platform')
-            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
-            ->groupBy('platform')
-            ->pluck('total_spend', 'platform');
+        $spendRows = $this->queries->spendByPlatform($range);
 
         $items = [];
         foreach (MarketingAttributionQueries::PAID_SOURCES as $source) {
@@ -122,23 +118,18 @@ class MarketingChannelTrackingService
      */
     protected function funnelValues(?array $range): array
     {
-        $spend = $this->queries->campaignSpendQuery($range)
-            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions')
-            ->selectRaw('COALESCE(SUM(clicks), 0) as clicks')
-            ->first();
+        $spend = $this->queries->spendFunnelTotals($range);
 
         $paidSources = MarketingAttributionQueries::PAID_SOURCES;
-        $leads = (int) $this->queries->contractBase($range)
-            ->whereIn('utm_source', $paidSources)
+        $leads = (int) $this->queries->whereSourceIn($this->queries->contractBase($range), $paidSources)
             ->count();
-        $conversions = (int) $this->queries->contractBase($range)
-            ->whereIn('utm_source', $paidSources)
-            ->where('is_completed', 1)
+        $conversions = (int) $this->queries->whereSourceIn($this->queries->contractBase($range), $paidSources)
+            ->where('contracts.is_completed', 1)
             ->count();
 
         return [
-            'impressions' => (int) ($spend->impressions ?? 0),
-            'clicks' => (int) ($spend->clicks ?? 0),
+            'impressions' => $spend['impressions'],
+            'clicks' => $spend['clicks'],
             'leads' => $leads,
             'conversions' => $conversions,
         ];

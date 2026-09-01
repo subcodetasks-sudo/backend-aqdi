@@ -110,13 +110,19 @@ class MarketingKeywordTrackingService
      */
     protected function revenueByKeyword(?array $range): array
     {
-        $rows = $this->queries->revenueQuery($range)
-            ->whereNotNull('contracts.utm_term')
-            ->where('contracts.utm_term', '!=', '')
-            ->selectRaw('contracts.utm_term as keyword')
+        $rows = $this->queries->revenueAggregates($range);
+        $term = $this->queries->termExpression();
+        if (! $this->queries->hasAttributionField('utm_term')) {
+            return [];
+        }
+
+        $rows = $rows
+            ->whereRaw("{$term} is not null")
+            ->whereRaw("{$term} != ''")
+            ->selectRaw("{$term} as keyword")
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->selectRaw('COUNT(DISTINCT contracts.id) as orders')
-            ->groupBy('contracts.utm_term')
+            ->groupByRaw($term)
             ->get();
 
         $map = [];
@@ -136,12 +142,7 @@ class MarketingKeywordTrackingService
      */
     protected function adsByKeyword(?array $range): array
     {
-        $rows = $this->queries->keywordSpendQuery($range)
-            ->select('keyword')
-            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions')
-            ->selectRaw('COALESCE(SUM(clicks), 0) as clicks')
-            ->groupBy('keyword')
-            ->get();
+        $rows = $this->queries->spendByKeyword($range);
 
         $map = [];
         foreach ($rows as $row) {

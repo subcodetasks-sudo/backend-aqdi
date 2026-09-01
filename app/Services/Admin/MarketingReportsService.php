@@ -75,25 +75,21 @@ class MarketingReportsService
      */
     private function bySource(?array $range): array
     {
-        $orderRows = $this->queries->contractBase($range)
+        $orderRows = $this->queries->contractAggregates($range)
             ->selectRaw($this->queries->sourceExpression().' as source')
             ->selectRaw('COUNT(*) as orders')
-            ->selectRaw('SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as paid')
+            ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
             ->groupByRaw($this->queries->sourceExpression())
             ->get()
             ->keyBy('source');
 
-        $revenueRows = $this->queries->revenueQuery($range)
+        $revenueRows = $this->queries->revenueAggregates($range)
             ->selectRaw($this->queries->sourceExpression('contracts').' as source')
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->groupByRaw($this->queries->sourceExpression('contracts'))
             ->pluck('revenue', 'source');
 
-        $spendRows = $this->queries->campaignSpendQuery($range)
-            ->select('platform')
-            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
-            ->groupBy('platform')
-            ->pluck('total_spend', 'platform');
+        $spendRows = $this->queries->spendByPlatform($range);
 
         $sources = array_keys(config('ads.utm.sources', []));
         $seen = array_unique([
@@ -135,13 +131,19 @@ class MarketingReportsService
      */
     private function topKeywords(?array $range): array
     {
-        return $this->queries->revenueQuery($range)
-            ->whereNotNull('contracts.utm_term')
-            ->where('contracts.utm_term', '!=', '')
-            ->selectRaw('contracts.utm_term as keyword')
+        if (! $this->queries->hasAttributionField('utm_term')) {
+            return [];
+        }
+
+        $term = $this->queries->termExpression();
+
+        return $this->queries->revenueAggregates($range)
+            ->whereRaw("{$term} is not null")
+            ->whereRaw("{$term} != ''")
+            ->selectRaw("{$term} as keyword")
             ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
             ->selectRaw('COUNT(DISTINCT contracts.id) as orders')
-            ->groupBy('contracts.utm_term')
+            ->groupByRaw($term)
             ->orderByDesc('revenue')
             ->limit(10)
             ->get()
@@ -159,21 +161,19 @@ class MarketingReportsService
      */
     private function weakestCampaigns(?array $range): array
     {
-        $spend = $this->queries->campaignSpendQuery($range)
-            ->select('platform', 'campaign_name')
-            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
-            ->where('campaign_name', '!=', '')
-            ->whereNotNull('campaign_name')
-            ->groupBy('platform', 'campaign_name')
-            ->get();
+        $spend = $this->queries->spendByCampaign($range);
 
-        $revenue = $this->queries->revenueQuery($range)
-            ->whereNotNull('contracts.utm_campaign')
-            ->where('contracts.utm_campaign', '!=', '')
-            ->selectRaw('contracts.utm_campaign as campaign_name')
-            ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-            ->groupBy('contracts.utm_campaign')
-            ->pluck('revenue', 'campaign_name');
+        $campaign = $this->queries->campaignExpression();
+        $revenue = collect();
+        if ($this->queries->hasAttributionField('utm_campaign')) {
+            $revenue = $this->queries->revenueAggregates($range)
+                ->whereRaw("{$campaign} is not null")
+                ->whereRaw("{$campaign} != ''")
+                ->selectRaw("{$campaign} as campaign_name")
+                ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
+                ->groupByRaw($campaign)
+                ->pluck('revenue', 'campaign_name');
+        }
 
         $campaigns = [];
         foreach ($spend as $row) {

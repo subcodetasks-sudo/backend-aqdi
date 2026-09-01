@@ -5,9 +5,10 @@ namespace App\Services\Marketing\Tracking;
 use App\Models\AdSpendDaily;
 use App\Models\Contract;
 use App\Models\Payment;
+use App\Support\Marketing\AttributionSchema;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 class MarketingAttributionQueries
 {
@@ -21,12 +22,16 @@ class MarketingAttributionQueries
         'twitter' => ['ar' => 'إكس', 'en' => 'X', 'color' => 'gray'],
     ];
 
+    /** @var array<string, bool> */
+    private array $schemaCache = [];
+
     /**
      * @param  array{0: Carbon, 1: Carbon}|null  $range
      */
     public function contractBase(?array $range)
     {
         $query = Contract::query()->notDeleted()->reachedAdminOrderStep();
+        $this->joinUsersForAttribution($query);
         $this->applyDateRange($query, 'contracts.created_at', $range);
 
         return $query;
@@ -51,9 +56,26 @@ class MarketingAttributionQueries
             ->where('contracts.is_delete', 0)
             ->where('contracts.step', '>=', 3);
 
+        $this->joinUsersForAttribution($query);
         $this->applyDateRange($query, 'contracts.created_at', $range);
 
         return $query;
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    public function contractAggregates(?array $range)
+    {
+        return $this->withoutDefaultSelect($this->contractBase($range));
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    public function revenueAggregates(?array $range)
+    {
+        return $this->withoutDefaultSelect($this->revenueQuery($range));
     }
 
     /**
@@ -82,9 +104,119 @@ class MarketingAttributionQueries
         return $query;
     }
 
+    public function hasAdSpendTable(): bool
+    {
+        return $this->tableExists('ad_spend_dailies');
+    }
+
+    public function hasAttributionField(string $column): bool
+    {
+        return $this->columnExists('contracts', $column) || $this->columnExists('users', $column);
+    }
+
+    /**
+     * SQL for utm_source: contracts first (if the column exists), else users, else 'direct'.
+     */
     public function sourceExpression(string $table = 'contracts'): string
     {
-        return "COALESCE(NULLIF({$table}.utm_source, ''), 'direct')";
+        return $this->coalesceField('utm_source', "'direct'");
+    }
+
+    public function termExpression(): string
+    {
+        return $this->coalesceField('utm_term', 'NULL');
+    }
+
+    public function campaignExpression(): string
+    {
+        return $this->coalesceField('utm_campaign', 'NULL');
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return Collection<string, mixed>
+     */
+    public function spendByPlatform(?array $range): Collection
+    {
+        if (! $this->hasAdSpendTable()) {
+            return collect();
+        }
+
+        return $this->campaignSpendQuery($range)
+            ->select('platform')
+            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
+            ->groupBy('platform')
+            ->pluck('total_spend', 'platform');
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     * @return array{impressions: int, clicks: int}
+     */
+    public function spendFunnelTotals(?array $range): array
+    {
+        if (! $this->hasAdSpendTable()) {
+            return ['impressions' => 0, 'clicks' => 0];
+        }
+
+        $row = $this->campaignSpendQuery($range)
+            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions')
+            ->selectRaw('COALESCE(SUM(clicks), 0) as clicks')
+            ->first();
+
+        return [
+            'impressions' => (int) ($row->impressions ?? 0),
+            'clicks' => (int) ($row->clicks ?? 0),
+        ];
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    public function spendByCampaign(?array $range): Collection
+    {
+        if (! $this->hasAdSpendTable()) {
+            return collect();
+        }
+
+        return $this->campaignSpendQuery($range)
+            ->select('platform', 'campaign_name')
+            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
+            ->where('campaign_name', '!=', '')
+            ->whereNotNull('campaign_name')
+            ->groupBy('platform', 'campaign_name')
+            ->get();
+    }
+
+    /**
+     * @param  array{0: Carbon, 1: Carbon}|null  $range
+     */
+    public function spendByKeyword(?array $range): Collection
+    {
+        if (! $this->hasAdSpendTable()) {
+            return collect();
+        }
+
+        return $this->keywordSpendQuery($range)
+            ->select('keyword')
+            ->selectRaw('COALESCE(SUM(impressions), 0) as impressions')
+            ->selectRaw('COALESCE(SUM(clicks), 0) as clicks')
+            ->groupBy('keyword')
+            ->get();
+    }
+
+    /**
+     * @param  list<string>  $sources
+     */
+    public function whereSourceIn($query, array $sources)
+    {
+        if (! $this->hasAttributionField('utm_source') || $sources === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $placeholders = implode(',', array_fill(0, count($sources), '?'));
+
+        return $query->whereRaw($this->sourceExpression().' in ('.$placeholders.')', $sources);
     }
 
     /**
@@ -140,11 +272,7 @@ class MarketingAttributionQueries
 
     public function usersHavePlatform(): bool
     {
-        try {
-            return Schema::hasColumn('users', 'platform');
-        } catch (\Throwable) {
-            return false;
-        }
+        return $this->columnExists('users', 'platform');
     }
 
     /**
@@ -164,11 +292,76 @@ class MarketingAttributionQueries
      */
     protected function applySpendRange($query, ?array $range): void
     {
-        if ($range === null || ! Schema::hasTable('ad_spend_dailies')) {
+        if ($range === null || ! $this->hasAdSpendTable()) {
             return;
         }
 
         $query->whereDate('spent_on', '>=', $range[0]->toDateString())
             ->whereDate('spent_on', '<=', $range[1]->toDateString());
+    }
+
+    protected function joinUsersForAttribution($query): void
+    {
+        if (! $this->columnExists('users', 'utm_source')) {
+            return;
+        }
+
+        $query->leftJoin('users', 'users.id', '=', 'contracts.user_id');
+    }
+
+    protected function coalesceField(string $column, string $fallback): string
+    {
+        $parts = [];
+        if ($this->columnExists('contracts', $column)) {
+            $parts[] = "NULLIF(contracts.{$column}, '')";
+        }
+        if ($this->columnExists('users', $column)) {
+            $parts[] = "NULLIF(users.{$column}, '')";
+        }
+
+        if ($parts === []) {
+            return $fallback;
+        }
+
+        $parts[] = $fallback;
+
+        return 'COALESCE('.implode(', ', $parts).')';
+    }
+
+    protected function tableExists(string $table): bool
+    {
+        $key = 'table:'.$table;
+        if (! array_key_exists($key, $this->schemaCache)) {
+            $this->schemaCache[$key] = $this->lookupTable($table);
+        }
+
+        return $this->schemaCache[$key];
+    }
+
+    protected function columnExists(string $table, string $column): bool
+    {
+        $key = $table.'.'.$column;
+        if (! array_key_exists($key, $this->schemaCache)) {
+            $this->schemaCache[$key] = $this->lookupColumn($table, $column);
+        }
+
+        return $this->schemaCache[$key];
+    }
+
+    protected function lookupTable(string $table): bool
+    {
+        return AttributionSchema::hasTable($table);
+    }
+
+    protected function lookupColumn(string $table, string $column): bool
+    {
+        return AttributionSchema::hasColumn($table, $column);
+    }
+
+    protected function withoutDefaultSelect($query)
+    {
+        $query->getQuery()->columns = null;
+
+        return $query;
     }
 }

@@ -34,9 +34,10 @@ class MarketingTrackingOverviewService
         $roas = $spend > 0 ? round($revenue / $spend, 2) : null;
         $visitors = max(1, $visits['website']['value'] + $visits['app']['value']);
         $paying = $conversions;
-        $orders = (int) $this->queries->contractBase($range)
-            ->whereIn('utm_source', MarketingAttributionQueries::PAID_SOURCES)
-            ->count();
+        $orders = (int) $this->queries->whereSourceIn(
+            $this->queries->contractBase($range),
+            MarketingAttributionQueries::PAID_SOURCES
+        )->count();
 
         $sortedByRoas = $campaigns;
         usort($sortedByRoas, static fn (array $a, array $b) => ($b['roas'] ?? -1) <=> ($a['roas'] ?? -1));
@@ -106,31 +107,33 @@ class MarketingTrackingOverviewService
      */
     protected function campaigns(?array $range): array
     {
-        $spend = $this->queries->campaignSpendQuery($range)
-            ->select('platform', 'campaign_name')
-            ->selectRaw('COALESCE(SUM(spend), 0) as total_spend')
-            ->whereNotNull('campaign_name')
-            ->where('campaign_name', '!=', '')
-            ->groupBy('platform', 'campaign_name')
-            ->get();
+        $spend = $this->queries->spendByCampaign($range);
 
-        $orders = $this->queries->contractBase($range)
-            ->whereNotNull('utm_campaign')
-            ->where('utm_campaign', '!=', '')
-            ->selectRaw('utm_source as source')
-            ->selectRaw('utm_campaign as campaign')
-            ->selectRaw('COUNT(*) as orders')
-            ->selectRaw('SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as paid')
-            ->groupBy('utm_source', 'utm_campaign')
-            ->get();
+        $campaign = $this->queries->campaignExpression();
+        $source = $this->queries->sourceExpression();
+        $hasCampaign = $this->queries->hasAttributionField('utm_campaign');
 
-        $revenue = $this->queries->revenueQuery($range)
-            ->whereNotNull('contracts.utm_campaign')
-            ->where('contracts.utm_campaign', '!=', '')
-            ->selectRaw('contracts.utm_campaign as campaign')
-            ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
-            ->groupBy('contracts.utm_campaign')
-            ->pluck('revenue', 'campaign');
+        $orders = collect();
+        $revenue = collect();
+        if ($hasCampaign) {
+            $orders = $this->queries->contractAggregates($range)
+                ->whereRaw("{$campaign} is not null")
+                ->whereRaw("{$campaign} != ''")
+                ->selectRaw("{$source} as source")
+                ->selectRaw("{$campaign} as campaign")
+                ->selectRaw('COUNT(*) as orders')
+                ->selectRaw('SUM(CASE WHEN contracts.is_completed = 1 THEN 1 ELSE 0 END) as paid')
+                ->groupByRaw("{$source}, {$campaign}")
+                ->get();
+
+            $revenue = $this->queries->revenueAggregates($range)
+                ->whereRaw("{$campaign} is not null")
+                ->whereRaw("{$campaign} != ''")
+                ->selectRaw("{$campaign} as campaign")
+                ->selectRaw('COALESCE(SUM(payments.amount), 0) as revenue')
+                ->groupByRaw($campaign)
+                ->pluck('revenue', 'campaign');
+        }
 
         $items = [];
         $seen = [];

@@ -35,6 +35,7 @@ class MarketingAttributionTest extends TestCase
         ]);
 
         DB::purge('sqlite');
+        DB::setDefaultConnection('sqlite');
         DB::reconnect('sqlite');
         URL::forceRootUrl('http://localhost');
 
@@ -119,6 +120,9 @@ class MarketingAttributionTest extends TestCase
             'fname' => 'خالد',
             'mobile' => '0500000003',
             'password' => Hash::make('password'),
+            'utm_source' => 'google',
+            'utm_campaign' => 'Google - Awareness Campaign (Display)',
+            'utm_term' => 'عقد إيجار إلكتروني',
         ]);
 
         $paid = Contract::query()->create([

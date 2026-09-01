@@ -4,10 +4,10 @@ namespace App\Services\Marketing;
 
 use App\Models\Contract;
 use App\Models\User;
+use App\Support\Marketing\AttributionSchema;
 use App\Support\Marketing\UtmAttribution;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 class AttributionService
 {
@@ -119,6 +119,10 @@ class AttributionService
     {
         $filled = false;
         foreach ($attribution->toArray() as $field => $value) {
+            if (! AttributionSchema::hasColumn($model->getTable(), $field)) {
+                continue;
+            }
+
             $current = $model->getAttribute($field);
             if ($current === null || $current === '') {
                 $model->setAttribute($field, $value);
@@ -126,17 +130,14 @@ class AttributionService
             }
         }
 
-        if ($filled && ($model->getAttribute('attributed_at') === null || $model->getAttribute('attributed_at') === '')) {
+        if ($filled && AttributionSchema::hasColumn($model->getTable(), 'attributed_at')
+            && ($model->getAttribute('attributed_at') === null || $model->getAttribute('attributed_at') === '')) {
             $model->setAttribute('attributed_at', now());
         }
     }
 
     private function hasAttributionColumns(Model $model): bool
     {
-        try {
-            return Schema::hasColumn($model->getTable(), 'utm_source');
-        } catch (\Throwable) {
-            return false;
-        }
+        return AttributionSchema::hasColumn($model->getTable(), 'utm_source');
     }
 }
