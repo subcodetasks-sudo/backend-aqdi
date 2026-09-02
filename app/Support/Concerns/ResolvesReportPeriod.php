@@ -79,7 +79,7 @@ trait ResolvesReportPeriod
             throw new InvalidArgumentException('يجب تحديد date_from و date_to معاً.');
         }
 
-        $period = $this->normalizeReportPeriod($request->query('period'));
+        $period = $this->normalizeReportPeriod($this->reportQueryString($request, 'period'));
 
         if ($hasFrom && $hasTo) {
             $from = $this->parseReportDateBoundary($dateFromRaw, false);
@@ -144,7 +144,7 @@ trait ResolvesReportPeriod
 
     private function reportQueryString(Request $request, string $key): ?string
     {
-        $raw = $request->query($key);
+        $raw = $request->input($key);
         if ($raw === null) {
             return null;
         }

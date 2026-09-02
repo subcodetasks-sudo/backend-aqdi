@@ -10,7 +10,27 @@ class Blog extends Model
 {
     use HasFactory;
     
-    protected $fillable = ['description', 'image', 'slug', 'title', 'is_active', 'meta_title', 'meta_description', 'status', 'publish_at'];
+    protected $fillable = [
+        'description',
+        'image',
+        'slug',
+        'title',
+        'is_active',
+        'meta_title',
+        'meta_description',
+        'status',
+        'publish_at',
+        'category',
+        'category_label_ar',
+        'author',
+        'views_count',
+    ];
+
+    protected $casts = [
+        'publish_at' => 'datetime',
+        'is_active' => 'boolean',
+        'views_count' => 'integer',
+    ];
 
     protected static function boot()
     {
@@ -30,5 +50,14 @@ class Blog extends Model
                 $blog->slug = $slug;
             }
         });
+    }
+
+    public function incrementViews(): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn($this->getTable(), 'views_count')) {
+            return;
+        }
+
+        $this->increment('views_count');
     }
 }

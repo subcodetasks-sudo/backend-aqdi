@@ -71,6 +71,7 @@ return [
 
     'error_occurred' => 'حدث خطأ',
     'created_successfully' => 'تم الإنشاء بنجاح',
+    'marketing_report_emailed' => 'أُرسل التقرير إلى بريدك',
     'deleted_successfully' => 'تم الحذف بنجاح',
     'employee_created_successfully' => 'تم إنشاء الموظف بنجاح',
     'employee_updated_successfully' => 'تم تحديث بيانات الموظف بنجاح',

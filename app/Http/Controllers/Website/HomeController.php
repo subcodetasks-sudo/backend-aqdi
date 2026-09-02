@@ -70,6 +70,7 @@ class HomeController extends Controller
       public function singelblog($slug)
      {
          $blog = Blog::where('slug', $slug)->firstOrFail();
+         $blog->incrementViews();
      
          $relatedBlogs = Blog::where('slug', '!=', $slug)->limit(3)->get();
      

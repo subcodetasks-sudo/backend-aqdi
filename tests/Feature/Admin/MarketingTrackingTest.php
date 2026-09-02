@@ -12,6 +12,7 @@ use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\Sanctum;
@@ -78,6 +79,7 @@ class MarketingTrackingTest extends TestCase
         $this->assertEquals(2, $google['roas']);
         $this->assertSame('good', $google['roas_tone']);
         $this->assertSame(1, $google['conversions']);
+        $this->assertSame(2, $google['leads']);
         $this->assertSame(100, $google['cac']);
         $this->assertSame(100, $google['profit']);
         $this->assertSame('قوقل', $google['label_ar']);
@@ -118,6 +120,59 @@ class MarketingTrackingTest extends TestCase
         $this->assertEquals(2, $body['best_campaign']['roas']);
         $this->assertArrayHasKey('app_visits', $body['kpis']);
         $this->assertArrayHasKey('website_visits', $body['kpis']);
+    }
+
+    public function test_reports_overview_and_channel_table_match_ui_shape(): void
+    {
+        $overview = $this->getJson('/api/admin/marketing/reports?period=last_30_days')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertSame('last_30_days', $overview['period']);
+        $this->assertSame('ريال', $overview['currency_label_ar']);
+        $this->assertSame('best_page', $overview['highlights'][0]['key']);
+        $this->assertSame('best_keyword', $overview['highlights'][1]['key']);
+        $this->assertSame('orders', $overview['comparison']['items'][0]['key']);
+        $this->assertSame(1, $overview['comparison']['items'][0]['value']);
+        $this->assertTrue($overview['comparison']['items'][1]['is_money']);
+        $this->assertSame('new_customers', $overview['stats'][0]['key']);
+        $this->assertSame(100, $overview['stats'][2]['value']);
+        $this->assertSame('x', $overview['stats'][4]['suffix']);
+
+        $channels = $this->getJson('/api/admin/marketing/reports/channels?period=last_30_days')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertCount(5, $channels['rows']);
+        $google = collect($channels['rows'])->firstWhere('source', 'google');
+        $this->assertSame(2, $google['leads']);
+        $this->assertSame(1, $google['conversions']);
+        $this->assertSame(2, $channels['total']['leads']);
+        $this->assertSame(1, $channels['total']['conversions']);
+        $this->assertSame(100, $channels['total']['spend']);
+        $this->assertSame(200, $channels['total']['revenue']);
+        $this->assertStringContainsString('تقرير القنوات', $channels['range_label_ar']);
+    }
+
+    public function test_reports_export_csv_and_email(): void
+    {
+        Mail::fake();
+
+        $csv = $this->postJson('/api/admin/marketing/reports/export', [
+            'format' => 'csv',
+            'period' => 'last_30_days',
+        ]);
+        $csv->assertOk();
+        $this->assertStringContainsString('text/csv', (string) $csv->headers->get('content-type'));
+        $this->assertStringContainsString('google', $csv->streamedContent());
+
+        $this->postJson('/api/admin/marketing/reports/export', [
+            'format' => 'email',
+            'period' => 'last_30_days',
+        ])->assertOk()
+            ->assertJsonPath('success', true);
+
+        Mail::assertSent(\App\Mail\MarketingReportMail::class);
     }
 
     private function seedTrackingData(): void

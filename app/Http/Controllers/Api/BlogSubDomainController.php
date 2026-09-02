@@ -79,6 +79,8 @@ class BlogSubDomainController extends Controller
             ], Response::HTTP_NOT_FOUND);
         }
 
+        $blog->incrementViews();
+
         return response()->json([
             'status' => true,
             'message' => __('api.retrieve_blog'),

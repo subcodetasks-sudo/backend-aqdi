@@ -103,6 +103,7 @@ class MarketingChannelTrackingService
                 'profit' => $this->queries->money($profit),
                 'roas' => $roas,
                 'roas_tone' => $this->roasTone($roas),
+                'leads' => (int) ($orderRows[$source]->orders ?? 0),
                 'conversions' => $paid,
                 'cac' => ($spend > 0 && $paid > 0) ? $this->queries->money($spend / $paid) : null,
                 'currency' => 'SAR',
@@ -135,7 +136,7 @@ class MarketingChannelTrackingService
         ];
     }
 
-    protected function roasTone(?float $roas): string
+    public function roasTone(?float $roas): string
     {
         if ($roas === null) {
             return 'muted';

@@ -16,6 +16,16 @@ class UpdateBlogRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('scheduled_at') && ! $this->filled('publish_at')) {
+            $this->merge(['publish_at' => $this->input('scheduled_at')]);
+        }
+        if ($this->input('status') === 'schedule') {
+            $this->merge(['status' => 'scheduled']);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -29,7 +39,7 @@ class UpdateBlogRequest extends FormRequest
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
-            'status' => 'sometimes|required|in:published,draft,scheduled',
+            'status' => 'sometimes|required|in:published,draft,scheduled,archived',
             'publish_at' => [
                 'nullable',
                 'date',
@@ -41,6 +51,10 @@ class UpdateBlogRequest extends FormRequest
                 },
             ],
             'is_active' => 'nullable|boolean',
+            'scheduled_at' => 'nullable|date',
+            'category' => 'nullable|string|max:64',
+            'category_label_ar' => 'nullable|string|max:191',
+            'author' => 'nullable|string|max:191',
         ];
     }
 

@@ -132,6 +132,11 @@ class MarketingAttributionQueries
         return $this->coalesceField('utm_campaign', 'NULL');
     }
 
+    public function contentExpression(): string
+    {
+        return $this->coalesceField('utm_content', 'NULL');
+    }
+
     /**
      * GROUP BY the first N select-list expressions by position.
      *

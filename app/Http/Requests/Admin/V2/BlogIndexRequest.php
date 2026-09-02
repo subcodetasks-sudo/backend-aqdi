@@ -24,7 +24,7 @@ class BlogIndexRequest extends FormRequest
         return [
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:1|max:100',
-            'status' => 'nullable|in:published,draft,scheduled',
+            'status' => 'nullable|in:published,draft,scheduled,archived',
             'is_active' => 'nullable|boolean',
             'search' => 'nullable|string|max:255',
         ];

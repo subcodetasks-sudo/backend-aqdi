@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "939c04c8-4895-4ca2-9b54-bf85428bd48c",
+        "_postman_id": "1ad65586-8e5b-42b8-8d42-b55f9a0a7c4c",
         "name": "AQDI Admin Marketing Tracking",
         "description": "UI snapshots for marketing tracking (`/api/admin/marketing-tracking`).\nFrontend prompt: prompts/admin-marketing-tracking.md\n\n1. Import this collection.\n2. Set `baseUrl` (e.g. http://localhost:8000).\n3. Run **Employee login** — token is saved to `employee_token`.\n4. Role needs `analytics.view`.\n5. Default period is `last_30_days`. Enable `date_from` + `date_to` for a custom range.\n\nSections:\n- Overview = ROAS header + widgets (one GET)\n- Keywords = ranking table + cards\n- Channels = funnel + paid-channel ROI",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -316,6 +316,428 @@
                             ]
                         },
                         "description": "Section 2: data.funnel (impressions → clicks → leads → conversions) and data.channels (always google/meta/tiktok/snapchat/twitter with spend, revenue, roas, cac, profit)."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "4 — Content (service pages + articles)",
+            "item": [
+                {
+                    "name": "Service pages list",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/service-pages",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "service-pages"
+                            ]
+                        },
+                        "description": "Content tab: summary (total/published/drafts) + items. Permission: analytics.view. Not period-scoped."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Create service page",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/service-pages",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "service-pages"
+                            ]
+                        },
+                        "description": "Body: title, path, target_keyword, status=published|draft|archived. Permission: analytics.create.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"توثيق عقد إيجار سكني\",\n    \"path\": \"/residential\",\n    \"target_keyword\": \"عقد إيجار سكني\",\n    \"status\": \"published\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update service page",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/service-pages/12",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "service-pages",
+                                "12"
+                            ]
+                        },
+                        "description": "All fields optional. Permission: analytics.edit.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"published\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete service page",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/service-pages/12",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "service-pages",
+                                "12"
+                            ]
+                        },
+                        "description": "Permission: analytics.delete."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Articles (marketing view)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/articles?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "articles"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-31",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "guides",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "published",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Same blogs as /admin/blogs plus views/leads/attributed_revenue and editorial_queue. CRUD stays on /admin/blogs. Permission: blogs.view."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "5 — Reports tab",
+            "item": [
+                {
+                    "name": "Report overview",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/reports?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "reports"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-31",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "channel",
+                                    "value": "all",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Highlights, period comparison, stats cards. Optional channel=google|meta|tiktok|snapchat|twitter|all. Permission: analytics.view."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Report channel table",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/reports/channels?period=last_30_days",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "reports",
+                                "channels"
+                            ],
+                            "query": [
+                                {
+                                    "key": "period",
+                                    "value": "last_30_days"
+                                },
+                                {
+                                    "key": "date_from",
+                                    "value": "2026-08-01",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "date_to",
+                                    "value": "2026-08-31",
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "description": "Fixed 5 channels + totals row (leads, conversions, spend, revenue, roas, cac, profit)."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Export report (CSV)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/reports/export",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "reports",
+                                "export"
+                            ]
+                        },
+                        "description": "format: pdf|xlsx|csv|email. File download, or email to the current employee.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"format\": \"csv\",\n    \"period\": \"last_30_days\",\n    \"date_from\": null,\n    \"date_to\": null,\n    \"channel\": \"all\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Email report",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{employee_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/admin/marketing/reports/export",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "admin",
+                                "marketing",
+                                "reports",
+                                "export"
+                            ]
+                        },
+                        "description": "Sends CSV to the logged-in employee. Response message: أُرسل التقرير إلى بريدك.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"format\": \"email\",\n    \"period\": \"last_30_days\",\n    \"channel\": \"all\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
                     },
                     "response": []
                 }

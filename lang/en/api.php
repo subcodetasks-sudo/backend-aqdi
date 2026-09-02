@@ -70,6 +70,7 @@ return [
 
     'error_occurred' => 'An error occurred',
     'created_successfully' => 'Created successfully',
+    'marketing_report_emailed' => 'The report was sent to your email',
     'deleted_successfully' => 'Deleted successfully',
     'employee_created_successfully' => 'Employee created successfully',
     'employee_updated_successfully' => 'Employee updated successfully',

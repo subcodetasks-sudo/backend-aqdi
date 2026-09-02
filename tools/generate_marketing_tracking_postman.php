@@ -244,6 +244,100 @@ $collection = [
             ],
         ],
         [
+            'name' => '4 — Content (service pages + articles)',
+            'item' => [
+                requestItem(
+                    'Service pages list',
+                    'GET',
+                    '/marketing/service-pages',
+                    'Content tab: summary (total/published/drafts) + items. Permission: analytics.view. Not period-scoped.'
+                ),
+                requestItem(
+                    'Create service page',
+                    'POST',
+                    '/marketing/service-pages',
+                    'Body: title, path, target_keyword, status=published|draft|archived. Permission: analytics.create.',
+                    [
+                        'title' => 'توثيق عقد إيجار سكني',
+                        'path' => '/residential',
+                        'target_keyword' => 'عقد إيجار سكني',
+                        'status' => 'published',
+                    ]
+                ),
+                requestItem(
+                    'Update service page',
+                    'PUT',
+                    '/marketing/service-pages/12',
+                    'All fields optional. Permission: analytics.edit.',
+                    ['status' => 'published']
+                ),
+                requestItem(
+                    'Delete service page',
+                    'DELETE',
+                    '/marketing/service-pages/12',
+                    'Permission: analytics.delete.'
+                ),
+                requestItem(
+                    'Articles (marketing view)',
+                    'GET',
+                    '/marketing/articles',
+                    'Same blogs as /admin/blogs plus views/leads/attributed_revenue and editorial_queue. CRUD stays on /admin/blogs. Permission: blogs.view.',
+                    null,
+                    array_merge($periodQuery, [
+                        ['key' => 'category', 'value' => 'guides', 'disabled' => true],
+                        ['key' => 'status', 'value' => 'published', 'disabled' => true],
+                    ])
+                ),
+            ],
+        ],
+        [
+            'name' => '5 — Reports tab',
+            'item' => [
+                requestItem(
+                    'Report overview',
+                    'GET',
+                    '/marketing/reports',
+                    'Highlights, period comparison, stats cards. Optional channel=google|meta|tiktok|snapchat|twitter|all. Permission: analytics.view.',
+                    null,
+                    array_merge($periodQuery, [
+                        ['key' => 'channel', 'value' => 'all', 'disabled' => true],
+                    ])
+                ),
+                requestItem(
+                    'Report channel table',
+                    'GET',
+                    '/marketing/reports/channels',
+                    'Fixed 5 channels + totals row (leads, conversions, spend, revenue, roas, cac, profit).',
+                    null,
+                    $periodQuery
+                ),
+                requestItem(
+                    'Export report (CSV)',
+                    'POST',
+                    '/marketing/reports/export',
+                    'format: pdf|xlsx|csv|email. File download, or email to the current employee.',
+                    [
+                        'format' => 'csv',
+                        'period' => 'last_30_days',
+                        'date_from' => null,
+                        'date_to' => null,
+                        'channel' => 'all',
+                    ]
+                ),
+                requestItem(
+                    'Email report',
+                    'POST',
+                    '/marketing/reports/export',
+                    'Sends CSV to the logged-in employee. Response message: أُرسل التقرير إلى بريدك.',
+                    [
+                        'format' => 'email',
+                        'period' => 'last_30_days',
+                        'channel' => 'all',
+                    ]
+                ),
+            ],
+        ],
+        [
             'name' => 'Related — Google Search Console',
             'item' => [
                 requestItem(

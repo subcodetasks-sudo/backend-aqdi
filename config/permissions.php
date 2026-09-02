@@ -91,6 +91,7 @@ return [
         'marketing-keywords' => 'analytics',
         'marketing-pixels' => 'analytics',
         'marketing-content-articles' => 'blogs',
+        'marketing-content-pages' => 'analytics',
 
         'contract-statuses' => 'contract_statuses',
         'draft-contract-statuses' => 'draft_contract_statuses',

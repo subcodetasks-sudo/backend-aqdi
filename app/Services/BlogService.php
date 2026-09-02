@@ -4,7 +4,7 @@ namespace App\Services;
 
 use App\Models\Blog;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\UploadedFile;
 use Carbon\Carbon;
 
@@ -186,6 +186,12 @@ class BlogService
             'published' => Blog::where('status', 'published')->count(),
             'draft' => Blog::where('status', 'draft')->count(),
             'scheduled' => Blog::where('status', 'scheduled')->count(),
+            'archived' => Schema::hasColumn('blogs', 'status')
+                ? (int) Blog::where('status', 'archived')->count()
+                : 0,
+            'total_views' => Schema::hasColumn('blogs', 'views_count')
+                ? (int) Blog::query()->sum('views_count')
+                : 0,
             'active' => Blog::where('is_active', 1)->count(),
             'inactive' => Blog::where('is_active', 0)->count(),
         ];
@@ -226,7 +232,8 @@ class BlogService
                 break;
 
             case 'draft':
-                // For draft, publish_at can be null
+            case 'archived':
+                // For draft/archived, publish_at can be null
                 if (isset($data['publish_at']) && !empty($data['publish_at'])) {
                     $data['publish_at'] = Carbon::parse($data['publish_at']);
                 } else {

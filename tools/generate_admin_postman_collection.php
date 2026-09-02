@@ -332,6 +332,47 @@ $folders = [
             'description' => 'Marketing funnel (impressions → clicks → leads → conversions) and paid-channel ROI table (spend, revenue, ROAS, CAC, profit).',
         ]),
     ],
+    'Marketing content & reports' => [
+        req('Service pages', 'GET', '/marketing/service-pages', [
+            'bearer' => true,
+            'description' => 'Content tab: landing pages list + summary counts. Permission: analytics.view.',
+        ]),
+        req('Create service page', 'POST', '/marketing/service-pages', [
+            'bearer' => true,
+            'body' => [
+                'title' => 'توثيق عقد إيجار سكني',
+                'path' => '/residential',
+                'target_keyword' => 'عقد إيجار سكني',
+                'status' => 'published',
+            ],
+        ]),
+        req('Update service page', 'PUT', '/marketing/service-pages/{{id}}', [
+            'bearer' => true,
+            'body' => ['status' => 'published'],
+        ]),
+        req('Delete service page', 'DELETE', '/marketing/service-pages/{{id}}', ['bearer' => true]),
+        req('Articles (marketing view)', 'GET', '/marketing/articles', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+            'description' => 'Blog list plus views/leads/revenue and editorial_queue. CRUD is /admin/blogs. Permission: blogs.view.',
+        ]),
+        req('Marketing report overview', 'GET', '/marketing/reports', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+        ]),
+        req('Marketing report channels', 'GET', '/marketing/reports/channels', [
+            'bearer' => true,
+            'query' => ['period' => 'last_30_days'],
+        ]),
+        req('Export marketing report', 'POST', '/marketing/reports/export', [
+            'bearer' => true,
+            'body' => [
+                'format' => 'csv',
+                'period' => 'last_30_days',
+                'channel' => 'all',
+            ],
+        ]),
+    ],
     'SEO crawl' => [
         req('Dashboard (latest scan)', 'GET', '/seo-crawl', [
             'bearer' => true,
