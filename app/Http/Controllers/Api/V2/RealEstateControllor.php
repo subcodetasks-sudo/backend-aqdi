@@ -133,12 +133,19 @@ class RealEstateControllor extends ApiRealEstateControllor
             ->where('user_id', $user->id)
             ->findOrFail($form->integer('id'));
 
+        $unitPayloads = $form->input('units', []);
+        if (! is_array($unitPayloads)) {
+            $unitPayloads = [];
+        }
+
         try {
-            $units = app(RealEstateUnitsService::class)->syncForRealEstate(
-                $realEstate,
-                $form->input('units', []),
-                (int) $user->id
-            );
+            $units = $unitPayloads === []
+                ? $realEstate->units()->with(['unitType', 'unitUsage'])->get()->all()
+                : app(RealEstateUnitsService::class)->syncForRealEstate(
+                    $realEstate,
+                    $unitPayloads,
+                    (int) $user->id
+                );
         } catch (InvalidArgumentException $e) {
             return $this->errorMessage($e->getMessage(), 422);
         }

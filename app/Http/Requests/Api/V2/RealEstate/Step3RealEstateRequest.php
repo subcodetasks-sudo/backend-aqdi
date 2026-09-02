@@ -5,10 +5,10 @@ namespace App\Http\Requests\Api\V2\RealEstate;
 use App\Http\Requests\Api\V2\BaseApiV2Request;
 use App\Services\ContractUnitsService;
 use App\Support\TypeFurnished;
-use Illuminate\Contracts\Validation\Validator;
 
 /**
- * V2 real-estate step 3: one or more units (same shape as contract step5).
+ * V2 real-estate step 3: optional units (same shape as contract step5).
+ * Units may be omitted so the client can finish the property without attaching units yet.
  */
 class Step3RealEstateRequest extends BaseApiV2Request
 {
@@ -104,7 +104,7 @@ class Step3RealEstateRequest extends BaseApiV2Request
     {
         return [
             'id' => 'required|exists:real_estates,id',
-            'units' => 'required|array|min:1|max:50',
+            'units' => 'nullable|array|max:50',
             'units.*.unit_id' => 'nullable|integer|exists:real_units,id',
             'units.*.id' => 'nullable|integer|exists:real_units,id',
             'units.*.real_unit_id' => 'nullable|integer|exists:real_units,id',
@@ -134,16 +134,6 @@ class Step3RealEstateRequest extends BaseApiV2Request
             'unit_ids' => 'nullable|array',
             'unit_ids.*' => 'integer|exists:real_units,id',
         ];
-    }
-
-    public function withValidator(Validator $validator): void
-    {
-        $validator->after(function (Validator $validator): void {
-            $units = $this->input('units');
-            if (! is_array($units) || $units === []) {
-                $validator->errors()->add('units', 'يجب إرسال وحدة واحدة على الأقل.');
-            }
-        });
     }
 
     public function messages(): array
