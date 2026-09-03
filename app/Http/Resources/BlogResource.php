@@ -22,6 +22,7 @@ class BlogResource extends JsonResource
         'slug'=>$this->slug,
         'author'=> $this->whenLoaded('admins', fn () => $this->admins->name),
         'image' => $this->image ? url("storage/{$this->image}") : null,
+        'imageAlt' => $this->image_alt ?: $this->title,
         'status'=>$this->status,
         'timePublish'=>$this->publish_at,
         'isActive'=>$this->is_active,

@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             QuestionSeeder::class,
             InstructionSectionSeeder::class,
+            WebsiteImageSeeder::class,
             SettingsSeeder::class,
         ]);
 

@@ -37,6 +37,7 @@ class StoreBlogRequest extends FormRequest
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image_alt' => 'nullable|string|max:255',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'status' => 'required|in:published,draft,scheduled,archived',

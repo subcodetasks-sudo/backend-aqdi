@@ -9,7 +9,12 @@
 <body>
     <div class="card">
         <!-- Banner Image -->
-        <img src="{{ asset('website/asset/images/30-min.png') }}" alt="Banner" class="banner-img" />
+        <img
+            src="{{ website_image_url('landing-banner', asset('website/asset/images/30-min.png')) }}"
+            alt="{{ website_image_alt('landing-banner', 'وثّق عقدك خلال 30 دقيقة') }}"
+            title="{{ website_image_title('landing-banner', 'توثيق عقد إيجار خلال 30 دقيقة') }}"
+            class="banner-img"
+        />
 
         <!-- Buttons -->
         <div class="buttons">

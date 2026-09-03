@@ -33,7 +33,7 @@
         <div class="blog-wrapper">
             <a href="{{ route('website.singelblog', ['slug' => $blog->slug  ?? '#']) }}" class="blog-item">
                 <div class="image-blog">
-                    <img style= "height: 257px; border-radius: 24px" src="{{ Storage::url($blog->image) }}" alt="{{ $blog->title }}" />
+                    <img style= "height: 257px; border-radius: 24px" src="{{ Storage::url($blog->image) }}" alt="{{ $blog->image_alt ?: $blog->title }}" title="{{ $blog->meta_title ?: $blog->title }}" />
                 </div>
                 <p class="blog-data">
                     <i class="fas fa-calendar-alt"></i> {{ $blog->created_at->translatedFormat('l, d F Y') }}

@@ -46,3 +46,46 @@ if (!function_exists('getTransAttribute')) {
         return empty(@$model["{$key}_{$lang}"]) ? @$model["{$key}_{$another_lang}"] : @$model["{$key}_{$lang}"];
     }
 }
+
+if (! function_exists('website_image')) {
+    /**
+     * Resolve a website image SEO record by stable key.
+     */
+    function website_image(string $key): ?\App\Models\WebsiteImage
+    {
+        try {
+            return \App\Models\WebsiteImage::findByKey($key);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+}
+
+if (! function_exists('website_image_url')) {
+    function website_image_url(string $key, ?string $fallback = null): ?string
+    {
+        $image = website_image($key);
+
+        return $image?->url ?: $fallback;
+    }
+}
+
+if (! function_exists('website_image_alt')) {
+    function website_image_alt(string $key, string $fallback = ''): string
+    {
+        $image = website_image($key);
+        $alt = $image?->alt();
+
+        return filled($alt) ? (string) $alt : $fallback;
+    }
+}
+
+if (! function_exists('website_image_title')) {
+    function website_image_title(string $key, string $fallback = ''): string
+    {
+        $image = website_image($key);
+        $title = $image?->metaTitle();
+
+        return filled($title) ? (string) $title : $fallback;
+    }
+}

@@ -37,6 +37,7 @@ class UpdateBlogRequest extends FormRequest
             'title' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image_alt' => 'nullable|string|max:255',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
             'status' => 'sometimes|required|in:published,draft,scheduled,archived',

@@ -29,7 +29,7 @@
 <!-- Specific Blog Section -->
 <div class="specfic-blog">
     <div class="image-specfic-blog">
-        <img src="{{ asset('storage/'.$blog->image) }}" alt="" />
+        <img src="{{ asset('storage/'.$blog->image) }}" alt="{{ $blog->image_alt ?: $blog->title }}" title="{{ $blog->meta_title ?: $blog->title }}" />
     </div>
     <p class="blog-data-specfic">
         <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($blog->created_at)->translatedFormat('l, d F Y') }}
@@ -47,7 +47,7 @@
   <div class="blog-wrapper">
       <a href="{{ route('website.singelblog', $related->slug) }}" class="blog-item">
           <div class="image-blog">
-              <img style= "height: 257px; border-radius: 24px" src="{{ asset('storage/'.$related->image) }}" alt="{{ $related->title }}" />
+              <img style= "height: 257px; border-radius: 24px" src="{{ asset('storage/'.$related->image) }}" alt="{{ $related->image_alt ?: $related->title }}" title="{{ $related->meta_title ?: $related->title }}" />
           </div>
           <p class="blog-data">
               <i class="fas fa-calendar-alt"></i> {{ \Carbon\Carbon::parse($related->created_at)->translatedFormat('l, d F Y') }}

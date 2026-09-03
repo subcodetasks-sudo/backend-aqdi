@@ -6,11 +6,11 @@
     <title>@yield('title', 'عقدي')</title>
     
      <!-- 32x32 -->
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('website/asset/images/30-30.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ website_image_url('favicon', asset('website/asset/images/30-30.png')) }}">
     <!-- 16x16 -->
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ asset('website/asset/images/30-30.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ website_image_url('favicon', asset('website/asset/images/30-30.png')) }}">
     <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('website/asset/images/favicon.jpg') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ website_image_url('favicon', asset('website/asset/images/favicon.jpg')) }}">
 
 
      <link rel="stylesheet" href="{{ asset('website/asset/css/style.css') }}" />
@@ -22,7 +22,11 @@
         <img src="{{ asset('website/asset/images/ellipse-top-left.svg') }}" alt="Decorative Ellipse" class="ellipse-top-left" />
         
         <a href="{{route('website.home')}}" class="logo">
-            <img src="{{ asset('website/asset/images/logo.svg') }}" alt="Website Logo" />
+            <img
+                src="{{ website_image_url('logo', asset('website/asset/images/logo.svg')) }}"
+                alt="{{ website_image_alt('logo', 'شعار أقدي') }}"
+                title="{{ website_image_title('logo', 'أقدي') }}"
+            />
         </a>
 
         <div class="content">
@@ -39,7 +43,11 @@
             @yield('content')
 
                 <div class="image-box">
-                    <img src="{{ asset('website/asset/images/hero.png') }}" alt="Login Hero" />
+                    <img
+                        src="{{ website_image_url('login-hero', asset('website/asset/images/hero.png')) }}"
+                        alt="{{ website_image_alt('login-hero', 'واجهة توثيق العقود') }}"
+                        title="{{ website_image_title('login-hero', 'تسجيل الدخول — أقدي') }}"
+                    />
                     <img src="{{ asset('website/asset/images/star-icon.svg') }}" alt="" class="star-icon" />
                      <img src="{{ asset('website/asset/images/ellipse-center.svg') }}" alt="" class="ellipse-center" />
                 </div>

@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\GeneralSettingController;
 use App\Http\Controllers\Admin\GoogleSearchConsoleController;
 use App\Http\Controllers\Admin\GoogleSeoController;
 use App\Http\Controllers\Admin\HomeAdminController;
+use App\Http\Controllers\Admin\WebsiteImageController;
 use App\Http\Controllers\Admin\InstructionSectionController;
 use App\Http\Controllers\Admin\LocationAnalyticsController;
 use App\Http\Controllers\Admin\MarketingArticlesController;
@@ -622,6 +623,21 @@ Route::prefix('faqs')->name('faqs.')->controller(FaqController::class)->middlewa
     Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:faqs.edit')->name('update');
     Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:faqs.delete')->name('destroy');
 });
+
+// Website images SEO (alt / meta title / meta description)
+Route::prefix('website-images')->name('website-images.')
+    ->controller(WebsiteImageController::class)
+    ->middleware('auth:sanctum')
+    ->group(function () {
+        Route::get('/', 'index')->middleware('permission:website_images.view')->name('index');
+        Route::post('/', 'store')->middleware('permission:website_images.create')->name('store');
+        Route::post('/sync-defaults', 'syncDefaults')->middleware('permission:website_images.create')->name('sync-defaults');
+        Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:website_images.view')->name('show');
+        Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:website_images.edit')->name('update');
+        Route::put('/{id}', 'update')->whereNumber('id')->middleware('permission:website_images.edit')->name('update.put');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->middleware('permission:website_images.delete')->name('destroy');
+        Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:website_images.delete')->name('destroy.post');
+    });
 
 // Instruction / promotional images (صور تعليمية أو إعلانية)
 Route::prefix('instruction-sections')->name('instruction-sections.')->controller(InstructionSectionController::class)->middleware('auth:sanctum')->group(function () {

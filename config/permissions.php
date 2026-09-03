@@ -52,6 +52,7 @@ return [
         'settings' => ['ar' => 'الاعدادات', 'en' => 'Settings'],
         'sms' => ['ar' => 'الرسائل النصية', 'en' => 'SMS'],
         'seo_crawl' => ['ar' => 'SEO (زحف وترتيب الكلمات)', 'en' => 'SEO crawl & keywords'],
+        'website_images' => ['ar' => 'صور الموقع (SEO)', 'en' => 'Website images (SEO)'],
     ],
 
     /**
@@ -77,6 +78,7 @@ return [
         'seo-crawl' => 'seo_crawl',
         'seo-keywords' => 'seo_crawl',
         'seo-search-console' => 'seo_crawl',
+        'website-images' => 'website_images',
 
         'terms' => 'app_content',
         'privacy' => 'app_content',
