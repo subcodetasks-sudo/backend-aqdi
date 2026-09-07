@@ -15,11 +15,52 @@ class ApiLocalization
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check header request and determine localizaton
-        $local = ($request->hasHeader("X-localization")) ? $request->header("X-localization") : "ar";
-        // set laravel localization
-        app()->setLocale($local);
+        app()->setLocale($this->localeFromRequest($request));
 
         return $next($request);
+    }
+
+    private function localeFromRequest(Request $request): string
+    {
+        foreach ([
+            $request->query('locale'),
+            $request->header('X-localization'),
+            $request->header('X-Locale'),
+        ] as $candidate) {
+            $resolved = $this->normalizeLocale(is_string($candidate) ? $candidate : null);
+            if ($resolved) {
+                return $resolved;
+            }
+        }
+
+        $accept = (string) $request->header('Accept-Language', '');
+        foreach (explode(',', $accept) as $part) {
+            $code = trim(explode(';', $part)[0]);
+            $resolved = $this->normalizeLocale($code);
+            if ($resolved) {
+                return $resolved;
+            }
+        }
+
+        return 'ar';
+    }
+
+    private function normalizeLocale(?string $value): ?string
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        $value = strtolower(str_replace('_', '-', trim($value)));
+
+        if (str_starts_with($value, 'ar')) {
+            return 'ar';
+        }
+
+        if (str_starts_with($value, 'en')) {
+            return 'en';
+        }
+
+        return null;
     }
 }

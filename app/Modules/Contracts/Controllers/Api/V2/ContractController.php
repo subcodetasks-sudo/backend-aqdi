@@ -312,57 +312,41 @@ class ContractController extends Controller
         $effectiveInstrumentType = $step1Data['instrument_type'] ?? $contract->instrument_type;
         $step1Data['step'] = Contract::shouldSkipInitialSteps($effectiveInstrumentType) ? 3 : 2;
 
-        $contract->update($step1Data);
-
         if ($contract->real_id) {
             $contract->loadMissing('realEstate');
             $fromReal = $contract->realEstate?->number_of_units_in_realestate;
             if ($fromReal !== null && $fromReal !== '') {
-                $contract->update([
-                    'number_of_units_in_realestate' => $fromReal,
-                ]);
+                $step1Data['number_of_units_in_realestate'] = $fromReal;
             }
         }
 
         $imageInstrumentFile = $request->file('image_instrument');
         if ($imageInstrumentFile instanceof \Illuminate\Http\UploadedFile && $imageInstrumentFile->isValid()) {
-            $contract->update([
-                'image_instrument' => $imageInstrumentFile->store('images/contracts', 'public'),
-            ]);
+            $step1Data['image_instrument'] = $imageInstrumentFile->store('images/contracts', 'public');
         } elseif (array_key_exists('image_instrument', $validated) && is_string($validated['image_instrument']) && $validated['image_instrument'] !== '') {
-            $contract->update([
-                'image_instrument' => $validated['image_instrument'],
-            ]);
+            $step1Data['image_instrument'] = $validated['image_instrument'];
         }
 
         foreach (['image_instrument_from_the_front', 'image_instrument_from_the_back'] as $deedImageField) {
             if ($request->hasFile($deedImageField)) {
-                $contract->update([
-                    $deedImageField => $request->file($deedImageField)->store('images/contracts', 'public'),
-                ]);
+                $step1Data[$deedImageField] = $request->file($deedImageField)->store('images/contracts', 'public');
             } elseif (
                 array_key_exists($deedImageField, $validated)
                 && is_string($validated[$deedImageField])
                 && $validated[$deedImageField] !== ''
             ) {
-                $contract->update([
-                    $deedImageField => $validated[$deedImageField],
-                ]);
+                $step1Data[$deedImageField] = $validated[$deedImageField];
             }
         }
 
         if ($request->hasFile('copy_of_the_endowment_registration_certificate')) {
-            $contract->update([
-                'copy_of_the_endowment_registration_certificate' => $request->file('copy_of_the_endowment_registration_certificate')
-                    ->store('contracts/endowment-registration-certificates', 'public'),
-            ]);
+            $step1Data['copy_of_the_endowment_registration_certificate'] = $request->file('copy_of_the_endowment_registration_certificate')
+                ->store('contracts/endowment-registration-certificates', 'public');
         }
 
         if ($request->hasFile('copy_of_the_trusteeship_deed')) {
-            $contract->update([
-                'copy_of_the_trusteeship_deed' => $request->file('copy_of_the_trusteeship_deed')
-                    ->store('contracts/trusteeship-deeds', 'public'),
-            ]);
+            $step1Data['copy_of_the_trusteeship_deed'] = $request->file('copy_of_the_trusteeship_deed')
+                ->store('contracts/trusteeship-deeds', 'public');
         }
 
         foreach ([
@@ -371,17 +355,15 @@ class ContractController extends Controller
             'copy_of_guardians_power_of_attorney_for_agent' => 'contracts/guardians-powers-of-attorney',
         ] as $instrumentFileField => $storageDir) {
             if ($request->hasFile($instrumentFileField)) {
-                $contract->update([
-                    $instrumentFileField => $request->file($instrumentFileField)->store($storageDir, 'public'),
-                ]);
+                $step1Data[$instrumentFileField] = $request->file($instrumentFileField)->store($storageDir, 'public');
             }
         }
 
         if ($request->hasFile('image_address')) {
-            $contract->update([
-                'image_address' => $request->file('image_address')->store('images/contracts', 'public'),
-            ]);
+            $step1Data['image_address'] = $request->file('image_address')->store('images/contracts', 'public');
         }
+
+        $contract->update($step1Data);
 
         return response()->json([
             'message' => trans('api.success'),

@@ -173,7 +173,7 @@ $saveSeoToken = [
 
 $saveBlogFromList = [
     'const json = pm.response.json();',
-    'const items = Array.isArray(json?.data) ? json.data : (json?.data?.data ?? []);',
+    'const items = Array.isArray(json?.data) ? json.data : [];',
     'const first = items[0];',
     'if (first?.slug) { pm.collectionVariables.set("blog_slug", String(first.slug)); }',
     'if (first?.id) { pm.collectionVariables.set("blog_id", String(first.id)); }',
@@ -197,6 +197,9 @@ $createForm = [
     textField('category', 'guides'),
     textField('category_label_ar', 'أدلة'),
     textField('author', 'فريق عقدي'),
+    textField('excerpt', 'مقتطف يظهر على بطاقة المقال في القائمة.'),
+    textField('is_featured', '0'),
+    textField('tags', 'ijar,guides'),
     textField('publish_at', '', true),
     fileField('image'),
 ];
@@ -220,10 +223,13 @@ $collection = [
             'Public JSON API for website / blog-frontend blogs (`/api/blogs`).',
             '',
             '**Public (no token)**',
-            '- `GET /api/blogs` — published / due-scheduled, active, paginated 6',
-            '- `GET /api/blogs/{slug}` — single post (increments views)',
+            '- `GET /api/blogs` — published / due-scheduled, active. Query: `page`, `category`, `tag`, `search`, `per_page`, `sort=latest|popular`, `featured=1`, `fields=`',
+            '- Envelope: `{ data: BlogListItem[], meta: { current_page, last_page, per_page, total } }`',
+            '- `GET /api/blogs/meta` — categories, popular tags, marketing stats',
+            '- `GET /api/blogs/{slug}` — single post. `?preview=1` or `X-No-Track: 1` skips views_count',
+            '- `POST /api/newsletter` — `{ email }`',
             '',
-            '**SEO CMS (Bearer `{{seo_token}}`)**',
+            '**SEO CMS (Bearer `{{seo_token}}`)** — unchanged',
             '- `POST /api/seo/login` then create / update / toggle / delete',
             '',
             'Admin CRUD stays on `/api/admin/blogs` (see AQDI Admin API). This collection is the public website surface.',
@@ -247,32 +253,103 @@ $collection = [
     'item' => [
         [
             'name' => '1 — Public JSON (website / blog frontend)',
-            'description' => 'Active published posts, or scheduled posts whose publish_at has passed. 6 per page. `?page=` still works.',
+            'description' => 'Active published posts, or scheduled posts whose publish_at has passed. Default 6 per page. List envelope is `{ data, meta }`.',
             'item' => [
                 requestItem(
                     'List published blogs',
                     'GET',
                     '/blogs',
-                    'Returns published (or due scheduled) active blogs. Saves first item slug/id to `blog_slug` / `blog_id`. Empty list is 200 with data [].',
+                    'Returns published (or due scheduled) active blogs as BlogListItem[] (no HTML body). Envelope: data + meta. Saves first item slug/id. Empty list is 200 with data [].',
                     false,
                     null,
                     null,
                     [
                         ['key' => 'page', 'value' => '1'],
+                        ['key' => 'per_page', 'value' => '6', 'disabled' => true],
+                        ['key' => 'category', 'value' => 'contracts', 'disabled' => true],
+                        ['key' => 'tag', 'value' => 'ijar', 'disabled' => true],
+                        ['key' => 'search', 'value' => 'عقد إيجار', 'disabled' => true],
+                        ['key' => 'sort', 'value' => 'latest', 'disabled' => true],
                     ],
                     $saveBlogFromList
+                ),
+                requestItem(
+                    'List by category',
+                    'GET',
+                    '/blogs',
+                    'Filter by category slug. Canonical slugs: property-management, contracts, real-estate-market, guides.',
+                    false,
+                    null,
+                    null,
+                    [
+                        ['key' => 'category', 'value' => 'contracts'],
+                        ['key' => 'page', 'value' => '1'],
+                    ]
+                ),
+                requestItem(
+                    'List featured (hero)',
+                    'GET',
+                    '/blogs',
+                    'Editor-picked posts (`is_featured=1`). Default per_page is 4. List items also include `is_featured` so the hero can be taken from a normal list.',
+                    false,
+                    null,
+                    null,
+                    [
+                        ['key' => 'featured', 'value' => '1'],
+                    ]
+                ),
+                requestItem(
+                    'Sitemap slim list',
+                    'GET',
+                    '/blogs',
+                    'One-shot sitemap payload. `meta.last_page` is accurate; or use fields=slug,updated_at with a large per_page.',
+                    false,
+                    null,
+                    null,
+                    [
+                        ['key' => 'per_page', 'value' => '1000'],
+                        ['key' => 'fields', 'value' => 'slug,updated_at'],
+                    ]
+                ),
+                requestItem(
+                    'Blog taxonomy meta',
+                    'GET',
+                    '/blogs/meta',
+                    'Cached sidebar payload: canonical categories with posts_count, popular tags, marketing stats (إيجار بأرقام).'
                 ),
                 requestItem(
                     'Show blog by slug',
                     'GET',
                     '/blogs/{{blog_slug}}',
-                    'Single post by slug. Increments views_count. 404 when the slug does not exist.'
+                    'Single post by slug. Increments views_count unless `preview=1` or `X-No-Track: 1`. 404 when unpublished or missing. Includes tags, related_posts, prev/next, sanitized content.'
+                ),
+                requestItem(
+                    'Show blog — preview (no view increment)',
+                    'GET',
+                    '/blogs/{{blog_slug}}',
+                    'ISR / bot revalidation. Does not increment views_count.',
+                    false,
+                    null,
+                    null,
+                    [
+                        ['key' => 'preview', 'value' => '1'],
+                    ]
                 ),
                 requestItem(
                     'Show blog — not found',
                     'GET',
                     '/blogs/this-slug-does-not-exist',
-                    'Expect 404 and `api.blog_not_found`.'
+                    'Expect 404 and `{ message }`.'
+                ),
+                requestItem(
+                    'Subscribe newsletter',
+                    'POST',
+                    '/newsletter',
+                    'Single opt-in, stored locally (no third-party provider / no double opt-in). Duplicate email still returns 200. Invalid email is 422 `{ message, errors.email }`.',
+                    false,
+                    [
+                        'email' => 'user@example.com',
+                    ]
                 ),
             ],
         ],

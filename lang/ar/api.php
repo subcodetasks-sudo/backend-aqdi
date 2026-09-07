@@ -180,6 +180,9 @@ return [
     'website_closed' => 'الموقع مغلق حالياً بسبب أعمال التطوير',
     'mobile_app_closed' => 'التطبيق مغلق حالياً بسبب أعمال التطوير',
     'app_update_required' => 'يرجى تحديث التطبيق لمتابعة الاستخدام',
+    'newsletter_subscribed' => 'تم الاشتراك في النشرة البريدية بنجاح',
+    'newsletter_email_required' => 'البريد الإلكتروني مطلوب',
+    'newsletter_email_invalid' => 'صيغة البريد الإلكتروني غير صحيحة',
 
 ];
 

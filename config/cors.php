@@ -26,10 +26,15 @@ return [
         'https://localhost:3000',
         'http://localhost:3001',
         'https://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001',
         'http://aqdi.aqdi.sa',
         'https://new-dashboard.aqdi.sa',
+        'https://blogs.aqdi.sa',
+        'http://blogs.aqdi.sa',
      
     ],
+    'allowed_origins_patterns' => [],
     /*
     |--------------------------------------------------------------------------
     | Allowed Headers

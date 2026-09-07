@@ -57,6 +57,15 @@ class UncompeleteContractController extends Controller
             ->where('user_id', auth()->id())
             ->where('uuid', $validated['uuid'])
             ->where('is_delete', false)
+            ->with([
+                'realEstate',
+                'contractTermInYears',
+                'contractStatus',
+                'draftContractStatus',
+                'units.unitType',
+                'units.unitUsage',
+                'units.realEstate',
+            ])
             ->first();
 
         if (! $contract) {
@@ -66,8 +75,6 @@ class UncompeleteContractController extends Controller
         if ($contract->is_completed) {
             return $this->errorMessage(trans('api.completed_contract'));
         }
-
-        $contract->loadMissing(['realEstate', 'contractTermInYears', 'contractStatus']);
 
         $previousSteps = $this->buildPreviousStepsData($contract);
 

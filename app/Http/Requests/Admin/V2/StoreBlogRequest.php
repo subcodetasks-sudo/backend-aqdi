@@ -24,6 +24,14 @@ class StoreBlogRequest extends FormRequest
         if ($this->input('status') === 'schedule') {
             $this->merge(['status' => 'scheduled']);
         }
+        if (is_string($this->input('tags'))) {
+            $decoded = json_decode($this->input('tags'), true);
+            $this->merge([
+                'tags' => is_array($decoded)
+                    ? $decoded
+                    : array_values(array_filter(array_map('trim', explode(',', $this->input('tags'))))),
+            ]);
+        }
     }
 
     /**
@@ -56,6 +64,11 @@ class StoreBlogRequest extends FormRequest
             'category' => 'nullable|string|max:64',
             'category_label_ar' => 'nullable|string|max:191',
             'author' => 'nullable|string|max:191',
+            'excerpt' => 'nullable|string|max:500',
+            'is_featured' => 'nullable|boolean',
+            'og_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'tags' => 'nullable|array',
+            'tags.*' => 'nullable',
         ];
     }
 

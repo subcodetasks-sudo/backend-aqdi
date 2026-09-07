@@ -191,6 +191,9 @@ return [
     'website_closed' => 'The website is temporarily closed for maintenance',
     'mobile_app_closed' => 'The mobile app is temporarily closed for maintenance',
     'app_update_required' => 'Please update the app to continue',
+    'newsletter_subscribed' => 'You have been subscribed to the newsletter',
+    'newsletter_email_required' => 'The email field is required',
+    'newsletter_email_invalid' => 'The email must be a valid email address',
 
 ];
 

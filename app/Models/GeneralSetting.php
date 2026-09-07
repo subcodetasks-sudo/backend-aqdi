@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class GeneralSetting extends Model
 {
     public const WEBSITE_STATUS = 'website_status';
 
     public const MOBILE_STATUS = 'mobile_status';
+
+    private const CACHE_TTL_SECONDS = 60;
 
     protected $fillable = [
         'key',
@@ -35,12 +38,18 @@ class GeneralSetting extends Model
 
     public static function isEnabled(string $key, bool $default = true): bool
     {
-        $row = static::query()->where('key', $key)->first();
-        if ($row === null) {
-            return (bool) config("general_settings.{$key}.default", $default);
-        }
+        return (bool) Cache::remember(
+            self::cacheKey($key),
+            self::CACHE_TTL_SECONDS,
+            function () use ($key, $default) {
+                $row = static::query()->where('key', $key)->first();
+                if ($row === null) {
+                    return (bool) config("general_settings.{$key}.default", $default);
+                }
 
-        return (bool) $row->enabled;
+                return (bool) $row->enabled;
+            }
+        );
     }
 
     public static function setEnabled(string $key, bool $enabled): self
@@ -54,7 +63,13 @@ class GeneralSetting extends Model
             ]
         );
         $row->update(['enabled' => $enabled]);
+        Cache::forget(self::cacheKey($key));
 
         return $row->fresh();
+    }
+
+    private static function cacheKey(string $key): string
+    {
+        return 'general_settings.enabled.'.$key;
     }
 }

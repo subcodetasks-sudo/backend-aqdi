@@ -7,9 +7,9 @@ use App\Models\RealEstate;
 use App\Models\UnitType;
 use App\Models\UsageUnit;
 use App\Models\User;
+use App\Support\SchemaCache;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Schema;
 
 class UnitsReal extends Model
 {
@@ -35,27 +35,27 @@ class UnitsReal extends Model
     {
         $table = (new self)->getTable();
 
-        if (! Schema::hasColumn($table, 'tootal_rooms') && array_key_exists('tootal_rooms', $data)) {
+        if (! SchemaCache::hasColumn($table, 'tootal_rooms') && array_key_exists('tootal_rooms', $data)) {
             $data['number_of_rooms'] = $data['tootal_rooms'];
             unset($data['tootal_rooms']);
         }
 
-        if (! Schema::hasColumn($table, 'The_number_of_toilets') && array_key_exists('The_number_of_toilets', $data)) {
+        if (! SchemaCache::hasColumn($table, 'The_number_of_toilets') && array_key_exists('The_number_of_toilets', $data)) {
             $data['The_number_of_the_toilet'] = $data['The_number_of_toilets'];
             unset($data['The_number_of_toilets']);
         }
 
         foreach (['window_ac', 'split_ac', 'contract_type'] as $column) {
-            if (! Schema::hasColumn($table, $column)) {
+            if (! SchemaCache::hasColumn($table, $column)) {
                 unset($data[$column]);
             }
         }
 
-        if (Schema::hasColumn($table, 'Services') && ! array_key_exists('Services', $data)) {
+        if (SchemaCache::hasColumn($table, 'Services') && ! array_key_exists('Services', $data)) {
             $data['Services'] = 0;
         }
 
-        if (Schema::hasColumn($table, 'is_deleted') && ! array_key_exists('is_deleted', $data)) {
+        if (SchemaCache::hasColumn($table, 'is_deleted') && ! array_key_exists('is_deleted', $data)) {
             $data['is_deleted'] = 0;
         }
 
