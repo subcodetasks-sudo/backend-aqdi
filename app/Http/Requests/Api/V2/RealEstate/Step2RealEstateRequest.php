@@ -132,7 +132,7 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'agency_instrument_date_of_property_owner_day' => 'nullable',
             'agency_instrument_date_of_property_owner_month' => 'nullable|integer|between:1,12',
             'agency_instrument_date_of_property_owner_year' => 'nullable|integer|min:1900|max:2100',
-            'copy_of_the_authorization_or_agency' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
+            'copy_of_the_authorization_or_agency' => 'nullable|file',
         ];
     }
 
@@ -201,7 +201,6 @@ class Step2RealEstateRequest extends BaseApiV2Request
             'property_owner_mobile.regex' => 'رقم جوال المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
             'id_num_of_property_owner_agent.min' => 'رقم هوية وكيل المالك لا يقل عن 10 أرقام.',
             'mobile_of_property_owner_agent.regex' => 'رقم جوال وكيل المالك يجب أن يبدأ بـ 5 ويتكون من 9 أرقام.',
-            'copy_of_the_authorization_or_agency.mimes' => 'صورة الوكالة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
         ];
     }
 }

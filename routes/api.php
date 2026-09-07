@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\BlogController;
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogSubDomainController;
 use App\Http\Controllers\Api\ContractController;
 use App\Http\Controllers\Api\CouponController;
@@ -12,7 +11,6 @@ use App\Http\Controllers\Api\V2\AppStatusController as V2AppStatusController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\RealEstateControllor;
 use App\Http\Controllers\Api\SavedRealEstateController;
-use App\Http\Controllers\Api\TenantRoleController;
 use App\Http\Controllers\Api\UnitEstateController;
 use App\Http\Middleware\ApiLocalization;
 use App\Http\Middleware\CheckApi;
@@ -37,20 +35,9 @@ use Illuminate\Support\Facades\Route;
  
  
 Route::controller(GeneralController::class)->group(function () {
-    Route::get('/cities', 'cities');
-    Route::get('/regions', 'regions');
     Route::get('/terms-and-conditions', 'termsAndConditions');
     Route::get('/privacy', 'privacy');
     Route::get('/common-questions', 'commonQuestions');
-    Route::get('/bank-accounts', 'bankAccounts');
-    Route::get('/services-pricing', 'servicesPricing');
-    Route::get('/paperwork', 'paperwork');
-    Route::get('/real-estat-type', 'realEstatType');
-    Route::get('/real-estat-usage', 'realEstatUsage');
-    Route::get('/units-types', 'unitsTypes');
-    Route::get('/units-usage', 'unitsUsages');
-    Route::get('/payments-types', 'paymentsTypes');
-    Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
 });
@@ -68,33 +55,11 @@ Route::prefix('instruction-images')->controller(InstructionImageController::clas
 // ============================================================================
 
 
-Route::prefix('auth')->name('auth.')->controller(AuthController::class)->group(function () {
-    Route::post('/google/callback', 'handleGoogleCallback');
-    Route::post('/login', 'login');
-    Route::post('/signup', 'signup');
-    Route::post('/verification', 'verification');
-    Route::post('/resend', 'resend');
-    Route::post('/forgot-password', 'forgotPassword');
-    Route::post('/reset-password-code', 'resetPasswordCode');
-    Route::post('/reset-password', 'resetPassword');
-});
-
 // ============================================================================
 // Protected Routes - Require Authentication
 // ============================================================================
 
 Route::middleware('auth:sanctum')->group(function () {
-
-    // User Profile & Account Management
-    Route::controller(AuthController::class)->group(function () {
-        Route::post('/auth/logout', 'logout');
-        Route::get('/profile', 'profile');
-        Route::post('/profile', 'updateProfile');
-        Route::post('/update/password', 'updatePassword');
-        Route::post('/fcm', 'updateFCMToken');
-        Route::get('/notifications', 'notifications');
-        Route::post('/user/deactivate', 'deactivateUser');
-    });
 
     Route::controller(UserCouponController::class)->group(function () {
         Route::get('/coupons/mine', 'mine');

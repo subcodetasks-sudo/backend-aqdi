@@ -2,7 +2,7 @@
 
 namespace App\Exceptions;
 
-use App\Http\Traits\Responser;
+use App\Shared\Responses\Responser;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

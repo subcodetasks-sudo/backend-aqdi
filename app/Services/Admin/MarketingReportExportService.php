@@ -98,9 +98,41 @@ class MarketingReportExportService
      */
     protected function toPdf(array $payload): string
     {
-        return Pdf::loadView('admin.marketing.report-pdf', [
-            'payload' => $payload,
-        ])->output();
+        $title = e((string) ($payload['channels']['range_label_ar'] ?? 'تقرير القنوات'));
+        $rows = '';
+        foreach ($payload['channels']['rows'] as $row) {
+            $rows .= '<tr>'
+                .'<td>'.e((string) $row['label_ar']).'</td>'
+                .'<td>'.e((string) $row['spend']).'</td>'
+                .'<td>'.e((string) $row['revenue']).'</td>'
+                .'<td>'.e((string) ($row['roas'] ?? '—')).'</td>'
+                .'<td>'.e((string) $row['leads']).'</td>'
+                .'<td>'.e((string) $row['conversions']).'</td>'
+                .'<td>'.e((string) ($row['cac'] ?? '—')).'</td>'
+                .'<td>'.e((string) $row['profit']).'</td>'
+                .'</tr>';
+        }
+
+        $total = $payload['channels']['total'];
+        $html = '<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>'
+            .'body{font-family:DejaVu Sans,sans-serif;font-size:12px;direction:rtl}'
+            .'h1{font-size:16px}table{width:100%;border-collapse:collapse;margin-top:12px}'
+            .'th,td{border:1px solid #ccc;padding:6px;text-align:right}th{background:#f3f3f3}'
+            .'</style></head><body><h1>'.$title.'</h1><table><thead><tr>'
+            .'<th>القناة</th><th>الصرف</th><th>الإيراد</th><th>ROAS</th>'
+            .'<th>عملاء محتملون</th><th>تحويلات</th><th>CAC</th><th>الربح</th>'
+            .'</tr></thead><tbody>'.$rows.'<tr>'
+            .'<td>الإجمالي</td>'
+            .'<td>'.e((string) $total['spend']).'</td>'
+            .'<td>'.e((string) $total['revenue']).'</td>'
+            .'<td>'.e((string) ($total['roas'] ?? '—')).'</td>'
+            .'<td>'.e((string) $total['leads']).'</td>'
+            .'<td>'.e((string) $total['conversions']).'</td>'
+            .'<td>'.e((string) ($total['cac'] ?? '—')).'</td>'
+            .'<td>'.e((string) $total['profit']).'</td>'
+            .'</tr></tbody></table></body></html>';
+
+        return Pdf::loadHTML($html)->output();
     }
 
     /**

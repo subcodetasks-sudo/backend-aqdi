@@ -38,11 +38,11 @@ class VerificationWeb extends Mailable
      */
     public function content(): Content
     {
+        $code = e((string) $this->user->verification_code);
+        $app = e((string) config('app.name'));
+
         return new Content(
-            markdown: 'emails.verification_web',
-            with:[
-                'user'=>$this->user,
-            ],
+            htmlString: "<p dir=\"rtl\">كود التحقق الخاص بك: <strong>{$code}</strong></p><p>{$app}</p>",
         );
     }
 

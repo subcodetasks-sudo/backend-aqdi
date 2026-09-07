@@ -10,8 +10,6 @@ class VerifyCsrfToken extends Middleware
    
     
     protected $except = [
-        'updateCartByIPN/*',
-        'rating/*',
         'api/callback/*',
         '/status/*/success',
         '/status/*/error',

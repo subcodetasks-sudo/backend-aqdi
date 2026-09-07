@@ -73,7 +73,6 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'image_instrument'   => [
                 'nullable',
                 'file',
-                'mimes:jpg,jpeg,png,webp,pdf',
                 Rule::requiredIf(in_array($instrumentType, ['electronic', $ownerEndowment], true)),
             ],
 
@@ -91,20 +90,17 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'copy_of_the_endowment_registration_certificate' => [
                 'nullable',
                 'file',
-                'mimes:jpg,jpeg,png,pdf',
                 Rule::requiredIf($instrumentType === $ownerEndowment),
             ],
             'copy_of_the_trusteeship_deed' => [
                 'nullable',
                 'file',
-                'mimes:jpg,jpeg,png,pdf',
                 Rule::requiredIf($instrumentType === $ownerEndowment),
             ],
             'is_multiple_trusteeship_deed_copy' => 'nullable|boolean',
             'copy_of_guardians_power_of_attorney_for_agent' => [
                 'nullable',
                 'file',
-                'mimes:jpg,jpeg,png,pdf',
                 Rule::requiredIf(function () use ($instrumentType, $ownerEndowment) {
                     return $instrumentType === $ownerEndowment
                         && $this->boolean('is_multiple_trusteeship_deed_copy');
@@ -145,13 +141,9 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'instrument_type.in'                      => 'نوع الصك غير صالح.',
             'number_of_units_in_realestate.string'    => 'عدد الوحدات يجب أن يكون نصًا.',
             'image_instrument.required'               => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
-            'image_instrument.mimes'                  => 'ملف الصك يجب أن يكون بصيغة jpg أو jpeg أو png أو webp أو pdf.',
             'copy_of_the_endowment_registration_certificate.required' => 'صورة من شهادة تسجيل الوقف مطلوبة.',
             'copy_of_the_trusteeship_deed.required' => 'صورة من صك النظارة مطلوبة.',
             'copy_of_guardians_power_of_attorney_for_agent.required' => 'صورة من وكالة النظار للوكيل مطلوبة عند وجود أكثر من ناظر.',
-            'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك النظارة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'copy_of_guardians_power_of_attorney_for_agent.mimes' => 'نسخة وكالة النظار يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
         ], $this->locationMessages());
     }
 

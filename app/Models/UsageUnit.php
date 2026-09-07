@@ -1,12 +1,3 @@
 <?php
 
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class UsageUnit extends Model
-{
-    protected $table='unit_usages';
-    use HasFactory;
-}
+class_alias(\App\Modules\Catalog\Models\UsageUnit::class, \App\Models\UsageUnit::class);

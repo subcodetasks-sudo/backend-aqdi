@@ -45,9 +45,11 @@ class ResetPassword extends Mailable
      */
     public function content()
     {
+        $code = e((string) $this->user->reset_password_code);
+        $app = e((string) config('app.name'));
+
         return new Content(
-            markdown: 'emails.reset_password',
-         
+            htmlString: "<p>Your reset password code is <strong>{$code}</strong></p><p>Thanks,<br>{$app}</p>",
         );
     }
 

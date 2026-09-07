@@ -72,8 +72,6 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'setLocale' => \App\Http\Middleware\SetLocale::class,
-        'website.open' => \App\Http\Middleware\EnsureWebsiteIsOpen::class,
-        'LoginWebsite' => \App\Http\Middleware\Website::class,
         'seo' => \App\Http\Middleware\PreventSeoAccess::class,
         'permission' => \App\Http\Middleware\CheckEmployeePermission::class,
     ];

@@ -21,7 +21,7 @@ trait RealEstateLocationRules
             'postal_code' => 'nullable|string|max:20',
             'extra_figure' => 'nullable|string|max:255',
             'address_url' => 'nullable|string|max:2048',
-            'image_address' => 'nullable|image',
+            'image_address' => 'nullable|file',
             'latitude' => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'lat' => 'nullable|numeric',
@@ -50,7 +50,6 @@ trait RealEstateLocationRules
             'building_number.required' => 'رقم المبنى مطلوب.',
             'postal_code.required' => 'الرمز البريدي مطلوب.',
             'extra_figure.required' => 'الرقم الإضافي مطلوب.',
-            'image_address.image' => 'صورة العنوان يجب أن تكون ملف صورة.',
             'latitude.numeric' => 'خط العرض يجب أن يكون رقماً.',
             'longitude.numeric' => 'خط الطول يجب أن يكون رقماً.',
         ];

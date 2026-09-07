@@ -4,12 +4,10 @@ use App\Http\Controllers\Admin\AdController;
 use App\Http\Controllers\Admin\AppContentOverviewController;
 use App\Http\Controllers\Admin\AppStatusController;
 use App\Http\Controllers\Admin\BlogController;
-use App\Http\Controllers\Admin\CityController;
 use App\Http\Controllers\Admin\ContentPageController;
 use App\Http\Controllers\Admin\ContractCommentController;
 use App\Http\Controllers\Admin\ContractPaidByEmployeeController;
 use App\Http\Controllers\Admin\ContractPaymentController;
-use App\Http\Controllers\Admin\ContractPeriodController;
 use App\Http\Controllers\Admin\ContractStatusController;
 use App\Http\Controllers\Admin\ContractUnitController;
 use App\Http\Controllers\Admin\ContractWhatsAppController;
@@ -41,17 +39,13 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\OperatingExpenseController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\PageContentController;
-use App\Http\Controllers\Admin\PaperworkController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\PaymentMessageController;
-use App\Http\Controllers\Admin\PaymentTypeController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PopupContractController;
-use App\Http\Controllers\Admin\ReaEstatUsageController;
 use App\Http\Controllers\Admin\RealEstateController;
 use App\Http\Controllers\Admin\ReceivedContractController;
 use App\Http\Controllers\Admin\RefundableContractController;
-use App\Http\Controllers\Admin\RegionController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingContractController;
@@ -59,12 +53,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SeoCrawlController;
 use App\Http\Controllers\Admin\SmsController;
 use App\Http\Controllers\Admin\SmsSettingController;
-use App\Http\Controllers\Admin\TenantRoleController;
-use App\Http\Controllers\Admin\TypeRealController;
 use App\Http\Controllers\Admin\UnitRealController;
-use App\Http\Controllers\Admin\UnitTypeController;
-use App\Http\Controllers\Admin\UnitUsageController;
-use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserDashboardAnalyticsController;
 use Illuminate\Support\Facades\Route;
 
@@ -79,19 +68,12 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::prefix('employees')->name('employees.')->controller(EmployeeController::class)->group(function () {
-    Route::post('/login', 'login_check')->name('login');
-    Route::post('/refresh-token', 'refreshToken')->name('refresh-token');
-
     Route::middleware('auth:sanctum')->group(function () {
-        Route::get('/me', 'profile')->name('me');
-        Route::get('/profile', 'profile')->name('profile');
         Route::get('/', 'index')->middleware('permission:employees.view')->name('index');
         Route::get('/employee-salary', 'employeeSalary')->middleware('permission:employee_salaries.view')->name('employee-salary');
         Route::get('/employee-notes', 'employeeNotes')->middleware('permission:employees.view')->name('employee-notes');
-        Route::post('/fcm', 'updateFcmToken')->name('fcm');
         Route::post('/{id}/salary', 'storeSalary')->whereNumber('id')->middleware('permission:employee_salaries.create')->name('salary.store');
         Route::post('/{id}/note', 'storeNote')->whereNumber('id')->middleware('permission:employees.create')->name('note.store');
-        Route::post('/logout', 'logout')->name('logout');
         Route::post('/', 'store')->middleware('permission:employees.create')->name('');
         Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:employees.view')->name('show');
         Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:employees.edit')->name('update');
@@ -402,65 +384,10 @@ Route::prefix('orders')->name('orders.')->controller(FilterContract::class)->mid
     Route::get('/filter', 'filter')->name('filter');
 });
 
-// Users Management
-Route::prefix('users')->name('users.')->controller(UserController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/export', 'export')->middleware('permission:users.view')->name('export');
-    Route::get('/', 'allusers')->middleware('permission:users.view')->name('index');
-    Route::get('/new', 'newcommersUser')->middleware('permission:users.view')->name('new');
-    Route::get('/contracts-complete', 'usersCompleteContracts')->middleware('permission:users.view')->name('contracts-complete');
-    Route::get('/{id}/properties/{propertyId}/deed', 'downloadDeed')->whereNumber('id')->whereNumber('propertyId')->middleware('permission:users.view')->name('properties.deed');
-    Route::get('/{id}/properties', 'properties')->whereNumber('id')->middleware('permission:users.view')->name('properties.index');
-    Route::delete('/{id}/properties/{propertyId}', 'destroyProperty')->whereNumber('id')->whereNumber('propertyId')->middleware('permission:users.delete')->name('properties.destroy');
-    Route::delete('/{id}/units/{unitId}', 'destroyUnit')->whereNumber('id')->whereNumber('unitId')->middleware('permission:users.delete')->name('units.destroy');
-    Route::post('/{id}/discount', 'applyDiscount')->whereNumber('id')->middleware('permission:users.edit')->name('discount');
-    Route::get('/{id}/coupons', 'coupons')->whereNumber('id')->middleware('permission:users.view')->name('coupons.index');
-    Route::post('/{id}/coupons', 'storeCoupon')->whereNumber('id')->middleware('permission:users.create')->name('coupons.store');
-    Route::get('/{id}/coupons/{couponId}', 'showCoupon')->whereNumber('id')->whereNumber('couponId')->middleware('permission:users.view')->name('coupons.show');
-    Route::post('/{id}/coupons/{couponId}/deactivate', 'deactivateCoupon')->whereNumber('id')->whereNumber('couponId')->middleware('permission:users.delete')->name('coupons.deactivate');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:users.view')->name('show');
-    Route::post('/{id}/block', 'block')->whereNumber('id')->middleware('permission:users.edit')->name('block');
-    Route::post('/{id}/delete', 'deleteUser')->whereNumber('id')->middleware('permission:users.delete')->name('delete');
-});
-
-// Regions Management
-Route::prefix('regions')->name('regions.')->controller(RegionController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:regions.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:regions.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:regions.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:regions.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:regions.delete')->name('destroy');
-});
-
-// Cities Management
-Route::prefix('cities')->name('cities.')->controller(CityController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:cities.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:cities.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:cities.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:cities.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:cities.delete')->name('destroy');
-});
-
 // Real Estate Management
 Route::prefix('real-estates')->name('real-estates.')->controller(RealEstateController::class)->middleware(['auth:sanctum', 'permission:real_estates.view'])->group(function () {
     Route::get('/', 'index')->name('index');
     Route::get('/{id}', 'show')->name('show');
-});
-
-// Real Estate Types Management
-Route::prefix('real-estate-types')->name('real-estate-types.')->controller(TypeRealController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:property_reference.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:property_reference.create')->name('store');
-    Route::post('/{id}', 'update')->middleware('permission:property_reference.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->middleware('permission:property_reference.delete')->name('destroy');
-});
-
-// Real Estate Usages Management
-Route::prefix('real-estate-usages')->name('real-estate-usages.')->controller(ReaEstatUsageController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:property_reference.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:property_reference.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:property_reference.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:property_reference.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:property_reference.delete')->name('destroy');
 });
 
 // Unit Real Estate Management
@@ -469,36 +396,6 @@ Route::prefix('unit-real-estates')->name('unit-real-estates.')->controller(UnitR
     Route::post('/', 'store')->middleware('permission:property_reference.create')->name('store');
     Route::post('/{id}', 'update')->middleware('permission:property_reference.edit')->name('update');
     Route::post('/{id}/delete', 'destroy')->middleware('permission:property_reference.delete')->name('destroy');
-});
-
-// Unit Types Management
-Route::prefix('unit-types')->name('unit-types.')->controller(UnitTypeController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/search', 'search')->middleware('permission:property_reference.view')->name('search');
-    Route::get('/create', 'create')->middleware('permission:property_reference.view')->name('create');
-    Route::get('/', 'index')->middleware('permission:property_reference.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:property_reference.create')->name('store');
-    Route::get('/{id}', 'show')->middleware('permission:property_reference.view')->name('show');
-    Route::post('/{id}', 'update')->middleware('permission:property_reference.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->middleware('permission:property_reference.delete')->name('destroy');
-});
-
-// Unit Usages Management
-Route::prefix('unit-usages')->name('unit-usages.')->controller(UnitUsageController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/create', 'create')->middleware('permission:property_reference.view')->name('create');
-    Route::get('/', 'index')->middleware('permission:property_reference.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:property_reference.create')->name('store');
-    Route::get('/{id}', 'show')->middleware('permission:property_reference.view')->name('show');
-    Route::post('/{id}', 'update')->middleware('permission:property_reference.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->middleware('permission:property_reference.delete')->name('destroy');
-});
-
-// Tenant roles (صفات المستأجر)
-Route::prefix('tenant-roles')->name('tenant-roles.')->controller(TenantRoleController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:tenant_roles.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:tenant_roles.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:tenant_roles.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:tenant_roles.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:tenant_roles.delete')->name('destroy');
 });
 
 // Roles Management
@@ -544,16 +441,6 @@ Route::prefix('draft-contract-statuses')->name('draft-contract-statuses.')->cont
     Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:draft_contract_statuses.delete')->name('destroy');
 });
 
-// Contract Periods Management
-Route::prefix('contract-periods')->name('contract-periods.')->controller(ContractPeriodController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:contract_periods.view')->name('index');
-    Route::post('/create', 'create')->middleware('permission:contract_periods.create')->name('create');
-    Route::post('/', 'store')->middleware('permission:contract_periods.create')->name('store');
-    Route::get('/{id}', 'show')->middleware('permission:contract_periods.view')->name('show');
-    Route::post('/{id}', 'update')->middleware('permission:contract_periods.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->middleware('permission:contract_periods.delete')->name('destroy');
-});
-
 // Contract WhatsApp Management
 Route::prefix('contract-whatsapp')->name('contract-whatsapp.')->controller(ContractWhatsAppController::class)->middleware('auth:sanctum')->group(function () {
     Route::get('/', 'index')->middleware('permission:contract_whatsapp.view')->name('index');
@@ -570,15 +457,6 @@ Route::prefix('coupons')->name('coupons.')->controller(CouponAdminController::cl
     Route::post('/{id}/inactive', 'inactive')->whereNumber('id')->middleware('permission:coupons.edit')->name('inactive');
     Route::post('/{id}/activate', 'activate')->whereNumber('id')->middleware('permission:coupons.edit')->name('activate');
     Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:coupons.delete')->name('destroy');
-});
-
-// Paperwork Management
-Route::prefix('paperworks')->name('paperworks.')->controller(PaperworkController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:paperworks.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:paperworks.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:paperworks.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:paperworks.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:paperworks.delete')->name('destroy');
 });
 
 // Popup Contract Management
@@ -764,14 +642,6 @@ Route::prefix('settings/app-status')->name('settings.app-status.')
 // App content dashboard (payment methods, legal pages, customer messages)
 Route::prefix('app-content')->name('app-content.')->controller(AppContentOverviewController::class)->middleware(['auth:sanctum', 'permission:app_content.view'])->group(function () {
     Route::get('/overview', 'overview')->name('overview');
-});
-
-Route::prefix('payment-types')->name('payment-types.')->controller(PaymentTypeController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/', 'index')->middleware('permission:app_content.view')->name('index');
-    Route::post('/', 'store')->middleware('permission:app_content.create')->name('store');
-    Route::get('/{id}', 'show')->whereNumber('id')->middleware('permission:app_content.view')->name('show');
-    Route::post('/{id}', 'update')->whereNumber('id')->middleware('permission:app_content.edit')->name('update');
-    Route::post('/{id}/delete', 'destroy')->whereNumber('id')->middleware('permission:app_content.delete')->name('destroy');
 });
 
 Route::prefix('customer-messages')->name('customer-messages.')->controller(CustomerApplicationMessageController::class)->middleware('auth:sanctum')->group(function () {

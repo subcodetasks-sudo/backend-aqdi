@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api\V2;
 
-class TenantRoleController extends \App\Http\Controllers\Api\TenantRoleController
+class TenantRoleController extends \App\Modules\Catalog\Controllers\Api\V2\TenantRoleController
 {
 }
-

@@ -1,22 +1,3 @@
 <?php
 
-namespace App\Http\Resources;
-
-use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\JsonResource;
-
-class ServicePricingResource extends JsonResource
-{
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
-    public function toArray(Request $request): array
-    {
-        return [
-            'name' => $this->name_trans,
-            'price' => $this->price,
-        ];
-    }
-}
+class_alias(\App\Modules\Catalog\Resources\ServicePricingResource::class, \App\Http\Resources\ServicePricingResource::class);

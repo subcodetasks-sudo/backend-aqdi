@@ -37,11 +37,12 @@ class ForgetPassword extends Mailable
      */
     public function content(): Content
     {
+        $name = e((string) ($this->user->fname ?? $this->user->name ?? ''));
+        $code = e((string) $this->user->reset_password_code);
+        $app = e((string) config('app.name'));
+
         return new Content(
-            markdown: 'emails.reset_password_web',
-            with:[
-                'user'=>$this->user,
-            ],
+            htmlString: "<p dir=\"rtl\">مرحبًا {$name}</p><p>كود إعادة تعيين كلمة المرور: <strong>{$code}</strong></p><p>{$app}</p>",
         );
     }
 

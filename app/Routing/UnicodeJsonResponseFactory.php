@@ -2,7 +2,7 @@
 
 namespace App\Routing;
 
-use App\Support\JsonEncoding;
+use App\Shared\Responses\JsonEncoding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\ResponseFactory;
 

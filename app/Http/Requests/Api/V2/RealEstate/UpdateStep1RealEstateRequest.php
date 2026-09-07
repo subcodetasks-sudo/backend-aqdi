@@ -72,16 +72,16 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'instrument_type' => ['nullable', Rule::in($instrumentTypes), 'required_if:property_owner_is_deceased,1'],
             'property_usages_id' => 'nullable|exists:rea_estat_usages,id',
             'number_of_units_in_realestate' => 'nullable|integer',
-            'image_instrument' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf',
-            'image_address' => 'nullable|image',
+            'image_instrument' => 'nullable|file',
+            'image_address' => 'nullable|file',
             'age_of_the_property' => 'nullable|integer|min:0',
             'number_of_units_per_floor' => 'nullable|string|max:255',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'type_date_first_registration' => 'nullable|in:hijri,gregorian',
-            'copy_of_the_endowment_registration_certificate' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
-            'copy_of_the_trusteeship_deed' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
+            'copy_of_the_endowment_registration_certificate' => 'nullable|file',
+            'copy_of_the_trusteeship_deed' => 'nullable|file',
             'is_multiple_trusteeship_deed_copy' => 'nullable|boolean',
-            'copy_of_guardians_power_of_attorney_for_agent' => 'nullable|file|mimes:jpg,jpeg,png,pdf',
+            'copy_of_guardians_power_of_attorney_for_agent' => 'nullable|file',
         ], $this->locationRules(requireId: false));
     }
 
@@ -90,10 +90,6 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         return array_merge([
             'id.required' => 'معرف العقار مطلوب.',
             'id.exists' => 'العقار المحدد غير موجود.',
-            'copy_of_the_endowment_registration_certificate.mimes' => 'نسخة شهادة تسجيل الوقف يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'copy_of_the_trusteeship_deed.mimes' => 'نسخة صك النظارة يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'copy_of_guardians_power_of_attorney_for_agent.mimes' => 'نسخة وكالة النظار يجب أن تكون بصيغة jpg, jpeg, png, أو pdf.',
-            'image_instrument.mimes' => 'ملف الصك يجب أن يكون بصيغة jpg أو jpeg أو png أو webp أو pdf.',
         ], $this->locationMessages());
     }
 

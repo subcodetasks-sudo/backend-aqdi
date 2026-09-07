@@ -2,23 +2,46 @@
 
 namespace App\Providers;
 
-// use Illuminate\Support\Facades\Gate;
+use App\Modules\Catalog\Models\City;
+use App\Modules\Catalog\Models\ContractPeriod;
+use App\Modules\Catalog\Models\Paperwork;
+use App\Modules\Catalog\Models\PaymentType;
+use App\Modules\Catalog\Models\ReaEstatType;
+use App\Modules\Catalog\Models\ReaEstatUsage;
+use App\Modules\Catalog\Models\Region;
+use App\Modules\Catalog\Models\TenantRole;
+use App\Modules\Catalog\Models\UnitType;
+use App\Modules\Catalog\Models\UnitUsage;
+use App\Modules\Catalog\Policies\CityPolicy;
+use App\Modules\Catalog\Policies\ContractPeriodPolicy;
+use App\Modules\Catalog\Policies\PaperworkPolicy;
+use App\Modules\Catalog\Policies\PaymentTypePolicy;
+use App\Modules\Catalog\Policies\PropertyReferencePolicy;
+use App\Modules\Catalog\Policies\RegionPolicy;
+use App\Modules\Catalog\Policies\TenantRolePolicy;
+use App\Modules\Users\Models\User;
+use App\Modules\Users\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
 {
     /**
-     * The model to policy mappings for the application.
-     *
      * @var array<class-string, class-string>
      */
     protected $policies = [
-        //
+        City::class => CityPolicy::class,
+        Region::class => RegionPolicy::class,
+        Paperwork::class => PaperworkPolicy::class,
+        TenantRole::class => TenantRolePolicy::class,
+        ContractPeriod::class => ContractPeriodPolicy::class,
+        PaymentType::class => PaymentTypePolicy::class,
+        ReaEstatType::class => PropertyReferencePolicy::class,
+        ReaEstatUsage::class => PropertyReferencePolicy::class,
+        UnitType::class => PropertyReferencePolicy::class,
+        UnitUsage::class => PropertyReferencePolicy::class,
+        User::class => UserPolicy::class,
     ];
 
-    /**
-     * Register any authentication / authorization services.
-     */
     public function boot(): void
     {
         //

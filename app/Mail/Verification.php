@@ -45,8 +45,11 @@ class Verification extends Mailable
      */
     public function content()
     {
+        $code = e((string) $this->user->verification_code);
+        $app = e((string) config('app.name'));
+
         return new Content(
-            markdown: 'emails.verification',
+            htmlString: "<p>Your verification code is <strong>{$code}</strong></p><p>Thanks,<br>{$app}</p>",
         );
     }
 

@@ -1,11 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AdController;
-use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GeneralController;
 use App\Http\Controllers\Api\InstructionImageController;
 use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\TenantRoleController;
 use App\Http\Controllers\Api\UserCouponController;
 use App\Http\Controllers\Api\V2\ContentPageController as V2ContentPageController;
 use App\Http\Controllers\Api\V2\ContractController as V2ContractController;
@@ -26,25 +24,14 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::controller(GeneralController::class)->group(function () {
-    Route::get('/cities', 'cities');
-    Route::get('/regions', 'regions');
     Route::get('/instrument-types', 'instrumentTypes');
     Route::get('/contract-types', 'contractTypes');
     Route::get('/terms-and-conditions', 'termsAndConditions');
     Route::get('/privacy', 'privacy');
     Route::get('/common-questions', 'commonQuestions');
-    Route::get('/bank-accounts', 'bankAccounts');
-    Route::get('/services-pricing', 'servicesPricing');
-    Route::get('/paperwork', 'paperwork');
-    Route::get('/real-estat-type', 'realEstatType');
-    Route::get('/real-estat-usage', 'realEstatUsage');
-    Route::get('/units-types', 'unitsTypes');
-    Route::get('/units-usage', 'unitsUsages');
-    Route::get('/payments-types', 'paymentsTypes');
     Route::get('/popup-contracts', 'popupContracts');
     Route::get('/payment-content', 'paymentContent');
     Route::get('/payment-messages', 'paymentContent');
-    Route::get('/contract-periods', 'contractPeriods');
     Route::get('/settings', 'settings');
     Route::get('/cover', 'cover');
 });
@@ -74,36 +61,7 @@ Route::prefix('instrument-type-settings')->controller(V2SettingContractControlle
 Route::get('/sms-settings', [V2SmsSettingController::class, 'show']);
 Route::get('/meter-fee-settings', [V2MeterFeeSettingController::class, 'show']);
 
-Route::prefix('tenant-roles')->controller(TenantRoleController::class)->group(function () {
-    Route::get('/', 'index');
-    Route::post('/', 'store');
-    Route::get('/{id}', 'show');
-    Route::match(['put', 'patch'], '/{id}', 'update');
-    Route::delete('/{id}', 'destroy');
-});
-
-Route::prefix('auth') ->controller(AuthController::class)->group(function () {
-    Route::post('/google/callback', 'handleGoogleCallback');
-    Route::post('/login', 'login');
-    Route::post('/signup', 'signup');
-    Route::post('/verification', 'verification');
-    Route::post('/resend', 'resend');
-    Route::post('/forgot-password', 'forgotPassword');
-    Route::post('/reset-password-code', 'resetPasswordCode');
-    Route::post('/reset-password', 'resetPassword');
-});
-
 Route::middleware('auth:sanctum')->group(function () {
-    Route::controller(AuthController::class)->group(function () {
-        Route::post('/auth/logout', 'logout');
-        Route::get('/profile', 'profile');
-        Route::post('/profile', 'updateProfile');
-        Route::post('/update/password', 'updatePassword');
-        Route::post('/fcm', 'updateFCMToken');
-        Route::get('/notifications', 'notifications');
-        Route::post('/user/deactivate', 'deactivateUser');
-    });
-
     Route::controller(UserCouponController::class)->group(function () {
         Route::get('/coupons/mine', 'mine');
         Route::post('/coupons/login-notification/ack', 'acknowledge');
