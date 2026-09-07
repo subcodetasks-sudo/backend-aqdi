@@ -43,14 +43,18 @@ class SharedInfrastructureTest extends TestCase
         $this->assertTrue(function_exists('website_image'));
     }
 
-    public function test_module_route_loader_discovers_auth_catalog_and_users(): void
+    public function test_module_route_loader_discovers_migrated_modules(): void
     {
         $loader = $this->app->make(ModuleRouteLoader::class);
         $names = array_map('basename', $loader->moduleDirectories());
 
-        $this->assertContains('Auth', $names);
-        $this->assertContains('Catalog', $names);
-        $this->assertContains('Users', $names);
+        foreach ([
+            'Analytics', 'Auth', 'Catalog', 'Content', 'Contracts', 'Coupons',
+            'Employees', 'Finance', 'Marketing', 'Notifications', 'Payments',
+            'RealEstate', 'Seo', 'Settings', 'Users',
+        ] as $module) {
+            $this->assertContains($module, $names);
+        }
     }
 
     public function test_api_and_utility_web_routes_remain_registered(): void

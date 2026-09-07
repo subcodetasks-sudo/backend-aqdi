@@ -300,7 +300,8 @@ $folders = [
     ],
     'Uncompleted contracts' => [
         req('Check uncompleted contract', 'GET', '/contract/check-uncompleted-contract', [
-            'description' => 'Returns whether the authenticated user has an incomplete contract. When check=true, response includes contract_id, uuid, and current step.',
+            'query' => ['contract_type' => 'housing'],
+            'description' => 'Required query `contract_type=housing|commercial`. Incomplete drafts are scoped to that type only. When check=true: contract_id, uuid, step, contract_type.',
         ]),
         req('Get uncompleted contract step', 'POST', '/contract/uncompleted-contract', [
             'body' => ['uuid' => '{{contract_uuid}}'],

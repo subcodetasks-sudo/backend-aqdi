@@ -179,7 +179,7 @@ $saveIdsScript = [
                 'if (realId && String(pm.request.url).includes("realstate")) {',
                 '    pm.collectionVariables.set("real_estate_id", String(realId));',
                 '}',
-                'const unitId = json?.data?.id;',
+                'const unitId = json?.data?.created?.[0]?.id || json?.data?.id;',
                 'if (unitId && String(pm.request.url).includes("/unit/create")) {',
                 '    pm.collectionVariables.set("unit_id", String(unitId));',
                 '}',
@@ -233,6 +233,24 @@ $unitItem = [
     'furnished' => 0,
     'electricity_meter' => 1,
     'water_meter' => 1,
+];
+
+$unitCreateItem = [
+    'contract_type' => 'housing',
+    'unit_type_id' => 1,
+    'unit_usage_id' => 1,
+    'unit_number' => '101',
+    'floor_number' => 1,
+    'unit_area' => 120,
+    'tootal_rooms' => 3,
+    'The_number_of_toilets' => 2,
+    'The_number_of_kitchens' => 1,
+    'split_ac' => 0,
+    'window_ac' => 0,
+    'kitchen_tank' => 0,
+    'furnished' => 0,
+    'electricity_meter' => 0,
+    'water_meter' => 0,
 ];
 
 $items = [
@@ -426,7 +444,8 @@ $items = [
                 'description' => "Contract workflow step 6. Prefer `tenant_role_ids`. Legacy `tenant_role_id` is still accepted.\nFor a custom duration, send `duration_preset: other` with `duration_years` / `duration_months` instead of `contract_term_in_years`.",
             ]),
             req('Check Uncompleted Contract', 'GET', '/contract/check-uncompleted-contract', [
-                'description' => 'Returns whether the user has an incomplete contract, plus `contract_id`, `uuid`, and current `step` when one exists.',
+                'query' => ['contract_type' => 'housing'],
+                'description' => 'Required query `contract_type=housing|commercial`. Returns whether the user has an incomplete contract of that type only (a housing draft does not block starting a commercial contract). When check=true: `contract_id`, `uuid`, `step`, `contract_type`.',
             ]),
             req('Get Current Contract Step', 'POST', '/contract/uncompleted-contract', [
                 'body' => ['uuid' => '{{contract_uuid}}'],
@@ -560,22 +579,19 @@ $items = [
                 req('Get Units', 'GET', '/unit/index/{{real_estate_id}}'),
                 req('Get All Units', 'GET', '/unit/all/{{real_estate_id}}'),
                 req('Get Unit', 'GET', '/unit/show/{{unit_id}}'),
-                req('Create Unit', 'POST', '/unit/create', [
-                    'body' => array_merge(
-                        ['real_estates_units_id' => '{{real_estate_id}}'],
-                        $unitItem,
-                        [
-                            'tootal_rooms' => 3,
-                            'The_number_of_halls' => 1,
-                            'The_number_of_kitchens' => 1,
-                            'The_number_of_toilets' => 2,
-                            'window_ac' => 1,
-                            'split_ac' => 1,
-                            'electricity_meter_number' => 'EM-12345',
-                            'water_meter_number' => 'WM-67890',
-                            'type_furnished' => false,
-                        ]
-                    ),
+                req('Create Units', 'POST', '/unit/create', [
+                    'body' => [
+                        'real_estates_units_id' => '{{real_estate_id}}',
+                        'units' => [
+                            $unitCreateItem,
+                            array_merge($unitCreateItem, [
+                                'unit_number' => '102',
+                                'unit_area' => 90,
+                                'tootal_rooms' => 2,
+                            ]),
+                        ],
+                    ],
+                    'description' => 'Create one or more units on an existing property in a single request. Send `units` with 1..50 items. `contract_type` is `housing` (سكني) or `commercial` (تجاري). Kitchen cabinets (`kitchen_tank` or `kitchen_cabinets`) require `The_number_of_kitchens` >= 1. A legacy flat single-unit body is still accepted.',
                     'event' => $saveIdsScript,
                 ]),
                 req('Update Unit', 'POST', '/unit/update/{{unit_id}}', [

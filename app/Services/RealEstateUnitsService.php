@@ -156,7 +156,10 @@ class RealEstateUnitsService
             'split_ac' => $payload['split_ac'] ?? null,
             'electricity_meter_number' => $payload['electricity_meter_number'] ?? null,
             'water_meter_number' => $payload['water_meter_number'] ?? null,
-            'kitchen_tank' => (int) filter_var($payload['kitchen_tank'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'kitchen_tank' => (int) filter_var(
+                $payload['kitchen_tank'] ?? $payload['kitchen_cabinets'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            ),
             'furnished' => (int) filter_var($payload['furnished'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'type_furnished' => \App\Support\TypeFurnished::normalize($payload['type_furnished'] ?? null),
             'electricity_meter' => (int) filter_var($payload['electricity_meter'] ?? false, FILTER_VALIDATE_BOOLEAN),

@@ -36,6 +36,7 @@ class UnitResource extends JsonResource
             'electricity_meter_number' => $this->electricity_meter_number,
             'water_meter_number' => $this->water_meter_number,
             'kitchen_tank' => (bool) $this->kitchen_tank,
+            'kitchen_cabinets' => (bool) $this->kitchen_tank,
             'furnished' => (bool) $this->furnished,
             'type_furnished' => $this->type_furnished,
             'electricity_meter' => (bool) $this->electricity_meter,

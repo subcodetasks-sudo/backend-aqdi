@@ -76,7 +76,7 @@
                                     "if (realId && String(pm.request.url).includes(\"realstate\")) {",
                                     "    pm.collectionVariables.set(\"real_estate_id\", String(realId));",
                                     "}",
-                                    "const unitId = json?.data?.id;",
+                                    "const unitId = json?.data?.created?.[0]?.id || json?.data?.id;",
                                     "if (unitId && String(pm.request.url).includes(\"\/unit\/create\")) {",
                                     "    pm.collectionVariables.set(\"unit_id\", String(unitId));",
                                     "}"
@@ -699,7 +699,7 @@
                                             "if (realId && String(pm.request.url).includes(\"realstate\")) {",
                                             "    pm.collectionVariables.set(\"real_estate_id\", String(realId));",
                                             "}",
-                                            "const unitId = json?.data?.id;",
+                                            "const unitId = json?.data?.created?.[0]?.id || json?.data?.id;",
                                             "if (unitId && String(pm.request.url).includes(\"\/unit\/create\")) {",
                                             "    pm.collectionVariables.set(\"unit_id\", String(unitId));",
                                             "}"
@@ -1866,7 +1866,7 @@
                                                     "if (realId && String(pm.request.url).includes(\"realstate\")) {",
                                                     "    pm.collectionVariables.set(\"real_estate_id\", String(realId));",
                                                     "}",
-                                                    "const unitId = json?.data?.id;",
+                                                    "const unitId = json?.data?.created?.[0]?.id || json?.data?.id;",
                                                     "if (unitId && String(pm.request.url).includes(\"\/unit\/create\")) {",
                                                     "    pm.collectionVariables.set(\"unit_id\", String(unitId));",
                                                     "}"
@@ -2235,7 +2235,7 @@
                                     "response": []
                                 },
                                 {
-                                    "name": "Create Unit",
+                                    "name": "Create Units",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -2264,13 +2264,14 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"real_estates_units_id\": \"{{real_estate_id}}\",\n    \"unit_type_id\": 1,\n    \"unit_usage_id\": 1,\n    \"unit_number\": \"101\",\n    \"floor_number\": 1,\n    \"unit_area\": 120,\n    \"kitchen_tank\": 0,\n    \"furnished\": 0,\n    \"electricity_meter\": 1,\n    \"water_meter\": 1,\n    \"tootal_rooms\": 3,\n    \"The_number_of_halls\": 1,\n    \"The_number_of_kitchens\": 1,\n    \"The_number_of_toilets\": 2,\n    \"window_ac\": 1,\n    \"split_ac\": 1,\n    \"electricity_meter_number\": \"EM-12345\",\n    \"water_meter_number\": \"WM-67890\",\n    \"type_furnished\": false\n}",
+                                            "raw": "{\n    \"real_estates_units_id\": \"{{real_estate_id}}\",\n    \"units\": [\n        {\n            \"contract_type\": \"housing\",\n            \"unit_type_id\": 1,\n            \"unit_usage_id\": 1,\n            \"unit_number\": \"101\",\n            \"floor_number\": 1,\n            \"unit_area\": 120,\n            \"tootal_rooms\": 3,\n            \"The_number_of_toilets\": 2,\n            \"The_number_of_kitchens\": 1,\n            \"split_ac\": 0,\n            \"window_ac\": 0,\n            \"kitchen_tank\": 0,\n            \"furnished\": 0,\n            \"electricity_meter\": 0,\n            \"water_meter\": 0\n        },\n        {\n            \"contract_type\": \"housing\",\n            \"unit_type_id\": 1,\n            \"unit_usage_id\": 1,\n            \"unit_number\": \"102\",\n            \"floor_number\": 1,\n            \"unit_area\": 90,\n            \"tootal_rooms\": 2,\n            \"The_number_of_toilets\": 2,\n            \"The_number_of_kitchens\": 1,\n            \"split_ac\": 0,\n            \"window_ac\": 0,\n            \"kitchen_tank\": 0,\n            \"furnished\": 0,\n            \"electricity_meter\": 0,\n            \"water_meter\": 0\n        }\n    ]\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
                                                 }
                                             }
-                                        }
+                                        },
+                                        "description": "Create one or more units on an existing property in a single request. Send `units` with 1..50 items. `contract_type` is `housing` (سكني) or `commercial` (تجاري). Kitchen cabinets (`kitchen_tank` or `kitchen_cabinets`) require `The_number_of_kitchens` >= 1. A legacy flat single-unit body is still accepted."
                                     },
                                     "response": [],
                                     "event": [
@@ -2296,7 +2297,7 @@
                                                     "if (realId && String(pm.request.url).includes(\"realstate\")) {",
                                                     "    pm.collectionVariables.set(\"real_estate_id\", String(realId));",
                                                     "}",
-                                                    "const unitId = json?.data?.id;",
+                                                    "const unitId = json?.data?.created?.[0]?.id || json?.data?.id;",
                                                     "if (unitId && String(pm.request.url).includes(\"\/unit\/create\")) {",
                                                     "    pm.collectionVariables.set(\"unit_id\", String(unitId));",
                                                     "}"

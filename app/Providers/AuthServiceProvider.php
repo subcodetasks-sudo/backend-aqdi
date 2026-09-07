@@ -19,6 +19,12 @@ use App\Modules\Catalog\Policies\PaymentTypePolicy;
 use App\Modules\Catalog\Policies\PropertyReferencePolicy;
 use App\Modules\Catalog\Policies\RegionPolicy;
 use App\Modules\Catalog\Policies\TenantRolePolicy;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Employees\Models\Permission;
+use App\Modules\Employees\Models\Role;
+use App\Modules\Employees\Policies\EmployeePolicy;
+use App\Modules\Employees\Policies\PermissionPolicy;
+use App\Modules\Employees\Policies\RolePolicy;
 use App\Modules\Users\Models\User;
 use App\Modules\Users\Policies\UserPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -40,6 +46,9 @@ class AuthServiceProvider extends ServiceProvider
         UnitType::class => PropertyReferencePolicy::class,
         UnitUsage::class => PropertyReferencePolicy::class,
         User::class => UserPolicy::class,
+        Employee::class => EmployeePolicy::class,
+        Role::class => RolePolicy::class,
+        Permission::class => PermissionPolicy::class,
     ];
 
     public function boot(): void

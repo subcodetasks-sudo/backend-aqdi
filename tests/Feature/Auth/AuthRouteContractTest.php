@@ -116,10 +116,10 @@ class AuthRouteContractTest extends TestCase
         $this->assertSame(0, $this->countUriMethod('login', 'POST'));
     }
 
-    public function test_employee_crud_index_remains_on_the_legacy_employee_controller(): void
+    public function test_employee_crud_index_uses_the_employees_module_controller(): void
     {
         $route = $this->routeByKey('GET api/admin/employees');
-        $this->assertSame(\App\Http\Controllers\Admin\EmployeeController::class, $route->getControllerClass());
+        $this->assertSame(\App\Modules\Employees\Controllers\Admin\EmployeeController::class, $route->getControllerClass());
         $this->assertContains('permission:employees.view', $route->gatherMiddleware());
     }
 

@@ -91,7 +91,7 @@ class UsersRouteContractTest extends TestCase
     {
         $route = $this->routeByKey('GET api/admin/analytics/user-activity-rate');
         $this->assertSame(
-            \App\Http\Controllers\Admin\UserDashboardAnalyticsController::class,
+            \App\Modules\Analytics\Controllers\Admin\UserDashboardAnalyticsController::class,
             $route->getControllerClass()
         );
         $this->assertContains('permission:analytics.view', $route->gatherMiddleware());

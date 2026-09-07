@@ -197,6 +197,22 @@ class Contract extends Model
     }
 
     /**
+     * Latest-incomplete lookup for one user, optionally limited to housing|commercial.
+     */
+    public function scopeIncompleteForUser($query, int $userId, ?string $contractType = null)
+    {
+        $query->where('user_id', $userId)
+            ->incomplete()
+            ->notDeleted();
+
+        if (is_string($contractType) && $contractType !== '') {
+            $query->where('contract_type', $contractType);
+        }
+
+        return $query;
+    }
+
+    /**
      * Completed contracts: is_completed = 1.
      */
     public function scopeCompleted($query)

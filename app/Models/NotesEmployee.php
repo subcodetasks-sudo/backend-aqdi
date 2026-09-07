@@ -1,26 +1,3 @@
 <?php
 
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class NotesEmployee extends Model
-{
-    use HasFactory;
-    protected $fillable = [
-        'employee_id',
-        'addition_date',
-        'notes_by_manger',
-    ];
-
-    protected $casts = [
-        'addition_date' => 'date',
-    ];
-
-    public function employee()
-    {
-        return $this->belongsTo(Employee::class);
-    }
-    
-}
+class_alias(\App\Modules\Employees\Models\NotesEmployee::class, \App\Models\NotesEmployee::class);

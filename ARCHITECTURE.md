@@ -2,7 +2,7 @@
 
 Aqdi is a Laravel 10 backend for Saudi rental-contract documentation (Ejar-related flows). This document describes the **feature-based modular architecture** the codebase is moving toward, and the rules for adding or migrating a feature.
 
-Phase 0 (Shared Infrastructure) is in place. **Catalog** (Phase 1) lives in `app/Modules/Catalog/`. Remaining features stay in the legacy Laravel layout until they are migrated.
+Phase 0 (Shared Infrastructure) is in place. Feature modules live in `app/Modules/{Feature}/`. Legacy `App\Http\Controllers\*`, `App\Models\*`, and related class names remain as aliases.
 
 ## Surfaces
 
@@ -165,18 +165,18 @@ Auth keeps login/signup/OTP/reset/logout. Coupons catalog, analytics clients, an
 
 Migrate in this order:
 
-1. Catalog (cities, regions, types, usages, periods, paperwork, bank accounts, tenant roles) — **done**
+1. Catalog — **done**
 2. Auth — **done**
 3. Users — **done**
-4. Employees
-5. Settings
-6. RealEstate
-7. Contracts
-8. Payments
-9. Coupons
-10. Notifications
-11. Content (includes website Blade pages)
-12. Marketing, Seo, Analytics, Finance
+4. Employees — **done**
+5. Settings — **done**
+6. RealEstate — **done**
+7. Contracts — **done**
+8. Payments — **done**
+9. Coupons — **done**
+10. Notifications — **done**
+11. Content — **done**
+12. Marketing, Seo, Analytics, Finance — **done**
 
 Website is a **channel**, not a module. Blade controllers live under `Modules/{Feature}/Controllers/Website`.
 
