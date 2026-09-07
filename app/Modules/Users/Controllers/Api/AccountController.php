@@ -7,6 +7,7 @@ use App\Http\Resources\OfferResource;
 use App\Models\Offer;
 use App\Modules\Users\Actions\DeactivateOwnAccountAction;
 use App\Modules\Users\Actions\UpdateOwnProfileAction;
+use App\Modules\Users\Models\User;
 use App\Modules\Users\Requests\Api\UpdateFcmTokenRequest;
 use App\Modules\Users\Requests\Api\UpdatePasswordRequest;
 use App\Modules\Users\Resources\UserResource;
@@ -20,14 +21,18 @@ class AccountController extends Controller
 
     public function profile(Request $request)
     {
-        $user = $request->user('api');
+        $user = $this->authenticatedUser($request);
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.unauthorized'), 401);
+        }
 
         return $this->apiResponse(new UserResource($user), trans('api.success'));
     }
 
-    public function deactivateUser(DeactivateOwnAccountAction $action)
+    public function deactivateUser(Request $request, DeactivateOwnAccountAction $action)
     {
-        $outcome = $action->execute(Auth::user());
+        $outcome = $action->execute($this->authenticatedUser($request));
 
         if ($outcome['ok']) {
             return $this->successMessage(trans('api.success_remove'));
@@ -38,10 +43,10 @@ class AccountController extends Controller
 
     public function updateProfile(Request $request, UpdateOwnProfileAction $action)
     {
-        $user = auth('api')->user();
+        $user = $this->authenticatedUser($request);
 
         if (! $user) {
-            return $this->apiResponse(null, trans('api.user_not_found'), 404);
+            return $this->errorMessage(trans('api.unauthorized'), 401);
         }
 
         $request->validate([
@@ -58,7 +63,12 @@ class AccountController extends Controller
 
     public function updatePassword(UpdatePasswordRequest $request)
     {
-        $user = $request->user('api');
+        $user = $this->authenticatedUser($request);
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.unauthorized'), 401);
+        }
+
         $data = $request->all();
         $data['password'] = bcrypt($request->password);
 
@@ -69,7 +79,11 @@ class AccountController extends Controller
 
     public function updateFCMToken(UpdateFcmTokenRequest $request)
     {
-        $user = $request->user('api');
+        $user = $this->authenticatedUser($request);
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.unauthorized'), 401);
+        }
 
         $user->update([
             'fcm_token' => $request->fcm_token,
@@ -80,7 +94,11 @@ class AccountController extends Controller
 
     public function notifications(Request $request)
     {
-        $user = $request->user('api');
+        $user = $this->authenticatedUser($request);
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.unauthorized'), 401);
+        }
 
         $notifications = Offer::orderBy('created_at', 'desc')->paginate(15);
 
@@ -95,5 +113,24 @@ class AccountController extends Controller
         $data['pagination'] = count($notifications) ? $this->paginate($notifications) : null;
 
         return $this->apiResponse($data, trans('api.success'));
+    }
+
+    /**
+     * Sanctum middleware authenticates the `sanctum` guard, not `api`.
+     * `$request->user('api')` is often null even when a valid token is present.
+     */
+    private function authenticatedUser(Request $request): ?User
+    {
+        $user = $request->user() ?? Auth::user() ?? $request->user('api');
+
+        if ($user instanceof User) {
+            return $user;
+        }
+
+        if (is_object($user) && isset($user->id)) {
+            return User::query()->find($user->id);
+        }
+
+        return null;
     }
 }

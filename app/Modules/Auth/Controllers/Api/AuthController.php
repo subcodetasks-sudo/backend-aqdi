@@ -107,7 +107,13 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user('api')->tokens()->delete();
+        $user = $request->user();
+
+        if (! $user) {
+            return $this->errorMessage(trans('api.unauthorized'), 401);
+        }
+
+        $user->tokens()->delete();
 
         return $this->successMessage(trans('api.logout_success'));
     }

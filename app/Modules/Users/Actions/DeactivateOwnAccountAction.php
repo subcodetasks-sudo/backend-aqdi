@@ -16,7 +16,10 @@ class DeactivateOwnAccountAction
         $user->is_active = false;
 
         if ($user->save()) {
-            $user->tokens()->where('id', $user->currentAccessToken()->id)->delete();
+            $token = $user->currentAccessToken();
+            if ($token && isset($token->id)) {
+                $user->tokens()->where('id', $token->id)->delete();
+            }
 
             return ['ok' => true];
         }

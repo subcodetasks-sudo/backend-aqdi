@@ -13,7 +13,7 @@ class UpdateProfileRequest extends FormRequest
 
     public function rules(): array
     {
-        $user = $this->user('api');
+        $user = $this->user();
 
         return [
             'fname' => 'nullable|string|max:255',

@@ -1,10 +1,12 @@
-# Prompt: Admin dashboard — all content & image alt/SEO
+# Prompt: Admin dashboard — home, about us, all DB content & image alt
 
-Build the Aqdi admin **محتوى التطبيق** area (Arabic-first, RTL) against the Laravel JSON API. Cover **every content screen** plus **image alt / meta SEO**. Do **not** invent fields, metrics, or endpoints.
+Build the Aqdi admin **محتوى التطبيق** area (Arabic-first, RTL) against the Laravel JSON API.
+
+**All copy and images for the public home page, about-us page, and legal pages live in the database.** The dashboard must **load, edit, and save them via API**. Do **not** hardcode Arabic/English text, image URLs, or extra page keys. Do **not** invent fields, metrics, or endpoints.
 
 Copy this prompt to the frontend. One endpoint per action. Hide a section if the employee lacks its **view** permission. Super admin (مدير النظام) bypasses gates.
 
-Related existing prompts: `admin-website-images-seo.md` (images only), `admin-marketing-content-and-reports.md` (marketing service pages / articles / reports — **not** this hub).
+Related: `admin-website-images-seo.md` (image catalog only), `admin-marketing-content-and-reports.md` (marketing service pages — **not** this hub).
 
 ---
 
@@ -20,30 +22,49 @@ Envelope:
 { "success": true, "code": 200, "message": "...", "data": { } }
 ```
 
-Lists that paginate use `data.items` + `data.pagination` (`current_page`, `last_page`, `from`, `to`, `total`, …). Empty arrays / `null` are valid.
-
-Base path: `/api/admin`.
-
-Updates that accept files: `multipart/form-data`. JSON is fine when there is no file.
+Lists that paginate use `data.items` + `data.pagination`. Empty arrays / `null` / `""` are valid. Base path: `/api/admin`. File updates: `multipart/form-data`. JSON is fine when there is no file.
 
 ---
 
-## Hub vs screens
+## What exists in the database (do not invent pages)
 
-| Screen id | Permission section | What it is |
-|---|---|---|
-| *(hub)* | `app_content.view` | Cards linking to payment methods, legal pages, customer messages |
-| `website-images` | `website_images` | Catalog of site images: **alt + meta title + meta description** (AR/EN) |
-| `instruction_sections` | `instruction_sections` | In-app instructional images by stable `key` |
-| *(blogs)* | `blogs` | Blog posts: cover **`image_alt`** + page `meta_title` / `meta_description` |
-| `terms` / `privacy` | `app_content` | Legal HTML (AR required, EN optional) |
-| *(home / about pages)* | `app_content` | Structured JSON pages (`home`, `about`) |
-| *(faqs)* | `faqs` | Q&A bilingual |
-| *(ads)* | `ads` | In-app ads (image + title; **no alt column**) |
-| `customer-app-messages` | `app_content` | Client in-app messages (alias of message alerts, type client) |
-| `payment-types` | `app_content` **screen map**; API gate is **`payment_types`** | Payment method names (Catalog) |
+There is **no list-all-pages** endpoint. These are the only CMS page keys the API accepts.
 
-Do not mix this hub with marketing **إدارة المحتوى** (`/api/admin/marketing/service-pages`).
+### A. Structured landing pages — table `content_pages`
+
+JSON blob per row (`page_key` unique + `content_json`). **Only two keys:**
+
+| `pageKey` | Arabic screen | GET (creates empty row if missing) | POST (merge + save) |
+|---|---|---|---|
+| `home` | الصفحة الرئيسية | `GET /api/admin/content-pages/home` | `POST /api/admin/content-pages/home` |
+| `about` | من نحن | `GET /api/admin/content-pages/about` | `POST /api/admin/content-pages/about` |
+
+Any other `{pageKey}` → **422** (`page_key` invalid). Public read (no admin token): `GET /api/v2/content-pages/home` and `GET /api/v2/content-pages/about`.
+
+`GET` uses `firstOrCreate`: if the row is missing, the API inserts the default empty schema and returns it. Always **GET first**, bind the form to `data.sections`, then POST.
+
+Permission: `app_content.view` (GET), `app_content.edit` (POST).
+
+### B. Legal HTML pages — table `pages`
+
+Plain HTML/text, not JSON sections.
+
+| DB `page` value | Screen | GET | POST |
+|---|---|---|---|
+| `term_and_condition` | الشروط والأحكام | `GET /api/admin/content/terms-and-conditions` | `POST /api/admin/content/terms-and-conditions` |
+| `privacy` | سياسة الخصوصية | `GET /api/admin/content/privacy` | `POST /api/admin/content/privacy` |
+
+Combined: `GET /api/admin/content/legal-pages` → `data.terms_and_conditions` + `data.privacy_policy`.
+
+Body: `description_ar` (required), `description_en` (optional).
+
+### C. Image alt catalog — table `website_images`
+
+Separate from `content_json`. Keys used on home / about / chrome: `logo`, `favicon`, `login-hero`, `landing-banner`, `home-create-contract`, `home-choose-contract`, `ejar-icon`, `whatsapp`, `footer-whatsapp`, `footer-tiktok`, `footer-x`, `success-icon`, `about-buyer`, `about-seller`, `about-middle`.
+
+### D. Other content tables (same dashboard hub)
+
+FAQs, blogs, ads, instruction sections, customer messages, payment types — see later sections. Not extra `content_pages` keys.
 
 ---
 
@@ -51,130 +72,147 @@ Do not mix this hub with marketing **إدارة المحتوى** (`/api/admin/ma
 
 | Surface | Alt / SEO fields that exist |
 |---|---|
-| Website images | `alt_ar`, `alt_en`, `meta_title_ar`, `meta_title_en`, `meta_description_ar`, `meta_description_en` |
-| Blog cover | `image_alt` (cover `<alt>`), plus `meta_title`, `meta_description` (page SEO) |
-| Instruction images | `title_ar` only (caption). **No `alt_ar`.** Use `title_ar` as the accessible label in the admin preview. |
-| Ads | `title` only. **No alt field.** Use `title` as the preview label. |
-| Content pages (`home` / `about`) | Section `image_url` (and file uploads). **No per-image alt in the JSON schema.** Do not add alt inputs unless the API adds them. |
-| Settings cover / banner | `/api/admin/settings` (`cover`, `image-banner`) — file replace only, not this content hub |
+| Website images catalog | `alt_ar`, `alt_en`, `meta_title_ar`, `meta_title_en`, `meta_description_ar`, `meta_description_en` |
+| Home / About CMS (`content_pages`) | Section/card `image_url` (and `license_file_url`). **No `alt_*` inside JSON.** Do not add alt inputs on home/about forms. Alt for chrome images is the website-images screen. |
+| Blog cover | `image_alt` + page `meta_title` / `meta_description` |
+| Instruction images | `title_ar` as caption only |
+| Ads | `title` only |
 
 Empty alt/meta is allowed. Do not block save.
 
 ---
 
-## 0. Hub — app content overview
+## 1. Home page CMS (`pageKey=home`)
 
-```
-GET /api/admin/app-content/overview
-```
+Screen: **الصفحة الرئيسية**. Load `GET /api/admin/content-pages/home`. Save `POST /api/admin/content-pages/home`.
 
-Permission: `app_content.view`.
-
-`data.sections[]`: `key`, `label_ar`, `label_en`, optional `count` / `has_content` / `sections_count`, and `routes` (method + path strings for the SPA to navigate).
-
-Keys: `payment_types`, `terms_and_conditions`, `privacy_policy`, `customer_messages`.
-
-Use this as the landing cards. Do not fetch those four resources until the user opens a card.
-
----
-
-## 1. Website images (alt + meta SEO) — primary alt screen
-
-Screen id: `website-images`. Permission: `website_images.view` / `create` / `edit` / `delete`.
-
-| Method | Path | Permission |
-|---|---|---|
-| GET | `/api/admin/website-images` | view |
-| GET | `/api/admin/website-images/{id}` | view |
-| POST | `/api/admin/website-images` | create |
-| PUT or POST | `/api/admin/website-images/{id}` | edit |
-| DELETE or POST `…/{id}/delete` | `/api/admin/website-images/{id}` | delete |
-| POST | `/api/admin/website-images/sync-defaults` | create |
-
-List query (optional): `search`, `is_active`.
-
-### List `data`
+Response `data`:
 
 ```json
 {
-  "summary": { "total": 15, "active": 15, "with_alt": 12, "with_meta": 8 },
-  "items": [
-    {
-      "id": 1,
-      "key": "logo",
-      "label_ar": "شعار الموقع",
-      "label_en": "Website logo",
-      "url": "https://…/logo.svg",
-      "static_path": "website/asset/images/logo.svg",
-      "path": null,
-      "alt_ar": "شعار أقدي",
-      "alt_en": "Aqdi logo",
-      "meta_title_ar": "أقدي",
-      "meta_title_en": null,
-      "meta_description_ar": "…",
-      "meta_description_en": null,
-      "is_active": true,
-      "sort_order": 10
-    }
-  ]
+  "page": "home",
+  "updated_at": "2026-09-07T08:00:00+00:00",
+  "sections": {
+    "hero": {},
+    "official_authorities": {},
+    "features": {},
+    "pricing": {},
+    "contact": {},
+    "app": {}
+  }
 }
 ```
 
-### Create / edit body
+Render **six editors**, one per section. Bind to the GET payload. Do not drop unknown extra keys the DB may already store (deep-merge on save).
 
-`key` (kebab-case, unique, required on create), `label_ar`, `label_en`, `static_path`, `alt_ar`, `alt_en`, `meta_title_ar`, `meta_title_en`, `meta_description_ar`, `meta_description_en`, `is_active`, `sort_order`, optional file `image` (jpeg/png/gif/svg/webp, max 4MB). Replacing `image` keeps the same `key`.
+### 1.1 `hero`
 
-**Do not rename `key` casually** — clients resolve by key (`logo`, `favicon`, `login-hero`, `landing-banner`, `home-create-contract`, `home-choose-contract`, `ejar-icon`, `whatsapp`, `footer-whatsapp`, `footer-tiktok`, `footer-x`, `success-icon`, `about-buyer`, `about-seller`, `about-middle`, …).
-
-`POST /sync-defaults` inserts missing catalog rows for known assets. It does **not** overwrite existing alt/meta.
-
-**UI:** table = thumbnail + label + key + alt + meta title. Drawer = bilingual alt / meta title / meta description + optional image replace. Show summary chips for missing alt / missing meta.
-
----
-
-## 2. Instruction images (صور تعليمية)
-
-Permission: `instruction_sections.view` / `edit` / `delete`. Sections are predefined; there is **no create section** route.
-
-| Method | Path |
+| Field | Type |
 |---|---|
-| GET | `/api/admin/instruction-sections` |
-| GET | `/api/admin/instruction-sections/{id}` |
-| POST | `/api/admin/instruction-sections/{id}` (update title/description/active/sort) |
-| POST | `/api/admin/instruction-sections/{id}/toggle` body `{ "is_active": true }` |
-| POST | `/api/admin/instruction-sections/{id}/delete` |
-| POST | `/api/admin/instruction-sections/{id}/images` multipart `image` + optional `title_ar`, `sort_order` |
-| POST | `/api/admin/instruction-sections/{id}/images/{imageId}/delete` |
+| `badge_text` | string |
+| `main_title` | string |
+| `description` | string |
+| `image_url` | public URL (read-only in UI; replace via file) |
 
-Upload: png/jpg/jpeg/webp, max 5MB. Image payload: `id`, `section_id`, `title_ar`, `image_url`, `mime_type`, `file_extension`, `sort_order`.
+Multipart: `hero[badge_text]`, `hero[main_title]`, `hero[description]`, file `hero[image]` (stored as `image_url`), `hero[keep_image]` = `1` to keep current image, `0` to clear if no new file.
 
-Stable section keys (mobile `GET /api/instruction-images/{key}`): `new-client`, `start`, `create-residential-contract`, `create-commercial-contract`, `my-real-estate`, `units`, `deed`, `address`, `owner`, `tenant`, `real-estate`, `instrument`, `agent`, `authorization`, `endowment`, `financial-data`, `payment-completion`, `requests`, `documentation`, `contract-review`.
+### 1.2 `official_authorities`
 
-Treat `title_ar` as the admin alt/caption. Do not send `alt_ar`.
+Header: `badge_text`, `main_title`, `description`. List `cards[]`:
 
----
-
-## 3. Blogs (cover alt + page meta)
-
-Permission: `blogs.view` / `create` / `edit` / `delete`.
-
-| Method | Path |
+| Field | Notes |
 |---|---|
-| GET | `/api/admin/blogs` |
-| POST | `/api/admin/blogs` |
-| GET | `/api/admin/blogs/{id}` |
-| PUT | `/api/admin/blogs/{id}` |
-| DELETE | `/api/admin/blogs/{id}` |
-| POST | `/api/admin/blogs/{id}/toggle-active` |
-| GET | `/api/admin/blogs/statistics` |
+| `id` | **Send a stable id** (string or number). Merge is by `id`. New card: new unique id. Delete: omit the card from the posted list (do **not** rely on `deleted_*` keys — the API ignores keys starting with `deleted_`). |
+| `title`, `description` | strings |
+| `image_url` | logo; file `official_authorities[cards][0][image]` |
+| `keep_image` | `1` / `0` |
+| `license_file_url` | license image or PDF |
+| `license_file_type` | `pdf` or `image` (set automatically on upload) |
+| `keep_license` or `keep_license_file` | keep current license file |
 
-Body (create): `title` (required), `description` (required), `status` = `published` \| `draft` \| `scheduled` \| `archived` (`schedule` is accepted and stored as `scheduled`), `image` (optional file), **`image_alt`**, **`meta_title`**, **`meta_description`**, `publish_at` (required if scheduled, must be future), `scheduled_at` (alias of `publish_at`), `is_active`, `category`, `category_label_ar`, `author`.
+Example: `official_authorities[cards][0][id]`, `[title]`, `[description]`, file `[image]`, file `[license_file]`, `[keep_image]=1`, `[keep_license]=1`.
 
-Always show **`image_alt`** next to the cover upload. Page SEO fields are separate from cover alt.
+### 1.3 `features`
+
+Header: `badge_text`, `main_title`, `description`. Cards: `id`, `title`, `description`, `image_url`, `keep_image`, optional `is_default`.
+
+### 1.4 `pricing`
+
+Header: `badge_text`, `main_title`, `description`. Cards: `id`, `title`, `subtitle`, `price`, `duration_label`, `image_url`, `keep_image`, `is_default`, nested `features[]` with `id` + `text`.
+
+Example: `pricing[cards][0][features][0][id]`, `pricing[cards][0][features][0][text]`.
+
+To remove a pricing bullet, post the card with the remaining `features` array only.
+
+### 1.5 `contact`
+
+`badge_text`, `main_title`, `description`, `contact_number`, `image_url` / `keep_image` / file `contact[image]`.
+
+### 1.6 `app`
+
+`badge_text`, `main_title`, `description`, `image_url` / `keep_image` / file `app[image]`.
+
+### Save rules (home and about)
+
+- POST **multipart** when any file changed; otherwise JSON with the same nested object shape (`hero`, `official_authorities`, … at the **root**, not wrapped in `sections`).
+- Optional `page=home` is ignored for routing (the URL key wins).
+- Server **deep-merges** into existing `content_json`. Send only changed sections if you want; sending the full `sections` object from GET is safer.
+- File field name `image` is stored as `image_url`. `license_file` → `license_file_url`.
+- `keep_image=1` without a new file keeps the old URL. `keep_image=0` without a new file clears it.
+- GET returns absolute `https://…/storage/…` URLs. Do not rewrite them on save unless replacing the file.
+- **No alt fields** on these images.
+
+JSON save example (no files):
+
+```json
+{
+  "hero": {
+    "badge_text": "عقدك الموثق من شبكة ايجار خلال دقائق",
+    "main_title": "عقد إيجار إلكتروني موثق",
+    "description": "…",
+    "keep_image": true
+  }
+}
+```
 
 ---
 
-## 4. Legal pages (terms + privacy)
+## 2. About us CMS (`pageKey=about`)
+
+Screen: **من نحن**. Load `GET /api/admin/content-pages/about`. Save `POST /api/admin/content-pages/about`. Same merge/file/`keep_*` rules as home.
+
+Response `data.page` = `"about"`. Sections:
+
+### 2.1 `hero`
+
+`badge_text`, `main_title`, `description`. **No image** in the default schema.
+
+### 2.2 `story` (stats / أرقام)
+
+Header: `badge_text`, `main_title`, `description`. Cards: `id`, `value` (e.g. `8.3M+`), `label` (e.g. `عدد العقود السكنية الموثقة`). No image on story cards.
+
+### 2.3 `vision_mission`
+
+| Path | Fields |
+|---|---|
+| `vision_mission.section_title` | string |
+| `vision_mission.section_description` | string |
+| `vision_mission.mission` | `badge_text`, `title`, `description`, `image_url`, `keep_image`, file `vision_mission[mission][image]` |
+| `vision_mission.vision` | same as mission; file `vision_mission[vision][image]` |
+
+### 2.4 `beneficiaries`
+
+Header: `badge_text`, `main_title`, `description`. Cards: `id`, `title`, `description`, `image_url`, `keep_image`, file `beneficiaries[cards][n][image]`.
+
+### 2.5 `values`
+
+Same card shape as beneficiaries: `id`, `title`, `description`, `image_url`.
+
+Suggested UI: two tabs **الرئيسية** | **من نحن**, or two sidebar items. Prefetch both GETs when the employee opens “صفحات الموقع”. Show `updated_at` on each tab.
+
+---
+
+## 3. Legal pages (DB table `pages`)
 
 Permission: `app_content.view` / `edit`. Screen ids: `terms`, `privacy`.
 
@@ -186,110 +224,105 @@ Permission: `app_content.view` / `edit`. Screen ids: `terms`, `privacy`.
 | GET | `/api/admin/content/privacy` |
 | POST | `/api/admin/content/privacy` |
 
-Update body: `description_ar` (required string), `description_en` (optional). Resource: `id`, `page`, `description_ar`, `description_en`, `description` (locale pick), `updated_at`.
+Resource: `id`, `page` (`term_and_condition` or `privacy`), `description_ar`, `description_en`, `description` (locale pick), `updated_at`.
 
-Prefer `legal-pages` for a combined editor (terms + privacy in one response).
-
----
-
-## 5. Home / About structured pages
-
-Permission: `app_content.view` / `edit`. `pageKey`: **`home`** or **`about`** only.
-
-| Method | Path |
-|---|---|
-| GET | `/api/admin/content-pages/{pageKey}` |
-| POST | `/api/admin/content-pages/{pageKey}` |
-
-GET/POST merge JSON `sections` (and optional file uploads). Public read: `GET /api/v2/content-pages/{pageKey}`.
-
-**Home sections:** `hero` (badge, title, description, `image_url`), `official_authorities`, `features`, `pricing` (cards arrays), `contact` (`contact_number`, `image_url`), `app` (`image_url`).
-
-**About sections:** `hero`, `story` (cards), `vision_mission` (`mission` / `vision` with `image_url`), `beneficiaries`, `values`.
-
-Send only changed section keys; server deep-merges. File fields replace URLs. **No alt keys in this schema.**
+Rich-text editors for AR (required) and EN (optional). Prefer one screen with two tabs fed by `legal-pages`.
 
 ---
 
-## 6. FAQs
+## 4. Website images — alt + meta (home / about chrome)
 
-Permission: `faqs.view` / `create` / `edit` / `delete`.
+Screen id: `website-images`. Permission: `website_images.view` / `create` / `edit` / `delete`.
+
+This is the **alt/SEO** editor for images that appear around home/about (logo, landing banner, about-buyer/seller/middle, home-create-contract, …). It is **not** the home/about CMS JSON.
 
 | Method | Path |
 |---|---|
-| GET | `/api/admin/faqs` (`search` optional) |
-| POST | `/api/admin/faqs` |
-| GET | `/api/admin/faqs/{id}` |
-| POST | `/api/admin/faqs/{id}` |
-| POST | `/api/admin/faqs/{id}/delete` |
+| GET | `/api/admin/website-images` |
+| GET | `/api/admin/website-images/{id}` |
+| POST | `/api/admin/website-images` |
+| PUT or POST | `/api/admin/website-images/{id}` |
+| DELETE or POST `…/{id}/delete` | |
+| POST | `/api/admin/website-images/sync-defaults` |
 
-Body: `title_ar` (required), `title_en`, `answer_ar` (required, max 1000), `answer_en`.
+List query: `search`, `is_active`. List `data.summary`: `total`, `active`, `with_alt`, `with_meta`.
+
+Item fields: `id`, `key` (kebab, stable — do not rename casually), `label_ar`, `label_en`, `url`, `static_path`, `path`, **`alt_ar`**, **`alt_en`**, **`meta_title_ar`**, **`meta_title_en`**, **`meta_description_ar`**, **`meta_description_en`**, `is_active`, `sort_order`. Optional file `image` (jpeg/png/gif/svg/webp, max 4MB).
+
+`POST /sync-defaults` inserts missing catalog keys. It does **not** overwrite existing alt/meta.
+
+UI: thumbnail + key + alt + meta. Badge rows where both alts are empty.
 
 ---
 
-## 7. In-app ads
+## 5. Hub overview (not home/about)
 
-Permission: `ads.view` / `create` / `edit` / `delete`.
+```
+GET /api/admin/app-content/overview
+```
 
-| Method | Path |
-|---|---|
-| GET | `/api/admin/ads` (`search`, `is_active`) |
-| POST | `/api/admin/ads` |
-| GET | `/api/admin/ads/{id}` |
-| POST | `/api/admin/ads/{id}` |
-| POST | `/api/admin/ads/{id}/delete` |
-
-Create: `title` (required), `image` (required jpg/png/webp, max 4MB), `is_active` (default true). Update: same fields; `image` optional.
-
-No alt field — preview with `title`.
+Permission: `app_content.view`. Cards only: `payment_types`, `terms_and_conditions`, `privacy_policy`, `customer_messages`. Home/about are **not** in this payload — add them in the SPA nav yourself (`/content-pages/home`, `/content-pages/about`).
 
 ---
 
-## 8. Customer application messages
+## 6. Instruction images
 
-Permission: `app_content.*`. Same handlers as message alerts with type **client**.
+Permission: `instruction_sections.*`. No create-section route.
 
-| Method | Path |
-|---|---|
-| GET | `/api/admin/customer-messages/overview` |
-| GET | `/api/admin/customer-messages` |
-| GET | `/api/admin/customer-messages/all` |
-| GET | `/api/admin/customer-messages/create` |
-| POST | `/api/admin/customer-messages` |
-| GET | `/api/admin/customer-messages/{id}` |
-| POST | `/api/admin/customer-messages/{id}` |
-| POST | `/api/admin/customer-messages/{id}/delete` |
+`GET/POST /api/admin/instruction-sections/{id}`, toggle, delete, `POST …/{id}/images` (`image` required png/jpg/jpeg/webp max 5MB, optional `title_ar`, `sort_order`), delete image.
 
-Full message-alert tree (employee / property / client) remains under `/api/admin/message-alerts` and `/message-alert-sections` (`permission:message_alerts.*`). This hub only needs the **client** alias above.
+Keys: `new-client`, `start`, `create-residential-contract`, `create-commercial-contract`, `my-real-estate`, `units`, `deed`, `address`, `owner`, `tenant`, `real-estate`, `instrument`, `agent`, `authorization`, `endowment`, `financial-data`, `payment-completion`, `requests`, `documentation`, `contract-review`.
+
+Image payload: `id`, `section_id`, `title_ar`, `image_url`, `mime_type`, `file_extension`, `sort_order`. Use `title_ar` as caption.
 
 ---
 
-## 9. Payment methods (from overview card)
+## 7. Blogs
 
-API lives in Catalog, not Content. Permission middleware: **`payment_types.view`** (and create/edit/delete). Dashboard screen id `payment-types` maps to `app_content` in `config/permissions.php` screens — still call these URLs:
+Permission: `blogs.*`. `GET/POST /api/admin/blogs`, `GET/PUT/DELETE /blogs/{id}`, `POST /{id}/toggle-active`, `GET /blogs/statistics`.
 
-| Method | Path |
-|---|---|
-| GET | `/api/admin/payment-types` |
-| POST | `/api/admin/payment-types` |
-| GET | `/api/admin/payment-types/{id}` |
-| POST | `/api/admin/payment-types/{id}` |
-| POST | `/api/admin/payment-types/{id}/delete` |
+Body: `title`, `description`, `status` = `published` \| `draft` \| `scheduled` \| `archived` (`schedule` → `scheduled`), file `image`, **`image_alt`**, **`meta_title`**, **`meta_description`**, `publish_at` / `scheduled_at` (future if scheduled), `is_active`, `category`, `category_label_ar`, `author`.
 
-Body: `name_ar` (required), `name_en` (optional). No image/alt.
+---
+
+## 8. FAQs
+
+Permission: `faqs.*`. `GET/POST /api/admin/faqs`, `GET/POST /faqs/{id}`, `POST /faqs/{id}/delete`. Optional `search`. Body: `title_ar` required, `title_en`, `answer_ar` required max 1000, `answer_en`.
+
+---
+
+## 9. Ads
+
+Permission: `ads.*`. `GET/POST /api/admin/ads`, show/update/delete. Create: `title`, `image` (jpg/png/webp max 4MB), `is_active`. No alt column — preview with `title`.
+
+---
+
+## 10. Customer application messages
+
+Permission: `app_content.*`. Client-only aliases:
+
+`GET /api/admin/customer-messages/overview|all|create|/|{id}`, `POST /`, `POST /{id}`, `POST /{id}/delete`.
+
+Full tree stays under `/message-alerts` (`permission:message_alerts.*`).
+
+---
+
+## 11. Payment methods
+
+Catalog API, gate `payment_types.*`. Screen id `payment-types`.
+
+`GET/POST /api/admin/payment-types`, `GET/POST /{id}`, `POST /{id}/delete`. Body: `name_ar` required, `name_en` optional.
 
 ---
 
 ## Suggested IA
 
-1. **Overview** — four cards from `/app-content/overview`
-2. **صور الموقع (SEO)** — website-images (this is the alt/meta editor)
-3. **صور تعليمية** — instruction-sections
-4. **المدونة** — blogs (`image_alt` required in the form UI even though API allows empty)
-5. **صفحات الهبوط** — content-pages `home` / `about`
-6. **قانوني** — legal-pages
-7. **الأسئلة الشائعة** — faqs
-8. **إعلانات التطبيق** — ads
-9. **رسائل العميل** — customer-messages
+1. **صفحات الموقع (من قاعدة البيانات)**
+   - الرئيسية → `content-pages/home`
+   - من نحن → `content-pages/about`
+2. **قانوني** → `content/legal-pages` (`pages` table)
+3. **صور الموقع (alt / SEO)** → `website-images`
+4. Overview cards → payment types / customer messages
+5. صور تعليمية / المدونة / الأسئلة / الإعلانات
 
-Show a red/empty badge on website-images rows where both `alt_ar` and `alt_en` are empty, and on blogs where `image` exists but `image_alt` is empty.
+Never add a third `content-pages/{key}` unless the backend adds it to `home|about`. Never seed home/about copy in the SPA; the source of truth is `content_json` in `content_pages`.
