@@ -73,10 +73,17 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'image_instrument'   => [
                 'nullable',
                 'file',
-                Rule::requiredIf(in_array($instrumentType, ['electronic', $ownerEndowment], true)),
+                Rule::requiredIf(
+                    $instrumentType === $ownerEndowment
+                    || $this->requiresElectronicDeedImage()
+                ),
             ],
 
+            'instrument_number' => 'nullable|string|max:255',
             'instrument_history' => 'nullable|string|max:32',
+            'instrument_history_day' => 'nullable|integer|min:1|max:31',
+            'instrument_history_month' => 'nullable|integer|min:1|max:12',
+            'instrument_history_year' => 'nullable|integer|min:1',
             'type_instrument_history' => 'nullable|in:hijri,gregorian',
             'real_estate_registry_number' => 'nullable|string|max:255',
             'date_first_registration' => 'nullable|string|max:32',
@@ -140,7 +147,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
             'contract_type.in'                        => 'نوع العقد يجب أن يكون سكني أو تجاري.',
             'instrument_type.in'                      => 'نوع الصك غير صالح.',
             'number_of_units_in_realestate.string'    => 'عدد الوحدات يجب أن يكون نصًا.',
-            'image_instrument.required'               => 'صورة الصك مطلوبة عند اختيار صك إلكتروني.',
+            'image_instrument.required'               => 'صورة الصك مطلوبة عند اختيار صك إلكتروني، ما لم يتم إدخال بيانات الصك يدويًا.',
             'copy_of_the_endowment_registration_certificate.required' => 'صورة من شهادة تسجيل الوقف مطلوبة.',
             'copy_of_the_trusteeship_deed.required' => 'صورة من صك النظارة مطلوبة.',
             'copy_of_guardians_power_of_attorney_for_agent.required' => 'صورة من وكالة النظار للوكيل مطلوبة عند وجود أكثر من ناظر.',
@@ -154,7 +161,7 @@ class Step1RealEstateRequest extends BaseApiV2Request
     {
         $payload = array_merge([
             'user_id'                        => $userId,
-            'instrument_number'              => null,
+            'instrument_number'              => $this->input('instrument_number'),
             'number_of_units_in_realestate'  => $this->input('number_of_units_in_realestate'),
             'property_type_id'               => $this->input('property_type_id'),
             'property_usages_id'             => $this->input('property_usages_id'),
@@ -186,10 +193,12 @@ class Step1RealEstateRequest extends BaseApiV2Request
             $payload['water_meter_ownership'] = ($value === '' || $value === null) ? null : $value;
         }
 
-         if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
-            $payload['instrument_history'] = DateInputNormalizer::toMysqlDate((string) $this->input('instrument_history'))
-                ?? date('Y-m-d', strtotime((string) $this->input('instrument_history')));
-            $payload['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
+         if ($this->input('instrument_type') === 'electronic') {
+            $history = $this->resolvedInstrumentHistory();
+            if ($history !== null) {
+                $payload['instrument_history'] = $history;
+                $payload['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
+            }
         }
 
         if ($this->filled('real_estate_registry_number')) {
@@ -231,22 +240,42 @@ class Step1RealEstateRequest extends BaseApiV2Request
         return $payload;
     }
 
+    public function resolvedInstrumentHistory(): ?string
+    {
+        return $this->resolveDateField(
+            'instrument_history',
+            'instrument_history_day',
+            'instrument_history_month',
+            'instrument_history_year'
+        );
+    }
+
     public function resolvedDateFirstRegistration(): ?string
     {
-        $hasDay = $this->filled('date_first_registration_day');
-        $hasMonth = $this->filled('date_first_registration_month');
-        $hasYear = $this->filled('date_first_registration_year');
+        return $this->resolveDateField(
+            'date_first_registration',
+            'date_first_registration_day',
+            'date_first_registration_month',
+            'date_first_registration_year'
+        );
+    }
+
+    private function resolveDateField(string $combined, string $dayKey, string $monthKey, string $yearKey): ?string
+    {
+        $hasDay = $this->filled($dayKey);
+        $hasMonth = $this->filled($monthKey);
+        $hasYear = $this->filled($yearKey);
 
         if ($hasDay && $hasMonth && $hasYear) {
             return DateInputNormalizer::combineFromParts(
-                $this->input('date_first_registration_day'),
-                $this->input('date_first_registration_month'),
-                $this->input('date_first_registration_year'),
+                $this->input($dayKey),
+                $this->input($monthKey),
+                $this->input($yearKey),
             );
         }
 
-        if ($this->filled('date_first_registration')) {
-            $raw = trim((string) $this->input('date_first_registration'));
+        if ($this->filled($combined)) {
+            $raw = trim((string) $this->input($combined));
             if ($raw === '') {
                 return null;
             }

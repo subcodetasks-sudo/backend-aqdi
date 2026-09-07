@@ -21,4 +21,25 @@ trait NormalizesRealEstateInstrumentType
             $this->merge(['instrument_type' => $normalized]);
         }
     }
+
+    /**
+     * Manual deed entry (number / date) instead of uploading a scan.
+     * In that path the deed image is optional.
+     */
+    protected function isManualDeedEntry(): bool
+    {
+        return $this->filled('instrument_number')
+            || $this->filled('instrument_history')
+            || (
+                $this->filled('instrument_history_day')
+                && $this->filled('instrument_history_month')
+                && $this->filled('instrument_history_year')
+            );
+    }
+
+    protected function requiresElectronicDeedImage(): bool
+    {
+        return $this->input('instrument_type') === 'electronic'
+            && ! $this->isManualDeedEntry();
+    }
 }

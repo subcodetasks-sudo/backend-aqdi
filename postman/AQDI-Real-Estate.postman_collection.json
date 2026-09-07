@@ -287,7 +287,7 @@
                                 }
                             ]
                         },
-                        "description": "Creates the property. Saves `real_estate_id`.\nUI: صك ملكية إلكتروني + رفع صورة الصك + رابط قوقل ماب.\n`image_instrument` is required when `instrument_type=electronic`. File: png \/ jpeg \/ pdf."
+                        "description": "Creates the property. Saves `real_estate_id`.\nUI: صك ملكية إلكتروني + رفع صورة الصك + رابط قوقل ماب.\n`image_instrument` is required for electronic only when deed data is not entered manually. File: png \/ jpeg \/ pdf."
                     },
                     "response": [],
                     "event": [
@@ -313,6 +313,11 @@
                                 "key": "Accept",
                                 "value": "application\/json",
                                 "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json",
+                                "type": "text"
                             }
                         ],
                         "url": {
@@ -328,66 +333,15 @@
                             ]
                         },
                         "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "contract_type",
-                                    "type": "text",
-                                    "value": "housing"
-                                },
-                                {
-                                    "key": "contract_ownership",
-                                    "type": "text",
-                                    "value": "owner"
-                                },
-                                {
-                                    "key": "property_type_id",
-                                    "type": "text",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "property_usages_id",
-                                    "type": "text",
-                                    "value": "1"
-                                },
-                                {
-                                    "key": "number_of_floors",
-                                    "type": "text",
-                                    "value": "2"
-                                },
-                                {
-                                    "key": "number_of_units_in_realestate",
-                                    "type": "text",
-                                    "value": "4"
-                                },
-                                {
-                                    "key": "instrument_type",
-                                    "type": "text",
-                                    "value": "electronic"
-                                },
-                                {
-                                    "key": "instrument_history",
-                                    "type": "text",
-                                    "value": "1440-01-01"
-                                },
-                                {
-                                    "key": "type_instrument_history",
-                                    "type": "text",
-                                    "value": "hijri"
-                                },
-                                {
-                                    "key": "address_url",
-                                    "type": "text",
-                                    "value": "https:\/\/maps.google.com\/?q=24.7136,46.6753"
-                                },
-                                {
-                                    "key": "image_instrument",
-                                    "type": "file",
-                                    "src": ""
+                            "mode": "raw",
+                            "raw": "{\n    \"contract_type\": \"housing\",\n    \"contract_ownership\": \"owner\",\n    \"property_type_id\": 1,\n    \"property_usages_id\": 1,\n    \"number_of_floors\": 2,\n    \"number_of_units_in_realestate\": \"4\",\n    \"instrument_type\": \"electronic\",\n    \"instrument_number\": \"1234567890\",\n    \"type_instrument_history\": \"hijri\",\n    \"instrument_history_day\": 15,\n    \"instrument_history_month\": 6,\n    \"instrument_history_year\": 1440,\n    \"address_url\": \"https:\\\/\\\/maps.google.com\\\/?q=24.7136,46.6753\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
                                 }
-                            ]
+                            }
                         },
-                        "description": "صك إلكتروني مع تاريخ الصك يدويًا + رابط قوقل ماب."
+                        "description": "UI: إدخال بيانات الصك يدويًا بدل الصورة + رابط قوقل ماب. الصورة غير مطلوبة."
                     },
                     "response": [],
                     "event": [
@@ -1728,7 +1682,7 @@
                     ]
                 }
             ],
-            "description": "POST \/realstate\/step1 — creates the property.\n\nUI: نوع المستند + العنوان الوطني (رابط قوقل ماب \/ يدوي \/ صورة البطاقة).\n`image_instrument` is required for `electronic` and owner-endowment.\nChoose the file in Postman before sending form-data requests."
+            "description": "POST \/realstate\/step1 — creates the property.\n\nUI: نوع المستند + العنوان الوطني (رابط قوقل ماب \/ يدوي \/ صورة البطاقة).\n`image_instrument` is required for electronic only when the deed is not entered manually, and always for owner-endowment.\nChoose the file in Postman before sending form-data requests."
         },
         {
             "name": "3. Step 2 — Owner Details",

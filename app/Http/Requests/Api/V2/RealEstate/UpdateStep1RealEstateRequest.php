@@ -57,6 +57,9 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'contract_type' => 'nullable|in:housing,commercial',
             'property_owner_is_deceased' => 'nullable|boolean',
             'instrument_history' => 'nullable|string|max:32',
+            'instrument_history_day' => 'nullable|integer|min:1|max:31',
+            'instrument_history_month' => 'nullable|integer|min:1|max:12',
+            'instrument_history_year' => 'nullable|integer|min:1',
             'real_estate_registry_number' => [Rule::requiredIf($instrumentType === 'strong_argument')],
             'date_first_registration' => [
                 Rule::requiredIf($instrumentType === 'strong_argument'),
@@ -73,6 +76,7 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             'property_usages_id' => 'nullable|exists:rea_estat_usages,id',
             'number_of_units_in_realestate' => 'nullable|integer',
             'image_instrument' => 'nullable|file',
+            'instrument_number' => 'nullable|string|max:255',
             'image_address' => 'nullable|file',
             'age_of_the_property' => 'nullable|integer|min:0',
             'number_of_units_per_floor' => 'nullable|string|max:255',
@@ -119,10 +123,11 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
                 return;
             }
 
-            if ($instrumentType === 'electronic'
+            if ($this->requiresElectronicDeedImage()
                 && ! $this->hasFile('image_instrument')
-                && empty($real->image_instrument)) {
-                $validator->errors()->add('image_instrument', 'صورة الصك مطلوبة.');
+                && empty($real->image_instrument)
+                && empty($real->instrument_number)) {
+                $validator->errors()->add('image_instrument', 'صورة الصك مطلوبة عند اختيار صك إلكتروني، ما لم يتم إدخال بيانات الصك يدويًا.');
             }
 
             if ($instrumentType === $ownerEndowment) {
@@ -211,10 +216,16 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
             $data['is_multiple_trusteeship_deed_copy'] = $this->boolean('is_multiple_trusteeship_deed_copy');
         }
 
-        if ($this->input('instrument_type') === 'electronic' && $this->filled('instrument_history')) {
-            $data['instrument_history'] = DateInputNormalizer::toMysqlDate((string) $this->input('instrument_history'))
-                ?? date('Y-m-d', strtotime((string) $this->input('instrument_history')));
-            $data['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
+        if ($this->exists('instrument_number')) {
+            $data['instrument_number'] = $this->input('instrument_number');
+        }
+
+        if ($this->input('instrument_type') === 'electronic') {
+            $history = $this->resolvedInstrumentHistory();
+            if ($history !== null) {
+                $data['instrument_history'] = $history;
+                $data['type_instrument_history'] = $this->input('type_instrument_history', 'hijri');
+            }
         }
 
         if ($this->hasFile('image_instrument')) {
@@ -243,6 +254,40 @@ class UpdateStep1RealEstateRequest extends BaseApiV2Request
         }
 
         return $data;
+    }
+
+    public function resolvedInstrumentHistory(): ?string
+    {
+        $hasDay = $this->filled('instrument_history_day');
+        $hasMonth = $this->filled('instrument_history_month');
+        $hasYear = $this->filled('instrument_history_year');
+
+        if ($hasDay && $hasMonth && $hasYear) {
+            return DateInputNormalizer::combineFromParts(
+                $this->input('instrument_history_day'),
+                $this->input('instrument_history_month'),
+                $this->input('instrument_history_year'),
+            );
+        }
+
+        if ($this->filled('instrument_history')) {
+            $raw = trim((string) $this->input('instrument_history'));
+            if ($raw === '') {
+                return null;
+            }
+
+            $mysql = DateInputNormalizer::toMysqlDate($raw);
+            if ($mysql !== null) {
+                return $mysql;
+            }
+
+            $parts = preg_split('/[-\/]/', $raw);
+            if (count($parts) === 3) {
+                return DateInputNormalizer::combineFromParts($parts[0], $parts[1], $parts[2]);
+            }
+        }
+
+        return null;
     }
 
     public function resolvedDateFirstRegistration(): ?string

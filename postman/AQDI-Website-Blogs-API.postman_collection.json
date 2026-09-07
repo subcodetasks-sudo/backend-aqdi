@@ -1,0 +1,507 @@
+{
+    "info": {
+        "_postman_id": "af25aecc-c693-48ca-bd22-57c7ab79322d",
+        "name": "AQDI Website — Blogs API",
+        "description": "Public JSON API for website / blog-frontend blogs (`/api/blogs`).\n\n**Public (no token)**\n- `GET /api/blogs` — published / due-scheduled, active, paginated 6\n- `GET /api/blogs/{slug}` — single post (increments views)\n\n**SEO CMS (Bearer `{{seo_token}}`)**\n- `POST /api/seo/login` then create / update / toggle / delete\n\nAdmin CRUD stays on `/api/admin/blogs` (see AQDI Admin API). This collection is the public website surface.\n\n1. Import this collection.\n2. Set `baseUrl` (e.g. http://localhost:8000).\n3. Run **List published blogs** — saves `blog_slug` / `blog_id`.\n4. For writes, run **SEO login** first (seed: `seo@email.com` / `seo123456`).",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string"
+        },
+        {
+            "key": "locale",
+            "value": "ar",
+            "type": "string"
+        },
+        {
+            "key": "seo_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "blog_slug",
+            "value": "how-to-certify-rental-contract-online",
+            "type": "string"
+        },
+        {
+            "key": "blog_id",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "seo_email",
+            "value": "seo@email.com",
+            "type": "string"
+        },
+        {
+            "key": "seo_password",
+            "value": "seo123456",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "1 — Public JSON (website / blog frontend)",
+            "description": "Active published posts, or scheduled posts whose publish_at has passed. 6 per page. `?page=` still works.",
+            "item": [
+                {
+                    "name": "List published blogs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs?page=1",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                }
+                            ]
+                        },
+                        "description": "Returns published (or due scheduled) active blogs. Saves first item slug/id to `blog_slug` / `blog_id`. Empty list is 200 with data []."
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const items = Array.isArray(json?.data) ? json.data : (json?.data?.data ?? []);",
+                                    "const first = items[0];",
+                                    "if (first?.slug) { pm.collectionVariables.set(\"blog_slug\", String(first.slug)); }",
+                                    "if (first?.id) { pm.collectionVariables.set(\"blog_id\", String(first.id)); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Show blog by slug",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs/{{blog_slug}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs",
+                                "{{blog_slug}}"
+                            ]
+                        },
+                        "description": "Single post by slug. Increments views_count. 404 when the slug does not exist."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Show blog — not found",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs/this-slug-does-not-exist",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs",
+                                "this-slug-does-not-exist"
+                            ]
+                        },
+                        "description": "Expect 404 and `api.blog_not_found`."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2 — SEO login",
+            "description": "Blog-subdomain CMS login (`seos` table, `seo` guard). Token is a Sanctum personal access token.",
+            "item": [
+                {
+                    "name": "SEO login (save token)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/seo/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "seo",
+                                "login"
+                            ]
+                        },
+                        "description": "Saves `data.token` to `seo_token`. Seed user: seo@email.com / seo123456.",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"{{seo_email}}\",\n    \"password\": \"{{seo_password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const token = json?.data?.token ?? json?.token;",
+                                    "if (token) {",
+                                    "  pm.collectionVariables.set(\"seo_token\", token);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "3 — SEO CMS (write)",
+            "description": "Requires Bearer `{{seo_token}}`. Image upload is multipart/form-data. Admin panel CRUD is still `/api/admin/blogs`.",
+            "item": [
+                {
+                    "name": "Create blog",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{seo_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs"
+                            ]
+                        },
+                        "description": "multipart/form-data. `status`: published | draft | scheduled | archived. `scheduled_at` aliases `publish_at`. Saves created id/slug.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "عنوان مقال تجريبي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "<p>محتوى المقال يظهر على صفحة المدونة في الموقع.</p>",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "published",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image_alt",
+                                    "value": "وصف صورة المقال",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "meta_title",
+                                    "value": "عنوان SEO",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "meta_description",
+                                    "value": "وصف SEO يظهر في نتائج البحث",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "guides",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "category_label_ar",
+                                    "value": "أدلة",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "author",
+                                    "value": "فريق عقدي",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "publish_at",
+                                    "value": "",
+                                    "type": "text",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        }
+                    },
+                    "response": [],
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "const blog = json?.data;",
+                                    "if (blog?.id) { pm.collectionVariables.set(\"blog_id\", String(blog.id)); }",
+                                    "if (blog?.slug) { pm.collectionVariables.set(\"blog_slug\", String(blog.slug)); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Update blog",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{seo_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs/{{blog_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs",
+                                "{{blog_id}}"
+                            ]
+                        },
+                        "description": "multipart/form-data. Numeric id. Optional new image replaces the previous file.",
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "title",
+                                    "value": "عنوان مقال محدّث",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "description",
+                                    "value": "<p>محتوى محدّث للمقال.</p>",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "status",
+                                    "value": "published",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "is_active",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image_alt",
+                                    "value": "وصف صورة محدّث",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "meta_title",
+                                    "value": "عنوان SEO محدّث",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "meta_description",
+                                    "value": "وصف SEO محدّث",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "image",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Toggle blog active",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{seo_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs/{{blog_id}}/toggle-active",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs",
+                                "{{blog_id}}",
+                                "toggle-active"
+                            ]
+                        },
+                        "description": "Flips `is_active`. Inactive posts drop out of the public list."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete blog",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Accept-Language",
+                                "value": "{{locale}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{seo_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/blogs/{{blog_id}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "blogs",
+                                "{{blog_id}}"
+                            ]
+                        },
+                        "description": "Deletes the post and its stored image. Use a blog created in this collection, not a seeded article."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ]
+}

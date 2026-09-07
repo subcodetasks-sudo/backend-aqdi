@@ -3,10 +3,10 @@
 namespace App\Modules\Content\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\V2\BlogIndexRequest;
 use App\Http\Requests\Admin\V2\StoreBlogRequest;
 use App\Http\Requests\Admin\V2\UpdateBlogRequest;
 use App\Http\Resources\BlogResource;
+use App\Http\Traits\Responser;
 use App\Models\Blog;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BlogSubDomainController extends Controller
 {
+    use Responser;
    
 
  public function blogs()

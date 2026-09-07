@@ -288,18 +288,20 @@ $items = [
                 'address_url' => $mapsUrl,
                 'image_instrument' => $file(),
             ]),
-            'description' => "Creates the property. Saves `real_estate_id`.\nUI: صك ملكية إلكتروني + رفع صورة الصك + رابط قوقل ماب.\n`image_instrument` is required when `instrument_type=electronic`. File: png / jpeg / pdf.",
+            'description' => "Creates the property. Saves `real_estate_id`.\nUI: صك ملكية إلكتروني + رفع صورة الصك + رابط قوقل ماب.\n`image_instrument` is required for electronic only when deed data is not entered manually. File: png / jpeg / pdf.",
             'event' => $saveRealEstateIdScript,
         ]),
         req('Electronic Deed — Manual Number and Date', 'POST', '/realstate/step1', [
-            'form' => array_merge($step1Base, [
+            'body' => array_merge($step1Base, [
                 'instrument_type' => 'electronic',
-                'instrument_history' => '1440-01-01',
+                'instrument_number' => '1234567890',
                 'type_instrument_history' => 'hijri',
+                'instrument_history_day' => 15,
+                'instrument_history_month' => 6,
+                'instrument_history_year' => 1440,
                 'address_url' => $mapsUrl,
-                'image_instrument' => $file(),
             ]),
-            'description' => 'صك إلكتروني مع تاريخ الصك يدويًا + رابط قوقل ماب.',
+            'description' => 'UI: إدخال بيانات الصك يدويًا بدل الصورة + رابط قوقل ماب. الصورة غير مطلوبة.',
             'event' => $saveRealEstateIdScript,
         ]),
         req('Electronic Deed — Manual Address', 'POST', '/realstate/step1', [
@@ -434,7 +436,7 @@ $items = [
             'description' => 'تجديد عقد إيجار. لا يتطلب صورة صك.',
             'event' => $saveRealEstateIdScript,
         ]),
-    ], "POST /realstate/step1 — creates the property.\n\nUI: نوع المستند + العنوان الوطني (رابط قوقل ماب / يدوي / صورة البطاقة).\n`image_instrument` is required for `electronic` and owner-endowment.\nChoose the file in Postman before sending form-data requests."),
+    ], "POST /realstate/step1 — creates the property.\n\nUI: نوع المستند + العنوان الوطني (رابط قوقل ماب / يدوي / صورة البطاقة).\n`image_instrument` is required for electronic only when the deed is not entered manually, and always for owner-endowment.\nChoose the file in Postman before sending form-data requests."),
 
     folder('3. Step 2 — Owner Details', [
         req('Complete Owner Details', 'POST', '/realstate/step2', [
