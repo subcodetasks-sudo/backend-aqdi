@@ -24,6 +24,8 @@ return [
     'valid_code_to_reset_password' => 'The code is valid, you can reset your password now',
     'wrong_code_to_reset_password' => 'The reset password code is not correct',
     'unauthorized' => "You havn't access",
+    'unauthenticated' => 'Please sign in again',
+    'forbidden' => 'You do not have permission for this action',
 
     'completed_contract' => 'The contract is completed, edit faild',
     'have_uncompleted_contract' => 'There is an uncompleted contract. You have to complete the existing contract to be able to create a new one',

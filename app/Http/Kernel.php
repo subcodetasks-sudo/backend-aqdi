@@ -74,5 +74,6 @@ class Kernel extends HttpKernel
         'setLocale' => \App\Http\Middleware\SetLocale::class,
         'seo' => \App\Http\Middleware\PreventSeoAccess::class,
         'permission' => \App\Http\Middleware\CheckEmployeePermission::class,
+        'employee.bearer' => \App\Http\Middleware\PreferEmployeeBearerToken::class,
     ];
 }

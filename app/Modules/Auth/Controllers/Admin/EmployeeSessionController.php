@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Modules\Auth\Requests\Admin\EmployeeLoginRequest;
 use App\Modules\Auth\Services\EmployeeTokenService;
 use App\Shared\Responses\Responser;
+use App\Support\AuthenticatedEmployee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -103,10 +104,10 @@ class EmployeeSessionController extends Controller
     public function profile(Request $request)
     {
         try {
-            $employee = $request->user();
+            $employee = AuthenticatedEmployee::from($request);
 
             if (! $employee instanceof Employee) {
-                return $this->errorMessage(trans('api.unauthorized'), 403);
+                return $this->errorMessage(trans('api.unauthenticated'), 401);
             }
 
             $employee->loadMissing('roleRelation.permissions');
@@ -144,9 +145,9 @@ class EmployeeSessionController extends Controller
     public function updateFcmToken(Request $request)
     {
         try {
-            $employee = $request->user();
+            $employee = AuthenticatedEmployee::from($request);
             if (! $employee instanceof Employee) {
-                return $this->errorMessage(trans('api.unauthorized'), 403);
+                return $this->errorMessage(trans('api.unauthenticated'), 401);
             }
 
             $validated = $request->validate([

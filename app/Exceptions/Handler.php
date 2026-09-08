@@ -73,11 +73,11 @@ class Handler extends ExceptionHandler
             }
 
             if ($e instanceof AuthenticationException) {
-                return $this->errorMessage(trans('api.unauthorized'), 401);
+                return $this->errorMessage(trans('api.unauthenticated'), 401);
             }
 
             if ($e instanceof AuthorizationException) {
-                return $this->errorMessage($e->getMessage() ?: trans('api.unauthorized'), 403);
+                return $this->errorMessage($e->getMessage() ?: trans('api.forbidden'), 403);
             }
 
             if ($e instanceof HttpException) {

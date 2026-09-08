@@ -25,6 +25,8 @@ return [
     'valid_code_to_reset_password' => 'تم التأكد من الكود، يمكنك إعادة تعيين كلمة المرور الآن',
     'wrong_code_to_reset_password' => 'كود إعادة تعيين كلمة المرور غير صحيح',
     'unauthorized' => 'ليس لديك صلاحية',
+    'unauthenticated' => 'يجب تسجيل الدخول من جديد',
+    'forbidden' => 'لا تملك صلاحية لهذه العملية',
 
     'completed_contract' => 'العقد مكتمل، فشل التعديل',
     'have_uncompleted_contract' => 'يوجد عقد غير مكتمل، يجب إكمال العقد الموجود لتتمكن من إنشاء عقد جديد',

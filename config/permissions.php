@@ -114,6 +114,7 @@ return [
 
     /**
      * Role `name` values that skip the permission matrix (full access).
+     * Compared after lowercasing and normalizing hyphens/spaces to underscores.
      *
      * @var list<string>
      */
@@ -122,5 +123,27 @@ return [
         'super_admin',
         'superadmin',
         'super-admin',
+        'administrator',
+        'system_admin',
+        'system-admin',
+    ],
+
+    /**
+     * Role titles (AR/EN) that also skip the permission matrix.
+     * Compared after trim + lowercase (English) / trim (Arabic).
+     *
+     * @var list<string>
+     */
+    'full_access_titles' => [
+        'admin',
+        'administrator',
+        'system admin',
+        'super admin',
+        'superadmin',
+        'أدمن',
+        'الادمن',
+        'الأدمن',
+        'مدير النظام',
+        'مدير عام',
     ],
 ];

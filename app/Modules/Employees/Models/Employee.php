@@ -157,10 +157,17 @@ class Employee extends Authenticatable
             return true;
         }
 
-        $names = array_map('strtolower', (array) config('permissions.full_access_roles', ['admin']));
-        $roleName = strtolower((string) $this->resolvedRoleName());
+        if (Role::grantsFullAccess($this->resolvedRoleName())) {
+            return true;
+        }
 
-        return $roleName !== '' && in_array($roleName, $names, true);
+        if ($this->roleRelation) {
+            return false;
+        }
+
+        $legacy = $this->getRawOriginal('role');
+
+        return is_string($legacy) && Role::grantsFullAccess($legacy);
     }
 
     /**

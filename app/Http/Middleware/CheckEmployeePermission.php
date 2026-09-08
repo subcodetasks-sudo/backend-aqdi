@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Http\Traits\Responser;
-use App\Models\Employee;
+use App\Support\AuthenticatedEmployee;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -16,15 +16,15 @@ class CheckEmployeePermission
      */
     public function handle(Request $request, Closure $next, string ...$permissions)
     {
-        $employee = $request->user();
+        $employee = AuthenticatedEmployee::from($request);
 
-        if (! $employee instanceof Employee) {
-            return $this->errorMessage(trans('api.unauthorized'), 403);
+        if ($employee === null) {
+            return $this->errorMessage(trans('api.forbidden'), 403);
         }
 
         foreach ($permissions as $permission) {
             if (! $employee->hasPermission($permission)) {
-                return $this->errorMessage(trans('api.unauthorized'), 403);
+                return $this->errorMessage(trans('api.forbidden'), 403);
             }
         }
 

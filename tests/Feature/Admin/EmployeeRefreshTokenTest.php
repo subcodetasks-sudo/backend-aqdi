@@ -289,6 +289,51 @@ class EmployeeRefreshTokenTest extends TestCase
             ]);
     }
 
+    public function test_admin_display_title_without_admin_slug_is_system_admin(): void
+    {
+        $role = Role::query()->create([
+            'name' => 'branch_owner',
+            'title_ar' => 'أدمن',
+            'title_en' => 'Admin',
+            'is_active' => true,
+        ]);
+        $this->createEmployee($role);
+
+        $response = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.is_system_admin', true)
+            ->assertJsonPath('data.role', 'branch_owner');
+
+        $this->assertNotEmpty($response->json('data.permissions'));
+        $this->assertNotEmpty($response->json('data.permission_matrix.analytics'));
+
+        $gated = $this->withToken($response->json('data.token'))
+            ->getJson(route('dashboard-analytics', absolute: false));
+
+        $this->assertNotEquals(401, $gated->status(), $gated->getContent());
+        $this->assertNotEquals(403, $gated->status(), $gated->getContent());
+    }
+
+    public function test_admin_role_without_attached_permissions_is_not_forbidden(): void
+    {
+        $role = $this->createRole('admin');
+        $this->createEmployee($role);
+
+        $login = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.is_system_admin', true);
+
+        $gated = $this->withToken($login->json('data.token'))
+            ->getJson(route('dashboard-analytics', absolute: false));
+
+        $this->assertNotEquals(401, $gated->status(), $gated->getContent());
+        $this->assertNotEquals(403, $gated->status(), $gated->getContent());
+    }
+
     private function createEmployee(?Role $role = null, string $workPeriod = 'morning'): Employee
     {
         return Employee::query()->create([

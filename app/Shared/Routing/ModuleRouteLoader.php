@@ -11,12 +11,12 @@ class ModuleRouteLoader
      * Route files a module may expose, mapped to the same middleware/prefix
      * as the legacy route files in RouteServiceProvider.
      *
-     * @var array<string, array{middleware: string, prefix: string|null}>
+     * @var array<string, array{middleware: string|list<string>, prefix: string|null}>
      */
     private const ROUTE_FILES = [
         'api.php' => ['middleware' => 'api', 'prefix' => 'api'],
         'api_v2.php' => ['middleware' => 'api', 'prefix' => 'api/v2'],
-        'admin.php' => ['middleware' => 'api', 'prefix' => 'api/admin'],
+        'admin.php' => ['middleware' => ['api', 'employee.bearer'], 'prefix' => 'api/admin'],
         'web.php' => ['middleware' => 'web', 'prefix' => null],
     ];
 
@@ -72,7 +72,10 @@ class ModuleRouteLoader
         }
     }
 
-    private function loadRouteFile(string $path, string $middleware, ?string $prefix): void
+    /**
+     * @param  string|list<string>  $middleware
+     */
+    private function loadRouteFile(string $path, string|array $middleware, ?string $prefix): void
     {
         $registrar = Route::middleware($middleware);
 

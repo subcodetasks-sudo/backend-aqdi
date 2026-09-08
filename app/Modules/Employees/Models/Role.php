@@ -76,20 +76,70 @@ class Role extends Model
      */
     public function isFullAccess(): bool
     {
+        return self::grantsFullAccess($this->name, $this->title_en, $this->title_ar);
+    }
+
+    /**
+     * True when a role slug or display title is a system admin (full dashboard access).
+     */
+    public static function grantsFullAccess(?string $name, ?string $titleEn = null, ?string $titleAr = null): bool
+    {
+        $normalizedName = self::normalizeAccessKey($name);
         $configuredNames = array_map(
-            'strtolower',
+            [self::class, 'normalizeAccessKey'],
             (array) config('permissions.full_access_roles', ['admin'])
         );
-        $name = strtolower((string) $this->name);
 
-        if ($name !== '' && in_array($name, $configuredNames, true)) {
+        if ($normalizedName !== '' && in_array($normalizedName, $configuredNames, true)) {
             return true;
         }
 
-        $titleEn = strtolower((string) $this->title_en);
+        $titles = array_map(
+            [self::class, 'normalizeAccessTitle'],
+            (array) config('permissions.full_access_titles', ['admin', 'مدير النظام'])
+        );
+        $candidates = [
+            self::normalizeAccessTitle($titleEn),
+            self::normalizeAccessTitle($titleAr),
+            self::normalizeAccessTitle($name),
+        ];
 
-        return str_contains($titleEn, 'super admin')
-            || $titleEn === 'system admin'
-            || (string) $this->title_ar === 'مدير النظام';
+        foreach ($candidates as $candidate) {
+            if ($candidate !== '' && in_array($candidate, $titles, true)) {
+                return true;
+            }
+
+            if ($candidate !== '' && str_contains($candidate, 'super admin')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function normalizeAccessKey(?string $value): string
+    {
+        $value = strtolower(trim((string) $value));
+        if ($value === '') {
+            return '';
+        }
+
+        $value = str_replace(['-', ' '], '_', $value);
+
+        return preg_replace('/_+/', '_', $value) ?? $value;
+    }
+
+    public static function normalizeAccessTitle(?string $value): string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (preg_match('/[A-Za-z]/', $value) === 1) {
+            return strtolower($value);
+        }
+
+        return $value;
     }
 }
