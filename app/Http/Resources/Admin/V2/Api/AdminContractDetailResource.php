@@ -10,6 +10,7 @@ use App\Http\Resources\Admin\V2\Api\ContractCommentResource;
 use App\Http\Resources\Api\V2\UnitResource;
 use App\Models\Account;
 use App\Models\City;
+use App\Models\Contract;
 use App\Models\ContractPeriod;
 use App\Models\ContractStatus;
 use App\Models\Employee;
@@ -559,13 +560,14 @@ class AdminContractDetailResource extends JsonResource
             return null;
         }
 
+        $instrumentLabel = Contract::instrumentTypeLabel((string) $m->instrument_type);
+
         return array_merge(
             ['id' => $m->id],
             $m->only([
                 'name_real_estate',
                 'name_owner',
                 'contract_type',
-                'instrument_type',
                 'street',
                 'neighborhood',
                 'property_city_id',
@@ -578,6 +580,10 @@ class AdminContractDetailResource extends JsonResource
                 'water_meter_ownership',
             ]),
             [
+                'instrument_type' => $instrumentLabel,
+                'instrument_type_trans' => $instrumentLabel,
+                'instrument_type_label' => $instrumentLabel,
+                'instrument_type_key' => $m->instrument_type,
                 'copy_of_guardians_power_of_attorney_for_agent' => $this->publicStorageUrl(
                     $m->getAttributes()['copy_of_guardians_power_of_attorney_for_agent'] ?? null
                 ),
@@ -757,6 +763,9 @@ class AdminContractDetailResource extends JsonResource
             'contract_status_color' => $c->contractStatus?->color,
             'tenant_role_names' => $tenantRoleNames,
             'contract_type_key' => $c->contract_type,
+            'instrument_type' => $c->instrument_type_trans ?: $c->instrument_type,
+            'instrument_type_trans' => $c->instrument_type_trans,
+            'instrument_type_label' => $c->instrument_type_trans,
             'instrument_type_key' => $c->instrument_type,
         ];
     }

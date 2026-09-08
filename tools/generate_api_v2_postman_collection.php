@@ -720,7 +720,7 @@ $items = [
         req('Get FAQ', 'GET', '/common-questions', ['public' => true]),
         req('Get Content Page', 'GET', '/content-pages/{{page_key}}', [
             'public' => true,
-            'description' => '`page_key` is `home` or `about`.',
+            'description' => '`page_key` is `home`, `about`, `blogs`, `services`, or `faqs`. Returns Arabic `meta_title` / `meta_description` (empty string falls back on the public site).',
         ]),
         req('Get Cover Image', 'GET', '/cover', ['public' => true]),
         req('Get Instruction Images', 'GET', '/instruction-images', ['public' => true]),

@@ -143,6 +143,8 @@ function fileField(string $key, string $src = ''): array
 
 $homeFormData = [
     textField('page', 'home'),
+    textField('meta_title', 'عقدي — توثيق عقد الإيجار إلكترونيًا'),
+    textField('meta_description', 'وثّق عقد الإيجار عبر شبكة إيجار خلال دقائق مع عقدي.'),
     textField('hero[badge_text]', 'عقدك الموثق من شبكة ايجار خلال دقائق'),
     textField('hero[main_title]', 'عقد إيجار إلكتروني موثق'),
     textField('hero[description]', 'عقود إيجار معتمدة وموثقة عبر منصة إيجار الإلكترونية.'),
@@ -205,6 +207,8 @@ $homeFormData = [
 
 $aboutFormData = [
     textField('page', 'about'),
+    textField('meta_title', 'من نحن — عقدي'),
+    textField('meta_description', 'تعرّف على عقدي ومنصة توثيق عقود الإيجار الإلكترونية.'),
     textField('hero[badge_text]', 'من نحن؟'),
     textField('hero[main_title]', 'نُبسّط إدارة العقود الإيجارية'),
     textField('hero[description]', 'تقدم عقاري حلولًا إلكترونية متكاملة.'),
@@ -252,7 +256,7 @@ $collection = [
     'info' => [
         '_postman_id' => uuidV4(),
         'name' => 'AQDI Admin — Content Pages API',
-        'description' => "Unified admin CMS endpoints for `home` and `about` pages.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`\n\n**POST body:** `multipart/form-data` with nested keys and optional files.",
+        'description' => "Unified admin CMS endpoints for page-level content and Arabic SEO meta.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`, `blogs`, `services`, `faqs`\n\n**Permissions:** `app_content` (home/about), `blogs` (blogs index), `analytics` (services index), `faqs` (FAQs index). System admin bypasses.\n\n**SEO fields (Arabic only):** `meta_title`, `meta_description`. POST is partial: omitted meta keys are kept; empty string clears. Meta-only POSTs do not wipe `home`/`about` sections.\n\n**POST body:** `multipart/form-data`. `blogs`, `services`, and `faqs` are meta-only.",
         'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     ],
     'variable' => [
@@ -301,12 +305,92 @@ $collection = [
             ],
         ],
         [
+            'name' => 'Blogs index SEO',
+            'item' => [
+                getRequest(
+                    'Get blogs index SEO',
+                    '/content-pages/blogs',
+                    'Page-level SEO for the public blogs listing. `sections` is `{}`. Requires `blogs.view`.'
+                ),
+                formDataRequest(
+                    'Update blogs index SEO',
+                    '/content-pages/blogs',
+                    'Partial meta update. Empty string clears the field. Requires `blogs.edit`.',
+                    [
+                        textField('meta_title', 'مدونة عقدي — مقالات عن توثيق الإيجار'),
+                        textField('meta_description', 'اقرأ أحدث المقالات والأدلة حول توثيق عقود الإيجار إلكترونيًا.'),
+                    ]
+                ),
+            ],
+        ],
+        [
+            'name' => 'Services index SEO',
+            'item' => [
+                getRequest(
+                    'Get services index SEO',
+                    '/content-pages/services',
+                    'Page-level SEO for the public services listing. `sections` is `{}`. Requires `analytics.view`.'
+                ),
+                formDataRequest(
+                    'Update services index SEO',
+                    '/content-pages/services',
+                    'Partial meta update. Empty string clears the field. Requires `analytics.edit`.',
+                    [
+                        textField('meta_title', 'خدمات عقدي لتوثيق عقود الإيجار'),
+                        textField('meta_description', 'تعرّف على خدمات توثيق العقود السكنية والتجارية عبر منصة عقدي.'),
+                    ]
+                ),
+            ],
+        ],
+        [
+            'name' => 'FAQs index SEO',
+            'item' => [
+                getRequest(
+                    'Get FAQs index SEO',
+                    '/content-pages/faqs',
+                    'Page-level SEO for the public FAQs listing. `sections` is `{}`. Requires `faqs.view`.'
+                ),
+                formDataRequest(
+                    'Update FAQs index SEO',
+                    '/content-pages/faqs',
+                    'Partial meta update. Empty string clears the field. Requires `faqs.edit`.',
+                    [
+                        textField('meta_title', 'الأسئلة الشائعة — عقدي'),
+                        textField('meta_description', 'إجابات عن توثيق عقود الإيجار إلكترونيًا عبر منصة عقدي وشبكة إيجار.'),
+                    ]
+                ),
+            ],
+        ],
+        [
+            'name' => 'Home / About SEO only',
+            'item' => [
+                formDataRequest(
+                    'Update home SEO without wiping sections',
+                    '/content-pages/home',
+                    'Posts only meta fields. Existing home sections are preserved.',
+                    [
+                        textField('meta_title', 'عقدي — توثيق عقد الإيجار إلكترونيًا'),
+                        textField('meta_description', 'وثّق عقد الإيجار عبر شبكة إيجار خلال دقائق مع عقدي.'),
+                    ]
+                ),
+                formDataRequest(
+                    'Update about SEO without wiping sections',
+                    '/content-pages/about',
+                    'Posts only meta fields. Existing about sections are preserved.',
+                    [
+                        textField('meta_title', 'من نحن — عقدي'),
+                        textField('meta_description', 'تعرّف على عقدي ومنصة توثيق عقود الإيجار الإلكترونية.'),
+                    ]
+                ),
+            ],
+        ],
+        [
             'name' => 'Generic',
             'item' => [
                 getRequest(
                     'Get by pageKey variable',
                     '/content-pages/{{pageKey}}',
-                    'Use the `pageKey` collection variable to switch between `home` and `about`.'
+                    'Use the `pageKey` collection variable: `home`, `about`, `blogs`, `services`, or `faqs`.'
                 ),
             ],
         ],

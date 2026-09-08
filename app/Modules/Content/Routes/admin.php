@@ -141,8 +141,24 @@ Route::prefix('content')->name('content.')->controller(PageContentController::cl
 });
 
 Route::prefix('content-pages')->name('content-pages.')->controller(ContentPageController::class)->middleware('auth:sanctum')->group(function () {
-    Route::get('/{pageKey}', 'show')->middleware('permission:app_content.view')->name('show');
-    Route::post('/{pageKey}', 'upsert')->middleware('permission:app_content.edit')->name('upsert');
+    $pages = [
+        'home' => 'app_content',
+        'about' => 'app_content',
+        'blogs' => 'blogs',
+        'services' => 'analytics',
+        'faqs' => 'faqs',
+    ];
+
+    foreach ($pages as $pageKey => $section) {
+        Route::get('/'.$pageKey, 'show')
+            ->defaults('pageKey', $pageKey)
+            ->middleware('permission:'.$section.'.view')
+            ->name($pageKey.'.show');
+        Route::post('/'.$pageKey, 'upsert')
+            ->defaults('pageKey', $pageKey)
+            ->middleware('permission:'.$section.'.edit')
+            ->name($pageKey.'.upsert');
+    }
 });
 
 // Ads Management

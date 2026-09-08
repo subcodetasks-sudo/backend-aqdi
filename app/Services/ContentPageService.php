@@ -10,7 +10,9 @@ use Illuminate\Validation\ValidationException;
 
 class ContentPageService
 {
-    public const SUPPORTED_PAGES = ['home', 'about'];
+    public const SUPPORTED_PAGES = ['home', 'about', 'blogs', 'services', 'faqs'];
+
+    public const META_KEYS = ['meta_title', 'meta_description'];
 
     public function show(string $pageKey): array
     {
@@ -28,6 +30,14 @@ class ContentPageService
     {
         $pageKey = $this->normalizePageKey($pageKey);
 
+        $request->validate([
+            'meta_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'meta_description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'meta' => ['sometimes', 'array'],
+            'meta.meta_title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'meta.meta_description' => ['sometimes', 'nullable', 'string', 'max:500'],
+        ]);
+
         $page = ContentPage::query()->firstOrCreate(
             ['page_key' => $pageKey],
             ['content_json' => $this->defaultContentFor($pageKey)]
@@ -36,6 +46,7 @@ class ContentPageService
         $existingContent = is_array($page->content_json) ? $page->content_json : [];
         $baseContent = $this->mergeAssocRecursive($this->defaultContentFor($pageKey), $existingContent);
 
+        $incomingMeta = $this->extractMetaPayload($request);
         $incomingSections = $this->extractSectionsPayload($request);
         $uploadedSections = $this->normalizeUploadedFiles($request->allFiles(), $pageKey);
         $this->deleteReplacedFiles(
@@ -55,6 +66,12 @@ class ContentPageService
 
         $content = [
             'page' => $pageKey,
+            'meta_title' => array_key_exists('meta_title', $incomingMeta)
+                ? $incomingMeta['meta_title']
+                : (string) Arr::get($baseContent, 'meta_title', ''),
+            'meta_description' => array_key_exists('meta_description', $incomingMeta)
+                ? $incomingMeta['meta_description']
+                : (string) Arr::get($baseContent, 'meta_description', ''),
             'sections' => $mergedSections,
         ];
 
@@ -70,6 +87,9 @@ class ContentPageService
         return match ($pageKey) {
             'home' => 'Home content fetched successfully',
             'about' => 'About content fetched successfully',
+            'blogs' => 'Blogs index SEO fetched successfully',
+            'services' => 'Services index SEO fetched successfully',
+            'faqs' => 'FAQs index SEO fetched successfully',
             default => trans('api.success'),
         };
     }
@@ -79,6 +99,9 @@ class ContentPageService
         return match ($pageKey) {
             'home' => 'Home content saved successfully',
             'about' => 'About content saved successfully',
+            'blogs' => 'Blogs index SEO saved successfully',
+            'services' => 'Services index SEO saved successfully',
+            'faqs' => 'FAQs index SEO saved successfully',
             default => trans('api.updated_successfully'),
         };
     }
@@ -96,13 +119,46 @@ class ContentPageService
         return $pageKey;
     }
 
+    public function permissionSectionFor(string $pageKey): string
+    {
+        return match ($pageKey) {
+            'blogs' => 'blogs',
+            'services' => 'analytics',
+            'faqs' => 'faqs',
+            default => 'app_content',
+        };
+    }
+
+    /**
+     * @return array{meta_title: string, meta_description: string}
+     */
+    public function publicMeta(string $pageKey): array
+    {
+        $payload = $this->show($pageKey);
+
+        return [
+            'meta_title' => (string) ($payload['meta_title'] ?? ''),
+            'meta_description' => (string) ($payload['meta_description'] ?? ''),
+        ];
+    }
+
     private function buildResponsePayload(string $pageKey, ContentPage $page): array
     {
         $payload = $this->formatPageResponse($pageKey, $page->content_json);
         $payload['sections'] = $this->transformFileUrls($payload['sections'] ?? []);
+
+        if ($this->isMetaOnlyPage($pageKey) && $payload['sections'] === []) {
+            $payload['sections'] = (object) [];
+        }
+
         $payload['updated_at'] = optional($page->updated_at)->toAtomString() ?? '';
 
         return $payload;
+    }
+
+    private function isMetaOnlyPage(string $pageKey): bool
+    {
+        return in_array($pageKey, ['blogs', 'services', 'faqs'], true);
     }
 
     private function formatPageResponse(string $pageKey, mixed $content): array
@@ -110,19 +166,68 @@ class ContentPageService
         $content = is_array($content) ? $content : $this->defaultContentFor($pageKey);
         $content = $this->mergeAssocRecursive($this->defaultContentFor($pageKey), $content);
         $content = $this->normalizeNullValues($content);
+        $metaTitle = (string) Arr::get($content, 'meta_title', '');
+        $metaDescription = (string) Arr::get($content, 'meta_description', '');
 
         return [
             'page' => $pageKey,
+            'meta_title' => $metaTitle,
+            'meta_description' => $metaDescription,
+            'meta' => [
+                'meta_title' => $metaTitle,
+                'meta_description' => $metaDescription,
+            ],
             'sections' => Arr::get($content, 'sections', []),
         ];
     }
 
+    /**
+     * @return array{meta_title?: string, meta_description?: string}
+     */
+    private function extractMetaPayload(Request $request): array
+    {
+        $meta = [];
+        $nested = $request->input('meta');
+
+        if (is_array($nested)) {
+            foreach (self::META_KEYS as $key) {
+                if (array_key_exists($key, $nested)) {
+                    $meta[$key] = $this->normalizeMetaString($nested[$key]);
+                }
+            }
+        }
+
+        foreach (self::META_KEYS as $key) {
+            if ($request->exists($key)) {
+                $meta[$key] = $this->normalizeMetaString($request->input($key));
+            }
+        }
+
+        return $meta;
+    }
+
+    private function normalizeMetaString(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        return trim((string) $value);
+    }
+
     private function extractSectionsPayload(Request $request): array
     {
-        $payload = $request->except(['page']);
+        $payload = $request->except([
+            'page',
+            'meta',
+            'meta_title',
+            'meta_description',
+            '_method',
+            '_token',
+        ]);
 
         foreach (array_keys($payload) as $key) {
-            if (str_starts_with($key, 'deleted_')) {
+            if (str_starts_with((string) $key, 'deleted_')) {
                 unset($payload[$key]);
             }
         }
@@ -402,6 +507,8 @@ class ContentPageService
         return match ($pageKey) {
             'home' => [
                 'page' => 'home',
+                'meta_title' => '',
+                'meta_description' => '',
                 'sections' => [
                     'hero' => [
                         'badge_text' => '',
@@ -444,6 +551,8 @@ class ContentPageService
             ],
             'about' => [
                 'page' => 'about',
+                'meta_title' => '',
+                'meta_description' => '',
                 'sections' => [
                     'hero' => [
                         'badge_text' => '',
@@ -488,6 +597,8 @@ class ContentPageService
             ],
             default => [
                 'page' => $pageKey,
+                'meta_title' => '',
+                'meta_description' => '',
                 'sections' => [],
             ],
         };

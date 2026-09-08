@@ -1148,7 +1148,7 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{baseUrl}}\/api\/v2\/contract\/check-uncompleted-contract",
+                                    "raw": "{{baseUrl}}\/api\/v2\/contract\/check-uncompleted-contract?contract_type=housing",
                                     "host": [
                                         "{{baseUrl}}"
                                     ],
@@ -1157,9 +1157,15 @@
                                         "v2",
                                         "contract",
                                         "check-uncompleted-contract"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "contract_type",
+                                            "value": "housing"
+                                        }
                                     ]
                                 },
-                                "description": "Returns whether the user has an incomplete contract, plus `contract_id`, `uuid`, and current `step` when one exists."
+                                "description": "Required query `contract_type=housing|commercial`. Returns whether the user has an incomplete contract of that type only (a housing draft does not block starting a commercial contract). When check=true: `contract_id`, `uuid`, `step`, `contract_type`."
                             },
                             "response": []
                         },
@@ -3331,7 +3337,7 @@
                         "auth": {
                             "type": "noauth"
                         },
-                        "description": "`page_key` is `home` or `about`."
+                        "description": "`page_key` is `home`, `about`, `blogs`, `services`, or `faqs`. Returns Arabic `meta_title` \/ `meta_description` (empty string falls back on the public site)."
                     },
                     "response": []
                 },
