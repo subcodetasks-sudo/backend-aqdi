@@ -227,6 +227,9 @@ class RolePermissionResolver
     /**
      * Effective configured permissions for an authenticated employee.
      *
+     * Admin employees receive every catalog permission. Regular employees
+     * receive only the permissions attached to their role (possibly none).
+     *
      * @return array{names: array<int, string>, matrix: array<string, array<int, string>>}
      */
     public function effectivePermissionsFor(Employee $employee): array

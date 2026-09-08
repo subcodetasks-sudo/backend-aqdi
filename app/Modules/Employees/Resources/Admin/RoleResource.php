@@ -22,6 +22,7 @@ class RoleResource extends JsonResource
             'title' => $this->title_trans ?? $this->title_ar,
             'description' => $this->description,
             'is_active' => (bool) $this->is_active,
+            'is_full_access' => $this->isFullAccess(),
             'permissions_count' => $this->permissions_count
                 ?? ($this->relationLoaded('permissions') ? $this->permissions->count() : $this->permissions()->count()),
             'employee_names' => $this->when(

@@ -114,6 +114,10 @@ return [
 
     /**
      * Role `name` values that skip the permission matrix (full access).
+     * An employee whose role matches these has the entire dashboard even when
+     * no rows exist in `role_permissions`. Only non-admin employees are limited
+     * to the permissions assigned to their role.
+     *
      * Compared after lowercasing and normalizing hyphens/spaces to underscores.
      *
      * @var list<string>

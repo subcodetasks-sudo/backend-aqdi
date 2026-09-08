@@ -126,8 +126,11 @@ class Employee extends Authenticatable
 
     /**
      * Whether this employee's role has the given "section.action" permission
-     * (e.g. "analytics.view"). Employees without a linked role are denied,
-     * except system admins who have full access.
+     * (e.g. "analytics.view").
+     *
+     * Admin / system-admin employees always return true (full project access),
+     * even when `role_permissions` is empty. Regular employees are limited to
+     * the permissions attached to their role.
      */
     public function hasPermission(string $permissionName): bool
     {
@@ -147,7 +150,8 @@ class Employee extends Authenticatable
     }
 
     /**
-     * System admin / super-admin roles are not limited by the permission matrix.
+     * Employee from `employees` whose role is Admin gets the whole dashboard
+     * without needing assigned permissions. Everyone else uses the matrix.
      */
     public function isSystemAdmin(): bool
     {
@@ -157,17 +161,22 @@ class Employee extends Authenticatable
             return true;
         }
 
-        if (Role::grantsFullAccess($this->resolvedRoleName())) {
+        if (Role::grantsFullAccess(
+            $this->resolvedRoleName(),
+            $this->roleRelation?->title_en,
+            $this->roleRelation?->title_ar
+        )) {
             return true;
-        }
-
-        if ($this->roleRelation) {
-            return false;
         }
 
         $legacy = $this->getRawOriginal('role');
 
         return is_string($legacy) && Role::grantsFullAccess($legacy);
+    }
+
+    public function hasAllPermissions(): bool
+    {
+        return $this->isSystemAdmin();
     }
 
     /**

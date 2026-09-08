@@ -30,6 +30,7 @@ class EmployeeResource extends JsonResource
                 fn () => new RoleBriefResource($this->roleRelation)
             ),
             'is_system_admin' => $this->isSystemAdmin(),
+            'has_all_permissions' => $this->hasAllPermissions(),
             'permissions' => $effective['names'],
             'permission_names' => $effective['names'],
             'permission_matrix' => $effective['matrix'],

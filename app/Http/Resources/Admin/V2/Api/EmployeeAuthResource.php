@@ -45,6 +45,7 @@ class EmployeeAuthResource extends JsonResource
             'role' => $employee->resolvedRoleName(),
             'role_title' => $employee->resolvedRoleTitle(),
             'is_system_admin' => $employee->isSystemAdmin(),
+            'has_all_permissions' => $employee->hasAllPermissions(),
             'permissions' => $effective['names'],
             'permission_names' => $effective['names'],
             'permission_matrix' => $effective['matrix'],

@@ -138,6 +138,7 @@ class EmployeeRefreshTokenTest extends TestCase
             ->assertJsonPath('data.role_id', $role->id)
             ->assertJsonPath('data.role', 'operator')
             ->assertJsonPath('data.is_system_admin', false)
+            ->assertJsonPath('data.has_all_permissions', false)
             ->assertJsonPath('data.permissions.0', 'all_requests.view')
             ->assertJsonPath('data.permission_names.0', 'all_requests.view')
             ->assertJsonPath('data.permission_matrix.all_requests.0', 'view');
@@ -163,7 +164,8 @@ class EmployeeRefreshTokenTest extends TestCase
             'email' => 'employee@example.com',
             'password' => 'password',
         ])->assertOk()
-            ->assertJsonPath('data.is_system_admin', true);
+            ->assertJsonPath('data.is_system_admin', true)
+            ->assertJsonPath('data.has_all_permissions', true);
 
         $expectedCount = count(config('permissions.sections')) * count(config('permissions.actions'));
 
@@ -308,6 +310,8 @@ class EmployeeRefreshTokenTest extends TestCase
 
         $this->assertNotEmpty($response->json('data.permissions'));
         $this->assertNotEmpty($response->json('data.permission_matrix.analytics'));
+        $this->assertTrue($response->json('data.has_all_permissions'));
+        $this->assertTrue($response->json('data.is_system_admin'));
 
         $gated = $this->withToken($response->json('data.token'))
             ->getJson(route('dashboard-analytics', absolute: false));
@@ -332,6 +336,47 @@ class EmployeeRefreshTokenTest extends TestCase
 
         $this->assertNotEquals(401, $gated->status(), $gated->getContent());
         $this->assertNotEquals(403, $gated->status(), $gated->getContent());
+    }
+
+    public function test_non_admin_employee_is_limited_to_assigned_permissions_only(): void
+    {
+        $role = $this->createRole('operator');
+        $this->createEmployee($role);
+
+        $login = $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'employee@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.is_system_admin', false)
+            ->assertJsonPath('data.has_all_permissions', false);
+
+        $this->assertSame([], $login->json('data.permissions'));
+        $this->assertSame([], $login->json('data.permission_matrix'));
+
+        $this->withToken($login->json('data.token'))
+            ->getJson(route('dashboard-analytics', absolute: false))
+            ->assertForbidden();
+    }
+
+    public function test_legacy_admin_role_column_grants_full_access_even_without_role_permissions(): void
+    {
+        $limited = $this->createRole('operator');
+        Employee::query()->create([
+            'role_id' => $limited->id,
+            'role' => 'admin',
+            'work_period' => 'morning',
+            'name' => 'Legacy Admin',
+            'email' => 'legacy-admin@example.com',
+            'password' => Hash::make('password'),
+            'is_active' => true,
+        ]);
+
+        $this->postJson(route('employees.login', absolute: false), [
+            'email' => 'legacy-admin@example.com',
+            'password' => 'password',
+        ])->assertOk()
+            ->assertJsonPath('data.is_system_admin', true)
+            ->assertJsonPath('data.has_all_permissions', true);
     }
 
     private function createEmployee(?Role $role = null, string $workPeriod = 'morning'): Employee

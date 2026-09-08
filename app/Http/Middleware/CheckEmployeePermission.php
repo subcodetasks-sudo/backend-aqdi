@@ -13,6 +13,7 @@ class CheckEmployeePermission
 
     /**
      * Require the authenticated employee's role to have every given "section.action" permission.
+     * Admin employees bypass this check (full project access).
      */
     public function handle(Request $request, Closure $next, string ...$permissions)
     {
