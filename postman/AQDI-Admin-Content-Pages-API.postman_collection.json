@@ -1,8 +1,8 @@
 {
     "info": {
-        "_postman_id": "a7be3f19-06ba-4d30-b2b7-2b808ae33076",
+        "_postman_id": "a862b6b0-2ff5-4891-a628-5af02aaf6849",
         "name": "AQDI Admin — Content Pages API",
-        "description": "Unified admin CMS endpoints for page-level content and Arabic SEO meta.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`, `blogs`, `services`, `faqs`\n\n**Permissions:** `app_content` (home/about), `blogs` (blogs index), `analytics` (services index), `faqs` (FAQs index). System admin bypasses.\n\n**SEO fields (Arabic only):** `meta_title`, `meta_description`. POST is partial: omitted meta keys are kept; empty string clears. Meta-only POSTs do not wipe `home`/`about` sections.\n\n**POST body:** `multipart/form-data`. `blogs`, `services`, and `faqs` are meta-only.",
+        "description": "Unified admin CMS endpoints for page-level content and Arabic SEO meta.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`, `faq` (`faqs` alias), `blogs`, `services`\n\n**Permissions:** `app_content` (home/about), `blogs` (blogs index), `analytics` (services index), `faqs` (FAQ index). System admin bypasses.\n\n**SEO fields (Arabic only):** `meta_title`, `meta_description`. POST is partial: omitted meta keys are kept; empty string clears. Meta-only POSTs do not wipe `home`/`about` sections.\n\n**POST body:** `multipart/form-data`. `blogs`, `services`, and `faq` are meta-only.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
@@ -895,7 +895,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/content-pages/faqs",
+                            "raw": "{{baseUrl}}/api/admin/content-pages/faq",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -903,10 +903,10 @@
                                 "api",
                                 "admin",
                                 "content-pages",
-                                "faqs"
+                                "faq"
                             ]
                         },
-                        "description": "Page-level SEO for the public FAQs listing. `sections` is `{}`. Requires `faqs.view`."
+                        "description": "Page-level SEO for the public FAQ listing. `sections` is `{}`. Requires `faqs.view`. Canonical key is `faq` (`/faqs` also works)."
                     },
                     "response": []
                 },
@@ -927,7 +927,7 @@
                             }
                         ],
                         "url": {
-                            "raw": "{{baseUrl}}/api/admin/content-pages/faqs",
+                            "raw": "{{baseUrl}}/api/admin/content-pages/faq",
                             "host": [
                                 "{{baseUrl}}"
                             ],
@@ -935,7 +935,7 @@
                                 "api",
                                 "admin",
                                 "content-pages",
-                                "faqs"
+                                "faq"
                             ]
                         },
                         "description": "Partial meta update. Empty string clears the field. Requires `faqs.edit`.",
@@ -1089,7 +1089,7 @@
                                 "{{pageKey}}"
                             ]
                         },
-                        "description": "Use the `pageKey` collection variable: `home`, `about`, `blogs`, `services`, or `faqs`."
+                        "description": "Use the `pageKey` collection variable: `home`, `about`, `faq`, `blogs`, or `services`."
                     },
                     "response": []
                 }

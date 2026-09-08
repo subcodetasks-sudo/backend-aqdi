@@ -15,6 +15,18 @@ class ContentPageController extends Controller
     {
     }
 
+    public function index()
+    {
+        try {
+            return $this->apiResponse(
+                $this->contentPages->indexMeta(),
+                'Page SEO fetched successfully'
+            );
+        } catch (\Throwable $e) {
+            return $this->errorMessage(trans('api.error_occurred').': '.$e->getMessage(), 500);
+        }
+    }
+
     public function show(string $pageKey)
     {
         try {

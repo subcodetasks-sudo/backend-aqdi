@@ -146,6 +146,7 @@ Route::prefix('content-pages')->name('content-pages.')->controller(ContentPageCo
         'about' => 'app_content',
         'blogs' => 'blogs',
         'services' => 'analytics',
+        'faq' => 'faqs',
         'faqs' => 'faqs',
     ];
 

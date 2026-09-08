@@ -62,7 +62,7 @@ class ContentPageSeoTest extends TestCase
 
     public function test_get_returns_meta_for_all_page_keys(): void
     {
-        foreach (['home', 'about', 'blogs', 'services', 'faqs'] as $page) {
+        foreach (['home', 'about', 'faq', 'blogs', 'services'] as $page) {
             $json = $this->getJson('/api/admin/content-pages/'.$page)
                 ->assertOk()
                 ->assertJsonPath('success', true)
@@ -189,10 +189,41 @@ class ContentPageSeoTest extends TestCase
             ->assertJsonPath('data.page', 'services')
             ->assertJsonPath('data.meta_title', '');
 
+        $this->getJson('/api/v2/content-pages/faq')
+            ->assertOk()
+            ->assertJsonPath('data.page', 'faq')
+            ->assertJsonPath('data.meta_title', '');
+
         $this->getJson('/api/v2/content-pages/faqs')
             ->assertOk()
-            ->assertJsonPath('data.page', 'faqs')
-            ->assertJsonPath('data.meta_title', '');
+            ->assertJsonPath('data.page', 'faq');
+    }
+
+    public function test_public_index_returns_meta_for_every_page(): void
+    {
+        ContentPage::query()->create([
+            'page_key' => 'home',
+            'content_json' => [
+                'page' => 'home',
+                'meta_title' => 'عقدي',
+                'meta_description' => 'توثيق عقود الإيجار',
+                'sections' => [],
+            ],
+        ]);
+
+        $json = $this->getJson('/api/v2/content-pages')
+            ->assertOk()
+            ->assertJsonPath('data.home.page', 'home')
+            ->assertJsonPath('data.home.meta_title', 'عقدي')
+            ->assertJsonPath('data.home.meta_description', 'توثيق عقود الإيجار')
+            ->assertJsonPath('data.about.page', 'about')
+            ->assertJsonPath('data.faq.page', 'faq')
+            ->assertJsonPath('data.blogs.page', 'blogs')
+            ->json('data');
+
+        $this->assertArrayHasKey('meta_title', $json['about']);
+        $this->assertArrayHasKey('meta_description', $json['faq']);
+        $this->assertArrayHasKey('meta_title', $json['blogs']);
     }
 
     public function test_blogs_seo_requires_blogs_permission(): void
@@ -201,7 +232,7 @@ class ContentPageSeoTest extends TestCase
 
         $this->getJson('/api/admin/content-pages/home')->assertOk();
         $this->getJson('/api/admin/content-pages/blogs')->assertForbidden();
-        $this->getJson('/api/admin/content-pages/faqs')->assertForbidden();
+        $this->getJson('/api/admin/content-pages/faq')->assertForbidden();
         $this->post('/api/admin/content-pages/services', [
             'meta_title' => 'خدمات',
         ], ['Accept' => 'application/json'])->assertForbidden();

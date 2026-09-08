@@ -24,5 +24,6 @@ Route::prefix('instruction-images')->controller(InstructionImageController::clas
 });
 
 Route::prefix('content-pages')->controller(V2ContentPageController::class)->group(function () {
-    Route::get('/{pageKey}', 'show')->where('pageKey', 'home|about|blogs|services|faqs');
+    Route::get('/', 'index');
+    Route::get('/{pageKey}', 'show')->where('pageKey', 'home|about|faq|faqs|blogs|services');
 });

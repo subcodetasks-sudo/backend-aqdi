@@ -3312,6 +3312,35 @@
                     "response": []
                 },
                 {
+                    "name": "Get All Content Page SEO",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application\/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}\/api\/v2\/content-pages",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v2",
+                                "content-pages"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "description": "Every listing page: `home`, `about`, `faq`, `blogs`, `services`. Each value is `{ page, meta_title, meta_description }`."
+                    },
+                    "response": []
+                },
+                {
                     "name": "Get Content Page",
                     "request": {
                         "method": "GET",
@@ -3337,7 +3366,7 @@
                         "auth": {
                             "type": "noauth"
                         },
-                        "description": "`page_key` is `home`, `about`, `blogs`, `services`, or `faqs`. Returns Arabic `meta_title` \/ `meta_description` (empty string falls back on the public site)."
+                        "description": "`GET \/content-pages` returns every page: `{ home, about, faq, blogs, services }` each with `page`, `meta_title`, `meta_description`. `GET \/content-pages\/{page_key}` is the same for one page. Keys: `home`, `about`, `faq` (`faqs` alias), `blogs`, `services`. Empty string falls back on the public site."
                     },
                     "response": []
                 },

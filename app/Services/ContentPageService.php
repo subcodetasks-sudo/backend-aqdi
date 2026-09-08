@@ -10,7 +10,11 @@ use Illuminate\Validation\ValidationException;
 
 class ContentPageService
 {
-    public const SUPPORTED_PAGES = ['home', 'about', 'blogs', 'services', 'faqs'];
+    public const SUPPORTED_PAGES = ['home', 'about', 'faq', 'blogs', 'services'];
+
+    public const PAGE_ALIASES = [
+        'faqs' => 'faq',
+    ];
 
     public const META_KEYS = ['meta_title', 'meta_description'];
 
@@ -18,12 +22,28 @@ class ContentPageService
     {
         $pageKey = $this->normalizePageKey($pageKey);
 
-        $page = ContentPage::query()->firstOrCreate(
-            ['page_key' => $pageKey],
-            ['content_json' => $this->defaultContentFor($pageKey)]
-        );
+        return $this->buildResponsePayload($pageKey, $this->findOrCreatePage($pageKey));
+    }
 
-        return $this->buildResponsePayload($pageKey, $page);
+    /**
+     * Public SEO for every listing page: `{ page, meta_title, meta_description }`.
+     *
+     * @return array<string, array{page: string, meta_title: string, meta_description: string}>
+     */
+    public function indexMeta(): array
+    {
+        $pages = [];
+
+        foreach (self::SUPPORTED_PAGES as $pageKey) {
+            $payload = $this->show($pageKey);
+            $pages[$pageKey] = [
+                'page' => $pageKey,
+                'meta_title' => (string) ($payload['meta_title'] ?? ''),
+                'meta_description' => (string) ($payload['meta_description'] ?? ''),
+            ];
+        }
+
+        return $pages;
     }
 
     public function upsert(Request $request, string $pageKey): array
@@ -38,10 +58,7 @@ class ContentPageService
             'meta.meta_description' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
 
-        $page = ContentPage::query()->firstOrCreate(
-            ['page_key' => $pageKey],
-            ['content_json' => $this->defaultContentFor($pageKey)]
-        );
+        $page = $this->findOrCreatePage($pageKey);
 
         $existingContent = is_array($page->content_json) ? $page->content_json : [];
         $baseContent = $this->mergeAssocRecursive($this->defaultContentFor($pageKey), $existingContent);
@@ -89,7 +106,7 @@ class ContentPageService
             'about' => 'About content fetched successfully',
             'blogs' => 'Blogs index SEO fetched successfully',
             'services' => 'Services index SEO fetched successfully',
-            'faqs' => 'FAQs index SEO fetched successfully',
+            'faq' => 'FAQ index SEO fetched successfully',
             default => trans('api.success'),
         };
     }
@@ -101,7 +118,7 @@ class ContentPageService
             'about' => 'About content saved successfully',
             'blogs' => 'Blogs index SEO saved successfully',
             'services' => 'Services index SEO saved successfully',
-            'faqs' => 'FAQs index SEO saved successfully',
+            'faq' => 'FAQ index SEO saved successfully',
             default => trans('api.updated_successfully'),
         };
     }
@@ -109,6 +126,7 @@ class ContentPageService
     public function normalizePageKey(string $pageKey): string
     {
         $pageKey = trim(strtolower($pageKey));
+        $pageKey = self::PAGE_ALIASES[$pageKey] ?? $pageKey;
 
         if (!in_array($pageKey, self::SUPPORTED_PAGES, true)) {
             throw ValidationException::withMessages([
@@ -124,22 +142,50 @@ class ContentPageService
         return match ($pageKey) {
             'blogs' => 'blogs',
             'services' => 'analytics',
-            'faqs' => 'faqs',
+            'faq' => 'faqs',
             default => 'app_content',
         };
     }
 
     /**
-     * @return array{meta_title: string, meta_description: string}
+     * @return array{page: string, meta_title: string, meta_description: string}
      */
     public function publicMeta(string $pageKey): array
     {
         $payload = $this->show($pageKey);
 
         return [
+            'page' => (string) ($payload['page'] ?? $pageKey),
             'meta_title' => (string) ($payload['meta_title'] ?? ''),
             'meta_description' => (string) ($payload['meta_description'] ?? ''),
         ];
+    }
+
+    private function findOrCreatePage(string $pageKey): ContentPage
+    {
+        $page = ContentPage::query()->where('page_key', $pageKey)->first();
+        if ($page) {
+            return $page;
+        }
+
+        $legacyKeys = array_keys(array_filter(
+            self::PAGE_ALIASES,
+            static fn (string $canonical): bool => $canonical === $pageKey
+        ));
+
+        if ($legacyKeys !== []) {
+            $legacy = ContentPage::query()->whereIn('page_key', $legacyKeys)->first();
+            if ($legacy) {
+                $legacy->update(['page_key' => $pageKey]);
+
+                return $legacy;
+            }
+        }
+
+        return ContentPage::query()->create([
+            'page_key' => $pageKey,
+            'content_json' => $this->defaultContentFor($pageKey),
+        ]);
     }
 
     private function buildResponsePayload(string $pageKey, ContentPage $page): array
@@ -158,7 +204,7 @@ class ContentPageService
 
     private function isMetaOnlyPage(string $pageKey): bool
     {
-        return in_array($pageKey, ['blogs', 'services', 'faqs'], true);
+        return in_array($pageKey, ['blogs', 'services', 'faq'], true);
     }
 
     private function formatPageResponse(string $pageKey, mixed $content): array

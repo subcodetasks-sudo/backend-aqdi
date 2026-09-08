@@ -256,7 +256,7 @@ $collection = [
     'info' => [
         '_postman_id' => uuidV4(),
         'name' => 'AQDI Admin — Content Pages API',
-        'description' => "Unified admin CMS endpoints for page-level content and Arabic SEO meta.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`, `blogs`, `services`, `faqs`\n\n**Permissions:** `app_content` (home/about), `blogs` (blogs index), `analytics` (services index), `faqs` (FAQs index). System admin bypasses.\n\n**SEO fields (Arabic only):** `meta_title`, `meta_description`. POST is partial: omitted meta keys are kept; empty string clears. Meta-only POSTs do not wipe `home`/`about` sections.\n\n**POST body:** `multipart/form-data`. `blogs`, `services`, and `faqs` are meta-only.",
+        'description' => "Unified admin CMS endpoints for page-level content and Arabic SEO meta.\n\n**Authentication:** Bearer `{{employee_token}}` after `POST /api/admin/employees/login`\n\n**Endpoints:**\n- `GET /api/admin/content-pages/{pageKey}`\n- `POST /api/admin/content-pages/{pageKey}`\n\n**Supported page keys:** `home`, `about`, `faq` (`faqs` alias), `blogs`, `services`\n\n**Permissions:** `app_content` (home/about), `blogs` (blogs index), `analytics` (services index), `faqs` (FAQ index). System admin bypasses.\n\n**SEO fields (Arabic only):** `meta_title`, `meta_description`. POST is partial: omitted meta keys are kept; empty string clears. Meta-only POSTs do not wipe `home`/`about` sections.\n\n**POST body:** `multipart/form-data`. `blogs`, `services`, and `faq` are meta-only.",
         'schema' => 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
     ],
     'variable' => [
@@ -347,12 +347,12 @@ $collection = [
             'item' => [
                 getRequest(
                     'Get FAQs index SEO',
-                    '/content-pages/faqs',
-                    'Page-level SEO for the public FAQs listing. `sections` is `{}`. Requires `faqs.view`.'
+                    '/content-pages/faq',
+                    'Page-level SEO for the public FAQ listing. `sections` is `{}`. Requires `faqs.view`. Canonical key is `faq` (`/faqs` also works).'
                 ),
                 formDataRequest(
                     'Update FAQs index SEO',
-                    '/content-pages/faqs',
+                    '/content-pages/faq',
                     'Partial meta update. Empty string clears the field. Requires `faqs.edit`.',
                     [
                         textField('meta_title', 'الأسئلة الشائعة — عقدي'),
@@ -390,7 +390,7 @@ $collection = [
                 getRequest(
                     'Get by pageKey variable',
                     '/content-pages/{{pageKey}}',
-                    'Use the `pageKey` collection variable: `home`, `about`, `blogs`, `services`, or `faqs`.'
+                    'Use the `pageKey` collection variable: `home`, `about`, `faq`, `blogs`, or `services`.'
                 ),
             ],
         ],
