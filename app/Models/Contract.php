@@ -13,6 +13,7 @@ class Contract extends Model
     use AdminSearchableContract;
     use HasFactory;
 
+    $table = 'contracts-new';
     public const SKIP_INITIAL_STEPS_INSTRUMENT_TYPES = [
         'lease_renewal',
         'sublease_agreement',
@@ -100,6 +101,8 @@ class Contract extends Model
     | GLOBAL VARIABLES
     |--------------------------------------------------------------------------
     */
+
+    protected $table = 'contracts_new';
 
     protected $guarded = ['id'];
 
