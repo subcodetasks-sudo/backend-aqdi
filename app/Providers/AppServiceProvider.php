@@ -37,10 +37,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Short alias for tokens issued after this map existed. FQCN tokenable
+        // types (App\Models\Employee / module class) still resolve as-is.
         Relation::morphMap([
             'employee' => Employee::class,
-            'App\\Models\\Employee' => Employee::class,
-            'App\\Modules\\Employees\\Models\\Employee' => Employee::class,
         ]);
 
         Validator::extend('valid_contract_start_date', function ($attribute, $value, $parameters, $validator) {

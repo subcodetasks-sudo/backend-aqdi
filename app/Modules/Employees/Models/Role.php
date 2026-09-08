@@ -109,12 +109,12 @@ class Role extends Model
                 return true;
             }
 
-            if ($candidate !== '' && str_contains($candidate, 'super admin')) {
+            if (self::looksLikeAdminTitle($candidate)) {
                 return true;
             }
         }
 
-        return false;
+        return self::looksLikeAdminTitle($normalizedName);
     }
 
     public static function normalizeAccessKey(?string $value): string
@@ -141,5 +141,29 @@ class Role extends Model
         }
 
         return $value;
+    }
+
+    public static function looksLikeAdminTitle(string $value): bool
+    {
+        if ($value === '') {
+            return false;
+        }
+
+        $latin = strtolower(str_replace(['-', ' '], '_', $value));
+        if (str_contains($latin, 'super_admin')
+            || str_contains($latin, 'superadmin')
+            || preg_match('/(^|_)admin(istrator)?($|_)/', $latin) === 1
+            || $latin === 'admin'
+            || str_ends_with($latin, '_admin')
+            || str_starts_with($latin, 'admin_')
+        ) {
+            return true;
+        }
+
+        return str_contains($value, 'أدمن')
+            || str_contains($value, 'ادمن')
+            || str_contains($value, 'الأدمن')
+            || str_contains($value, 'الادمن')
+            || str_contains($value, 'مدير النظام');
     }
 }

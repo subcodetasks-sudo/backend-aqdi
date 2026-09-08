@@ -20,7 +20,7 @@ class CheckEmployeePermission
         $employee = AuthenticatedEmployee::from($request);
 
         if ($employee === null) {
-            return $this->errorMessage(trans('api.forbidden'), 403);
+            return $this->errorMessage(trans('api.unauthenticated'), 401);
         }
 
         foreach ($permissions as $permission) {

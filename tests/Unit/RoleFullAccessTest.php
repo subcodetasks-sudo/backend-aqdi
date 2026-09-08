@@ -14,6 +14,8 @@ class RoleFullAccessTest extends TestCase
         $this->assertTrue(Role::grantsFullAccess('administrator'));
         $this->assertTrue(Role::grantsFullAccess('super-admin'));
         $this->assertTrue(Role::grantsFullAccess('أدمن'));
+        $this->assertTrue(Role::grantsFullAccess('ادمن'));
+        $this->assertTrue(Role::grantsFullAccess('Admin Role'));
         $this->assertTrue(Role::grantsFullAccess('branch_owner', 'Admin', 'أدمن'));
         $this->assertTrue(Role::grantsFullAccess('ops', 'System Admin', null));
         $this->assertTrue(Role::grantsFullAccess('ops', null, 'مدير النظام'));

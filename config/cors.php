@@ -29,12 +29,19 @@ return [
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
         'http://aqdi.aqdi.sa',
+        'https://aqdi.aqdi.sa',
         'https://new-dashboard.aqdi.sa',
+        'http://new-dashboard.aqdi.sa',
+        'https://dashboard.aqdi.sa',
+        'http://dashboard.aqdi.sa',
         'https://blogs.aqdi.sa',
         'http://blogs.aqdi.sa',
-     
     ],
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '#^https?://([a-z0-9-]+\.)?aqdi\.sa$#i',
+        '#^https?://localhost:\d+$#',
+        '#^https?://127\.0\.0\.1:\d+$#',
+    ],
     /*
     |--------------------------------------------------------------------------
     | Allowed Headers
